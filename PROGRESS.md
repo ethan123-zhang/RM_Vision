@@ -5,7 +5,8 @@
 
 ## 一句话状态
 
-项目记忆、协作规则与环境清单已建立，RM2027 官方资料已归档；尚未开始视觉方案开发。
+RDK X5 单类（person）YOLOv8n 切尾巴方案已跑通：ONNX 手术、parity、AP、opset 11、
+`.bin` 编译全部完成；下一步板端部署与 100~150 FPS 测速。
 
 ## 里程碑
 
@@ -15,10 +16,12 @@
 | 2 | 通读三份 RM2027 手册，产出视觉相关约束清单 | ⬜ 待开始 | 文本已提取到 `_extract/` |
 | 3 | 确定赛季视觉目标与量化指标 | ⬜ 待开始 | 依赖里程碑 2 |
 | 4 | RDK X5 环境跑通（相机采集 + BPU 推理） | ⬜ 待开始 | 镜像已备 |
+| 5 | 单类 person YOLOv8n 切尾巴 + X5 .bin | ✅ 完成 | 2026-10-17，AP 0.78 不变、量化 cosine ≥0.997 |
 
 ## 正在做
 
-- 整理规则与环境基线（本文件、`docs/conventions.md`、`docs/environment.md`）。
+- 把 `\\wsl.localhost\Ubuntu-22.04\home\ethan\RM_test` 的 `.bin` 与 runtime 部署到 X5，
+  记录预处理/BPU/后处理分段耗时，冲 100~150 FPS。
 
 ## 下一步（按优先级）
 
@@ -36,3 +39,5 @@
 ## 最近变更
 
 - 2026-10-17：初始化仓库；加入协作规则、环境清单、issue/decision 模板；首次推送。
+- 2026-10-17：完成单类 person 切尾巴（`x5_yolo/`）；494 张 COCO person AP@0.5 0.7800 不变；
+  opset 11 + hb_mapper 1.24.3 本地编出 3.7 MB `.bin`；决策见 `docs/decisions/2026-10-17-yolo-person-head-x5.md`。

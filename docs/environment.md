@@ -31,7 +31,8 @@ Get-FileHash "RDK_X5镜像/rdk-x5-ubuntu22-preinstalled-desktop-3.5.0-arm64.img"
 | 工具 | 版本 | 用途 |
 | :--- | :--- | :--- |
 | Python | 3.10.1 | `_extract/extractor.py`（仅标准库） |
-| RDK SDK / BPU 工具链 | 待补充 | 模型转换与板端推理 |
+| WSL Ubuntu | 22.04 / Python 3.10.12 | 本地训练与 ONNX 验证 |
+| X5 模型转换 | hb_mapper 1.24.3（`pip install rdkx5-yolo-mapper`）+ hbdk 3.49.15 | 生成 Bayes-e `.bin` |
 | 交叉编译工具链 | 待补充 | |
 
 ## 4. 官方资料
