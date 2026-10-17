@@ -1,4 +1,4 @@
-# RDK X5 单类 person YOLOv8n 快速包（v4）
+# RDK X5 单类 person YOLOv8n 快速包（v5）
 
 自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
@@ -24,9 +24,13 @@ python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
 python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
   --img bus.jpg --bench 200
 
-# 3) 预处理与 BPU 重叠（推荐）
+# 3) 两段流水线（pre 与 bpu 重叠）
 python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
   --img bus.jpg --bench 200 --pipeline
+
+# 4) 三段流水线（pre / bpu / post 各一线程，最快）
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --bench 200 --pipeline3 --cv-threads 4
 ```
 
 输出示例：
@@ -39,12 +43,11 @@ pipeline x200: 9.4 ms/frame | 106.4 FPS
 模型输出是 raw logits（不含 Sigmoid/DFL），DFL/sigmoid/NMS 都在 CPU 做，
 不会出现 INT8 检测头下溢。
 
-## v4 改了什么
+## v5 改了什么
 
-1. **复用 letterbox canvas**：之前每帧 `np.full` 1.2 MB + 填充要 ~12 ms，
-   现在只在分辨率变化时重置；
-2. 5 段 profile：`resize / alloc / blit / cvt / pack`；
-3. 保留 v3 的 `cv2.setNumThreads(1)`、NV12 连续打包、`--crop`。
+1. **三段流水线** `--pipeline3`：pre / BPU(+输出拷贝) / post 各一个线程；
+2. anchor 网格预计算，后处理不再每帧 `tile/repeat`；
+3. 后处理输入改为 `(array, shape, scale)`，避免跨线程持有 SDK buffer。
 
 ## 下一步
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v4）.
+"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v5）.
 
-v4: 复用 letterbox canvas（消除每帧 1.2MB 分配+填充）、5 段 profile。
+v5: 三段流水线 pre / bpu(+copy) / post；anchor 预计算。
 """
 import argparse
 import queue
@@ -24,6 +24,7 @@ PAD_COLOR = (114, 114, 114)
 PROFILE = {"resize": 0.0, "alloc": 0.0, "blit": 0.0, "cvt": 0.0, "pack": 0.0}
 _CANVAS = None
 _LAST = None
+_ANCHORS = {}
 
 
 def bgr_to_nv12(bgr):
@@ -48,7 +49,6 @@ def bgr_to_nv12(bgr):
 
 
 def letterbox_nv12(img, size=INPUT):
-    """Reuse one canvas: the per-frame cost was dominated by np.full + blit."""
     global _CANVAS, _LAST
     h, w = img.shape[:2]
     r = min(size / h, size / w)
@@ -95,6 +95,14 @@ def _dfl(box):
     return (e * np.arange(REG_MAX, dtype=np.float32)).sum(axis=2)
 
 
+def _anchors(s):
+    if s not in _ANCHORS:
+        n = INPUT // s
+        g = (np.arange(n, dtype=np.float32) + 0.5) * s
+        _ANCHORS[s] = (np.tile(g, n), np.repeat(g, n), n)
+    return _ANCHORS[s]
+
+
 def nms(boxes, scores, iou, topk=3000):
     if len(scores) == 0:
         return np.zeros((0,), np.int64)
@@ -126,20 +134,28 @@ class PersonYOLO:
     def forward(self, nv12):
         return self.model.forward(nv12)
 
-    def postprocess(self, outputs, ratio, pad, orig_shape):
-        boxes, clses = {}, {}
+    @staticmethod
+    def as_bufs(outputs, copy=False):
+        bufs = []
         for t in outputs:
             shp = tuple(int(x) for x in t.properties.shape)
-            a = np.asarray(t.buffer).reshape(shp)
+            arr = np.asarray(t.buffer).reshape(shp)
+            if copy:
+                arr = np.array(arr, copy=True)
+            bufs.append((arr, shp, getattr(t.properties, "scale_data", None)))
+        return bufs
+
+    def postprocess(self, bufs, ratio, pad, orig_shape):
+        boxes, clses = {}, {}
+        for a, shp, scale in bufs:
             if shp[-1] in (1, 64):
                 c, h = shp[-1], shp[1]
             else:
                 c, h = shp[1], shp[2]
             if a.dtype != np.float32:
                 a = a.astype(np.float32)
-                sc = getattr(t.properties, "scale_data", None)
-                if sc is not None:
-                    a = a * np.asarray(sc, np.float32).reshape(1, 1, 1, -1)
+                if scale is not None:
+                    a = a * np.asarray(scale, np.float32).reshape(1, 1, 1, -1)
             (boxes if c == 64 else clses)[INPUT // h] = a[0]
 
         xyxy, score = [], []
@@ -150,10 +166,9 @@ class PersonYOLO:
             if len(idx) == 0:
                 continue
             d = _dfl(b[idx])
-            n = INPUT // s
-            g = (np.arange(n, dtype=np.float32) + 0.5) * s
-            cx = np.tile(g, n)[idx]
-            cy = np.repeat(g, n)[idx]
+            cx, cy, n = _anchors(s)
+            cx = cx[idx]
+            cy = cy[idx]
             xyxy.append(np.stack([cx - d[:, 0] * s, cy - d[:, 1] * s,
                                   cx + d[:, 2] * s, cy + d[:, 3] * s], 1))
             score.append(1.0 / (1.0 + np.exp(-cl[idx])))
@@ -190,7 +205,7 @@ def bench_serial(m, img, n, crop=False):
     for _ in range(n):
         t0 = time.perf_counter(); nv12, r, pad = m.preprocess(img, crop)
         t1 = time.perf_counter(); outs = m.forward(nv12)
-        t2 = time.perf_counter(); m.postprocess(outs, r, pad, img.shape)
+        t2 = time.perf_counter(); m.postprocess(m.as_bufs(outs), r, pad, img.shape)
         t3 = time.perf_counter()
         tp += t1 - t0; ti += t2 - t1; tq += t3 - t2
     print(f"serial x{n}: pre {1000*tp/n:.2f} | bpu {1000*ti/n:.2f} | "
@@ -199,6 +214,7 @@ def bench_serial(m, img, n, crop=False):
 
 
 def bench_pipeline(m, img, n, crop=False):
+    """2-stage: pre thread + main (bpu+post)."""
     q = queue.Queue(maxsize=4)
 
     def producer():
@@ -211,10 +227,36 @@ def bench_pipeline(m, img, n, crop=False):
     for _ in range(n):
         nv12, r, pad = q.get()
         outs = m.forward(nv12)
-        m.postprocess(outs, r, pad, img.shape)
+        m.postprocess(m.as_bufs(outs), r, pad, img.shape)
     dt = time.perf_counter() - t0
     th.join()
     print(f"pipeline x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS")
+
+
+def bench_pipeline3(m, img, n, crop=False):
+    """3-stage: pre / bpu(+copy) / post, each on its own thread."""
+    q1, q2 = queue.Queue(maxsize=4), queue.Queue(maxsize=4)
+
+    def producer():
+        for _ in range(n):
+            q1.put(m.preprocess(img, crop))
+
+    def infer():
+        for _ in range(n):
+            nv12, r, pad = q1.get()
+            outs = m.forward(nv12)
+            q2.put((m.as_bufs(outs, copy=True), r, pad))
+
+    t1 = threading.Thread(target=producer, daemon=True)
+    t2 = threading.Thread(target=infer, daemon=True)
+    t1.start(); t2.start()
+    t0 = time.perf_counter()
+    for _ in range(n):
+        bufs, r, pad = q2.get()
+        m.postprocess(bufs, r, pad, img.shape)
+    dt = time.perf_counter() - t0
+    t1.join(); t2.join()
+    print(f"pipeline3 x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS")
 
 
 def main():
@@ -226,6 +268,7 @@ def main():
     ap.add_argument("--iou", type=float, default=0.45)
     ap.add_argument("--bench", type=int, default=0)
     ap.add_argument("--pipeline", action="store_true")
+    ap.add_argument("--pipeline3", action="store_true")
     ap.add_argument("--crop", action="store_true")
     ap.add_argument("--cv-threads", type=int, default=1)
     ap.add_argument("--profile", action="store_true")
@@ -241,7 +284,7 @@ def main():
     nv12, ratio, pad = m.preprocess(img, args.crop)
     outs = m.forward(nv12)
     t0 = time.perf_counter()
-    boxes, scores = m.postprocess(outs, ratio, pad, img.shape)
+    boxes, scores = m.postprocess(m.as_bufs(outs), ratio, pad, img.shape)
     print(f"detections: {len(boxes)}, postprocess {1000*(time.perf_counter()-t0):.2f} ms")
     for b, s in zip(boxes, scores):
         print("  ", [int(v) for v in b], f"{s:.3f}")
@@ -253,7 +296,9 @@ def main():
         for k in ("resize", "alloc", "blit", "cvt", "pack"):
             print(f"profile {k}: {1000*PROFILE[k]:.2f} ms (n=1)")
     if args.bench:
-        if args.pipeline:
+        if args.pipeline3:
+            bench_pipeline3(m, img, args.bench, args.crop)
+        elif args.pipeline:
             bench_pipeline(m, img, args.bench, args.crop)
         else:
             bench_serial(m, img, args.bench, args.crop)
