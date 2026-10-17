@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v3）.
+"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v4）.
 
-v3: cv2.setNumThreads(1)、NV12 打包优化、--crop 快速对照。
+v4: 复用 letterbox canvas（消除每帧 1.2MB 分配+填充）、5 段 profile。
 """
 import argparse
 import queue
@@ -21,11 +21,12 @@ STRIDES = (8, 16, 32)
 REG_MAX = 16
 PAD_COLOR = (114, 114, 114)
 
-PROFILE = {"resize": 0.0, "cvt": 0.0, "pack": 0.0}
+PROFILE = {"resize": 0.0, "alloc": 0.0, "blit": 0.0, "cvt": 0.0, "pack": 0.0}
+_CANVAS = None
+_LAST = None
 
 
 def bgr_to_nv12(bgr):
-    """BGR HxWx3 -> NV12 1D uint8 (H*W*3/2)."""
     h, w = bgr.shape[:2]
     area = h * w
     t0 = time.perf_counter()
@@ -47,31 +48,42 @@ def bgr_to_nv12(bgr):
 
 
 def letterbox_nv12(img, size=INPUT):
+    """Reuse one canvas: the per-frame cost was dominated by np.full + blit."""
+    global _CANVAS, _LAST
     h, w = img.shape[:2]
     r = min(size / h, size / w)
     nw, nh = int(round(w * r)), int(round(h * r))
     dw, dh = (size - nw) / 2, (size - nh) / 2
+    left, top = int(round(dw - 0.1)), int(round(dh - 0.1))
 
     t0 = time.perf_counter()
     resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_NEAREST)
-    canvas = np.full((size, size, 3), PAD_COLOR, np.uint8)
-    left, top = int(round(dw - 0.1)), int(round(dh - 0.1))
-    canvas[top:top + nh, left:left + nw] = resized
     t1 = time.perf_counter()
+
+    if _CANVAS is None:
+        _CANVAS = np.full((size, size, 3), PAD_COLOR, np.uint8)
+        _LAST = None
+    canvas = _CANVAS
+    if _LAST != (nw, nh, left, top):
+        canvas[:] = PAD_COLOR
+        _LAST = (nw, nh, left, top)
+    t2 = time.perf_counter()
+
+    canvas[top:top + nh, left:left + nw] = resized
+    t3 = time.perf_counter()
+
     PROFILE["resize"] += t1 - t0
+    PROFILE["alloc"] += t2 - t1
+    PROFILE["blit"] += t3 - t2
     return bgr_to_nv12(canvas), r, (left, top)
 
 
 def crop_nv12(img, size=INPUT):
-    """Center crop size x size (no resize); for ROI/benchmark fast path."""
     h, w = img.shape[:2]
     if h < size or w < size:
         return letterbox_nv12(img, size)
-    t0 = time.perf_counter()
     top, left = (h - size) // 2, (w - size) // 2
     crop = img[top:top + size, left:left + size]
-    t1 = time.perf_counter()
-    PROFILE["resize"] += t1 - t0
     return bgr_to_nv12(crop), 1.0, (-left, -top)
 
 
@@ -214,7 +226,7 @@ def main():
     ap.add_argument("--iou", type=float, default=0.45)
     ap.add_argument("--bench", type=int, default=0)
     ap.add_argument("--pipeline", action="store_true")
-    ap.add_argument("--crop", action="store_true", help="center crop 640 instead of resize")
+    ap.add_argument("--crop", action="store_true")
     ap.add_argument("--cv-threads", type=int, default=1)
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
@@ -238,7 +250,7 @@ def main():
     print("saved", args.save)
 
     if args.profile:
-        for k in ("resize", "cvt", "pack"):
+        for k in ("resize", "alloc", "blit", "cvt", "pack"):
             print(f"profile {k}: {1000*PROFILE[k]:.2f} ms (n=1)")
     if args.bench:
         if args.pipeline:
