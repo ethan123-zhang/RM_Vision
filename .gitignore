@@ -1,0 +1,30 @@
+# ---- 大型二进制 / 系统镜像 ----
+*.img
+*.iso
+
+# ---- 模型与权重（记录导出方式，不入库）----
+*.onnx
+*.pt
+*.pth
+*.rknn
+*.kmodel
+*.hbm
+*.engine
+*.bin
+
+# ---- 密钥与本地配置 ----
+.env
+*.env
+*.key
+*.pem
+secrets/
+
+# ---- 缓存与编辑器 ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
