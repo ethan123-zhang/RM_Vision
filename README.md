@@ -34,7 +34,7 @@ RM2027 V1.0.0（20261015）三份官方文档：
 ## 环境
 
 - 板卡：RDK X5（D-Robotics）
-- 镜像：`rdk-x5-ubuntu22-preinstalled-desktop-3.5.0-arm64.img`（Ubuntu 22.04 preinstalled desktop，约 9.91 GB，不入库）
+- 镜像：`rdk-x5-ubuntu22-preinstalled-desktop-3.5.0-arm64.img`（Ubuntu 22.04 preinstalled desktop，10,393,485,312 字节，约 9.68 GiB，不入库）
 - 校验值与获取方式：[docs/environment.md](docs/environment.md)
 
 ## 与 aiVault 的关系
