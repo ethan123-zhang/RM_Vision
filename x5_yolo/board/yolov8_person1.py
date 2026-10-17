@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v2 优化预处理）.
+"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v3）.
 
-依赖板端镜像自带的 hobot_dnn (pyeasy_dnn)。
-
-用法:
-  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --bench 200
-  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --bench 200 --pipeline
-  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --profile
+v3: cv2.setNumThreads(1)、NV12 打包优化、--crop 快速对照。
 """
 import argparse
 import queue
@@ -29,8 +24,29 @@ PAD_COLOR = (114, 114, 114)
 PROFILE = {"resize": 0.0, "cvt": 0.0, "pack": 0.0}
 
 
+def bgr_to_nv12(bgr):
+    """BGR HxWx3 -> NV12 1D uint8 (H*W*3/2)."""
+    h, w = bgr.shape[:2]
+    area = h * w
+    t0 = time.perf_counter()
+    yuv = cv2.cvtColor(bgr, cv2.COLOR_BGR2YUV_I420).reshape(-1)
+    t1 = time.perf_counter()
+
+    nv12 = np.empty(area * 3 // 2, np.uint8)
+    nv12[:area] = yuv[:area]
+    uv = yuv[area:].reshape(2, area // 4)
+    packed = np.empty((area // 4, 2), np.uint8)
+    packed[:, 0] = uv[0]
+    packed[:, 1] = uv[1]
+    nv12[area:] = packed.reshape(-1)
+    t2 = time.perf_counter()
+
+    PROFILE["cvt"] += t1 - t0
+    PROFILE["pack"] += t2 - t1
+    return nv12
+
+
 def letterbox_nv12(img, size=INPUT):
-    """BGR -> letterboxed 640x640 NV12. Returns (nv12, ratio, (left, top))."""
     h, w = img.shape[:2]
     r = min(size / h, size / w)
     nw, nh = int(round(w * r)), int(round(h * r))
@@ -42,20 +58,21 @@ def letterbox_nv12(img, size=INPUT):
     left, top = int(round(dw - 0.1)), int(round(dh - 0.1))
     canvas[top:top + nh, left:left + nw] = resized
     t1 = time.perf_counter()
-
-    yuv = cv2.cvtColor(canvas, cv2.COLOR_BGR2YUV_I420).reshape(-1)
-    t2 = time.perf_counter()
-
-    area = size * size
-    nv12 = np.empty(area * 3 // 2, np.uint8)
-    nv12[:area] = yuv[:area]
-    nv12[area:] = yuv[area:].reshape(2, area // 4).T.reshape(-1)
-    t3 = time.perf_counter()
-
     PROFILE["resize"] += t1 - t0
-    PROFILE["cvt"] += t2 - t1
-    PROFILE["pack"] += t3 - t2
-    return nv12, r, (left, top)
+    return bgr_to_nv12(canvas), r, (left, top)
+
+
+def crop_nv12(img, size=INPUT):
+    """Center crop size x size (no resize); for ROI/benchmark fast path."""
+    h, w = img.shape[:2]
+    if h < size or w < size:
+        return letterbox_nv12(img, size)
+    t0 = time.perf_counter()
+    top, left = (h - size) // 2, (w - size) // 2
+    crop = img[top:top + size, left:left + size]
+    t1 = time.perf_counter()
+    PROFILE["resize"] += t1 - t0
+    return bgr_to_nv12(crop), 1.0, (-left, -top)
 
 
 def _dfl(box):
@@ -91,8 +108,8 @@ class PersonYOLO:
         self.iou = iou
         self.logit_thr = float(np.log(conf / (1.0 - conf)))
 
-    def preprocess(self, img):
-        return letterbox_nv12(img)
+    def preprocess(self, img, crop=False):
+        return crop_nv12(img) if crop else letterbox_nv12(img)
 
     def forward(self, nv12):
         return self.model.forward(nv12)
@@ -156,10 +173,10 @@ def draw(img, boxes, scores):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
 
-def bench_serial(m, img, n):
+def bench_serial(m, img, n, crop=False):
     tp = ti = tq = 0.0
     for _ in range(n):
-        t0 = time.perf_counter(); nv12, r, pad = m.preprocess(img)
+        t0 = time.perf_counter(); nv12, r, pad = m.preprocess(img, crop)
         t1 = time.perf_counter(); outs = m.forward(nv12)
         t2 = time.perf_counter(); m.postprocess(outs, r, pad, img.shape)
         t3 = time.perf_counter()
@@ -169,13 +186,12 @@ def bench_serial(m, img, n):
           f"{n/(tp+ti+tq):.1f} FPS")
 
 
-def bench_pipeline(m, img, n):
-    """One producer (pre) + main (bpu+post): overlaps 1080p resize with BPU."""
+def bench_pipeline(m, img, n, crop=False):
     q = queue.Queue(maxsize=4)
 
     def producer():
         for _ in range(n):
-            q.put(m.preprocess(img))
+            q.put(m.preprocess(img, crop))
 
     th = threading.Thread(target=producer, daemon=True)
     th.start()
@@ -198,16 +214,19 @@ def main():
     ap.add_argument("--iou", type=float, default=0.45)
     ap.add_argument("--bench", type=int, default=0)
     ap.add_argument("--pipeline", action="store_true")
+    ap.add_argument("--crop", action="store_true", help="center crop 640 instead of resize")
+    ap.add_argument("--cv-threads", type=int, default=1)
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
+    cv2.setNumThreads(args.cv_threads)
     m = PersonYOLO(args.model, args.conf, args.iou)
     img = cv2.imread(args.img)
     if img is None:
         raise SystemExit(f"cannot read {args.img}")
-    print("image", img.shape)
+    print("image", img.shape, "cv_threads", args.cv_threads)
 
-    nv12, ratio, pad = m.preprocess(img)
+    nv12, ratio, pad = m.preprocess(img, args.crop)
     outs = m.forward(nv12)
     t0 = time.perf_counter()
     boxes, scores = m.postprocess(outs, ratio, pad, img.shape)
@@ -223,9 +242,9 @@ def main():
             print(f"profile {k}: {1000*PROFILE[k]:.2f} ms (n=1)")
     if args.bench:
         if args.pipeline:
-            bench_pipeline(m, img, args.bench)
+            bench_pipeline(m, img, args.bench, args.crop)
         else:
-            bench_serial(m, img, args.bench)
+            bench_serial(m, img, args.bench, args.crop)
 
 
 if __name__ == "__main__":

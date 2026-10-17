@@ -1,4 +1,4 @@
-# RDK X5 单类 person YOLOv8n 快速包（v2）
+# RDK X5 单类 person YOLOv8n 快速包（v3）
 
 自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
@@ -39,12 +39,12 @@ pipeline x200: 9.4 ms/frame | 106.4 FPS
 模型输出是 raw logits（不含 Sigmoid/DFL），DFL/sigmoid/NMS 都在 CPU 做，
 不会出现 INT8 检测头下溢。
 
-## v2 改了什么
+## v3 改了什么
 
-1. `INTER_NEAREST` 替代 `INTER_LINEAR`（1080p→640 快约 2 倍）；
-2. NV12 预分配，去掉 `np.concatenate` 和中间拷贝；
-3. `--profile` 拆开 resize / cvtColor / pack 三段；
-4. `--pipeline` 用生产者线程做预处理，与 BPU 推理重叠。
+1. `cv2.setNumThreads(1)`，避免 OpenCV 线程池和 BPU 驱动抢核；
+2. NV12 打包改用 `(N,2)` 连续写，替代转置 + `reshape`；
+3. 新增 `--crop`：中心裁 640×640，不 resize（自瞄 ROI 场景的快速路径）；
+4. `--cv-threads` 可调。
 
 ## 下一步
 
