@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""RDK X5 单类 person YOLOv8n 板端推理 / 测速.
+"""RDK X5 单类 person YOLOv8n 板端推理 / 测速（v2 优化预处理）.
 
-依赖板端镜像自带的 hobot_dnn (pyeasy_dnn)，不需要 rdk_model_zoo 其余代码。
+依赖板端镜像自带的 hobot_dnn (pyeasy_dnn)。
 
-模型: yolov8n_person1_bayese_640x640_nv12.bin
-输出: 6 个张量，顺序/布局不限（按通道数 64/1 与空间尺寸自动识别）
-      cls_80/box_80/cls_40/box_40/cls_20/box_20，raw logits。
+用法:
+  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --bench 200
+  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --bench 200 --pipeline
+  python3 yolov8_person1.py --model xxx.bin --img bus.jpg --profile
 """
 import argparse
+import queue
+import threading
 import time
 
 import cv2
@@ -23,32 +26,39 @@ STRIDES = (8, 16, 32)
 REG_MAX = 16
 PAD_COLOR = (114, 114, 114)
 
+PROFILE = {"resize": 0.0, "cvt": 0.0, "pack": 0.0}
 
-def letterbox(im, size=INPUT):
-    h, w = im.shape[:2]
+
+def letterbox_nv12(img, size=INPUT):
+    """BGR -> letterboxed 640x640 NV12. Returns (nv12, ratio, (left, top))."""
+    h, w = img.shape[:2]
     r = min(size / h, size / w)
     nw, nh = int(round(w * r)), int(round(h * r))
-    if (nw, nh) != (w, h):
-        im = cv2.resize(im, (nw, nh), interpolation=cv2.INTER_LINEAR)
     dw, dh = (size - nw) / 2, (size - nh) / 2
-    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    out = np.full((size, size, 3), PAD_COLOR, np.uint8)
-    out[top:top + nh, left:left + nw] = im
-    return out, r, (left, top)
 
+    t0 = time.perf_counter()
+    resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_NEAREST)
+    canvas = np.full((size, size, 3), PAD_COLOR, np.uint8)
+    left, top = int(round(dw - 0.1)), int(round(dh - 0.1))
+    canvas[top:top + nh, left:left + nw] = resized
+    t1 = time.perf_counter()
 
-def bgr2nv12(bgr):
-    h, w = bgr.shape[:2]
-    area = h * w
-    yuv = cv2.cvtColor(bgr, cv2.COLOR_BGR2YUV_I420).reshape(-1)
-    y = yuv[:area]
-    uv = yuv[area:].reshape(2, area // 4).T.reshape(-1)  # U,V -> V,U interleaved
-    return np.concatenate([y, uv]).astype(np.uint8)
+    yuv = cv2.cvtColor(canvas, cv2.COLOR_BGR2YUV_I420).reshape(-1)
+    t2 = time.perf_counter()
+
+    area = size * size
+    nv12 = np.empty(area * 3 // 2, np.uint8)
+    nv12[:area] = yuv[:area]
+    nv12[area:] = yuv[area:].reshape(2, area // 4).T.reshape(-1)
+    t3 = time.perf_counter()
+
+    PROFILE["resize"] += t1 - t0
+    PROFILE["cvt"] += t2 - t1
+    PROFILE["pack"] += t3 - t2
+    return nv12, r, (left, top)
 
 
 def _dfl(box):
-    """box [N,64] -> ltrb [N,4] in grid units."""
     b = box.reshape(-1, 4, REG_MAX).astype(np.float32)
     b -= b.max(axis=2, keepdims=True)
     e = np.exp(b)
@@ -82,8 +92,7 @@ class PersonYOLO:
         self.logit_thr = float(np.log(conf / (1.0 - conf)))
 
     def preprocess(self, img):
-        lb, r, pad = letterbox(img)
-        return bgr2nv12(lb), r, pad
+        return letterbox_nv12(img)
 
     def forward(self, nv12):
         return self.model.forward(nv12)
@@ -102,7 +111,7 @@ class PersonYOLO:
                 sc = getattr(t.properties, "scale_data", None)
                 if sc is not None:
                     a = a * np.asarray(sc, np.float32).reshape(1, 1, 1, -1)
-            (boxes if c == 64 else clses)[INPUT // h] = a[0]  # H,W,C
+            (boxes if c == 64 else clses)[INPUT // h] = a[0]
 
         xyxy, score = [], []
         for s in STRIDES:
@@ -147,6 +156,39 @@ def draw(img, boxes, scores):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
 
+def bench_serial(m, img, n):
+    tp = ti = tq = 0.0
+    for _ in range(n):
+        t0 = time.perf_counter(); nv12, r, pad = m.preprocess(img)
+        t1 = time.perf_counter(); outs = m.forward(nv12)
+        t2 = time.perf_counter(); m.postprocess(outs, r, pad, img.shape)
+        t3 = time.perf_counter()
+        tp += t1 - t0; ti += t2 - t1; tq += t3 - t2
+    print(f"serial x{n}: pre {1000*tp/n:.2f} | bpu {1000*ti/n:.2f} | "
+          f"post {1000*tq/n:.2f} | total {1000*(tp+ti+tq)/n:.2f} ms | "
+          f"{n/(tp+ti+tq):.1f} FPS")
+
+
+def bench_pipeline(m, img, n):
+    """One producer (pre) + main (bpu+post): overlaps 1080p resize with BPU."""
+    q = queue.Queue(maxsize=4)
+
+    def producer():
+        for _ in range(n):
+            q.put(m.preprocess(img))
+
+    th = threading.Thread(target=producer, daemon=True)
+    th.start()
+    t0 = time.perf_counter()
+    for _ in range(n):
+        nv12, r, pad = q.get()
+        outs = m.forward(nv12)
+        m.postprocess(outs, r, pad, img.shape)
+    dt = time.perf_counter() - t0
+    th.join()
+    print(f"pipeline x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
@@ -154,37 +196,36 @@ def main():
     ap.add_argument("--save", default="person_result.jpg")
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)
-    ap.add_argument("--bench", type=int, default=0, help="iterations for timing")
+    ap.add_argument("--bench", type=int, default=0)
+    ap.add_argument("--pipeline", action="store_true")
+    ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
     m = PersonYOLO(args.model, args.conf, args.iou)
     img = cv2.imread(args.img)
     if img is None:
         raise SystemExit(f"cannot read {args.img}")
+    print("image", img.shape)
 
     nv12, ratio, pad = m.preprocess(img)
     outs = m.forward(nv12)
-    t0 = time.time()
+    t0 = time.perf_counter()
     boxes, scores = m.postprocess(outs, ratio, pad, img.shape)
-    print(f"detections: {len(boxes)}, postprocess {1000*(time.time()-t0):.2f} ms")
+    print(f"detections: {len(boxes)}, postprocess {1000*(time.perf_counter()-t0):.2f} ms")
     for b, s in zip(boxes, scores):
         print("  ", [int(v) for v in b], f"{s:.3f}")
-
     draw(img, boxes, scores)
     cv2.imwrite(args.save, img)
     print("saved", args.save)
 
-    if args.bench > 0:
-        tp = ti = tq = 0.0
-        for _ in range(args.bench):
-            t0 = time.time(); nv12, ratio, pad = m.preprocess(img); t1 = time.time()
-            outs = m.forward(nv12); t2 = time.time()
-            m.postprocess(outs, ratio, pad, img.shape); t3 = time.time()
-            tp += t1 - t0; ti += t2 - t1; tq += t3 - t2
-        n = args.bench
-        print(f"\nbench x{n}: pre {1000*tp/n:.2f} ms | bpu {1000*ti/n:.2f} ms | "
-              f"post {1000*tq/n:.2f} ms | total {1000*(tp+ti+tq)/n:.2f} ms | "
-              f"{n/(tp+ti+tq):.1f} FPS")
+    if args.profile:
+        for k in ("resize", "cvt", "pack"):
+            print(f"profile {k}: {1000*PROFILE[k]:.2f} ms (n=1)")
+    if args.bench:
+        if args.pipeline:
+            bench_pipeline(m, img, args.bench)
+        else:
+            bench_serial(m, img, args.bench)
 
 
 if __name__ == "__main__":
