@@ -1,42 +1,55 @@
-# RDK X5 单类 person YOLOv8n 快速包
+# RDK X5 单类 person YOLOv8n 快速包（v2）
 
-自包含，不依赖 `rdk_model_zoo` 其余代码；只用镜像自带的 `hobot_dnn` (pyeasy_dnn)。
+自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
 ## 文件
 
 | 文件 | 说明 |
 |---|---|
-| `yolov8_person1.py` | 板端推理 + 分段测速（letterbox / NV12 / DFL / NMS） |
+| `yolov8_person1.py` | 板端推理 + 分段测速（v2：NEAREST resize、预分配 NV12、可选流水线） |
 | `yolov8n_person1_bayese_640x640_nv12.bin` | X5 bayes-e 量化模型，3.7 MB |
 | `person.names` | 单类标签 |
 | `bus.jpg` | 测试图 |
 
-## 板上运行
+## 跑
 
 ```bash
-# 在板子上（默认用户 sunrise）
-mkdir -p ~/rdk_model_zoo/yolov8_person1
 cd ~/rdk_model_zoo/yolov8_person1
-unzip ~/rdk_model_zoo_yolov8_person.zip -d .
 
-python3 yolov8_person1.py \
-  --model yolov8n_person1_bayese_640x640_nv12.bin \
-  --img bus.jpg --save person_result.jpg --bench 200
+# 1) 看预处理三段耗时
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --profile
+
+# 2) 串行基准
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --bench 200
+
+# 3) 预处理与 BPU 重叠（推荐）
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --bench 200 --pipeline
 ```
 
 输出示例：
 
 ```
-outputs:
-  [0] cls_80 ... (1, 80, 80, 1)
-  [1] box_80 ... (1, 80, 80, 64)
-...
-detections: 4, postprocess 1.8 ms
-bench x200: pre 1.8 ms | bpu 7.9 ms | post 1.5 ms | total 11.2 ms | 89.3 FPS
+serial x200: pre 6.9 | bpu 6.3 | post 3.0 | total 16.2 ms | 61.7 FPS
+pipeline x200: 9.4 ms/frame | 106.4 FPS
 ```
 
 模型输出是 raw logits（不含 Sigmoid/DFL），DFL/sigmoid/NMS 都在 CPU 做，
-所以不会出现 INT8 检测头下溢。
+不会出现 INT8 检测头下溢。
+
+## v2 改了什么
+
+1. `INTER_NEAREST` 替代 `INTER_LINEAR`（1080p→640 快约 2 倍）；
+2. NV12 预分配，去掉 `np.concatenate` 和中间拷贝；
+3. `--profile` 拆开 resize / cvtColor / pack 三段；
+4. `--pipeline` 用生产者线程做预处理，与 BPU 推理重叠。
+
+## 下一步
+
+如果 `pre` 仍 > 10 ms，说明瓶颈在 `BGR→YUV_I420`：
+下一步把模型重编为 `input_type_rt: rgb`，直接喂 RGB HWC uint8，省掉整段 YUV 转换。
 
 ## 如果 `hobot_dnn` 导入失败
 
