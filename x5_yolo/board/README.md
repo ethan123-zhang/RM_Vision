@@ -83,6 +83,26 @@ python3 yolov8_person1.py \
 一张带框的 `person_result.jpg`。摄像头是 148° 鱼眼、-17% 畸变，当前未做去畸变；
 自瞄前需要按实际内参做一次 undistort。
 
+### 实时窗口 / 浏览器预览
+
+```bash
+# 本机桌面窗口（板子接 HDMI，或在桌面终端运行）
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --camera 0 --cam-width 1280 --cam-height 720 --cam-fps 60 \
+  --bench 0 --cpost --show
+
+# SSH 无 X11：开 MJPEG 流，PC 浏览器看
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --camera 0 --cam-width 1280 --cam-height 720 --cam-fps 60 \
+  --bench 0 --cpost --http 8080
+# 浏览器打开 http://<板子IP>:8080/
+```
+
+`--bench 0` 表示一直跑到按 `q`（窗口）或 `Ctrl-C`。SSH 下 `--show` 需要
+`ssh -X` 或 `export DISPLAY=:0`；最省事的是 `--http`。
+
 ## 摄像头实测与瓶颈（USB2.0 OV2710）
 
 实测 `end-to-end FPS == capture FPS`，说明模型不是瓶颈，`cap.read()` 才是：

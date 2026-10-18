@@ -5,6 +5,7 @@ v5: 三段流水线 pre / bpu(+copy) / post；anchor 预计算。
 """
 import argparse
 import ctypes
+import http.server
 import json
 import queue
 import threading
@@ -321,6 +322,40 @@ def bench_pipeline3(m, img, n, crop=False):
     print(f"pipeline3 x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS")
 
 
+_STREAM = {"jpeg": None, "lock": threading.Lock()}
+
+
+class _StreamHandler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        if self.path not in ("/", "/stream"):
+            self.send_error(404)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+        self.end_headers()
+        try:
+            while True:
+                with _STREAM["lock"]:
+                    data = _STREAM["jpeg"]
+                if data:
+                    self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n\r\n")
+                    self.wfile.write(data)
+                    self.wfile.write(b"\r\n")
+                time.sleep(0.03)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+def start_http(port):
+    srv = http.server.ThreadingHTTPServer(("0.0.0.0", port), _StreamHandler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    print(f"MJPEG stream: http://<board-ip>:{port}/")
+    return srv
+
+
 def camera_bench(m, args):
     cap = cv2.VideoCapture(args.camera, cv2.CAP_V4L2)
     if not cap.isOpened():
@@ -335,6 +370,7 @@ def camera_bench(m, args):
     fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"camera {args.camera}: {w}x{h} @ {fps:.0f} fps, fourcc={args.fourcc}")
 
+    srv = start_http(args.http) if args.http else None
     q = queue.Queue(maxsize=2)
     stop = threading.Event()
     read_count = [0]
@@ -356,22 +392,53 @@ def camera_bench(m, args):
 
     th = threading.Thread(target=producer, daemon=True)
     th.start()
-    n = args.bench if args.bench > 0 else 300
+    n = args.bench if args.bench > 0 else (0 if (args.show or args.http) else 300)
     best = None
+    show_ok = args.show
+    i = 0
     t0 = time.perf_counter()
-    for _ in range(n):
+    while n == 0 or i < n:
         nv12, ratio, pad, frame = q.get()
         outs = m.forward(nv12)
         boxes, scores = m.postprocess(m.as_bufs(outs), ratio, pad, frame.shape)
+        i += 1
         key = (len(boxes), float(scores.max()) if len(scores) else 0.0)
         if best is None or key > (best[0], best[1]):
             best = (key[0], key[1], frame, boxes, scores)
+
+        if show_ok or args.http:
+            vis = frame.copy()
+            draw(vis, boxes, scores)
+            now = time.perf_counter()
+            cv2.putText(vis, f"{i/(now-t0):.1f} FPS  det {len(boxes)}", (12, 32),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 3)
+            cv2.putText(vis, f"{i/(now-t0):.1f} FPS  det {len(boxes)}", (12, 32),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 1)
+            if args.http:
+                ok, jpg = cv2.imencode(".jpg", vis, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                if ok:
+                    with _STREAM["lock"]:
+                        _STREAM["jpeg"] = jpg.tobytes()
+            if show_ok:
+                try:
+                    cv2.imshow(args.window, vis)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
+                except cv2.error as e:
+                    print("GUI unavailable (no DISPLAY?):", e)
+                    show_ok = False
+                    if not args.http:
+                        break
     dt = time.perf_counter() - t0
     stop.set()
     th.join(timeout=1.0)
     cap.release()
+    if show_ok:
+        cv2.destroyAllWindows()
+    if srv is not None:
+        srv.shutdown()
 
-    print(f"camera x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS end-to-end | "
+    print(f"camera x{i}: {1000*dt/max(i,1):.2f} ms/frame | {i/dt:.1f} FPS end-to-end | "
           f"capture {read_count[0]/dt:.1f} FPS")
     if best is not None:
         _, _, frame, boxes, scores = best
@@ -411,6 +478,9 @@ def main():
     ap.add_argument("--cpost", action="store_true", help="use C++ postprocess (libpost.so)")
     ap.add_argument("--lib", default="./libpost.so")
     ap.add_argument("--json", action="store_true", help="print last-frame detections as JSON")
+    ap.add_argument("--show", action="store_true", help="show live OpenCV window")
+    ap.add_argument("--http", type=int, default=0, help="MJPEG stream port, e.g. 8080")
+    ap.add_argument("--window", default="RDK YOLOv8 person")
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
