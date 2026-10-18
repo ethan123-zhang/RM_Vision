@@ -5,6 +5,7 @@ v5: 三段流水线 pre / bpu(+copy) / post；anchor 预计算。
 """
 import argparse
 import ctypes
+import json
 import queue
 import threading
 import time
@@ -356,13 +357,15 @@ def camera_bench(m, args):
     th = threading.Thread(target=producer, daemon=True)
     th.start()
     n = args.bench if args.bench > 0 else 300
-    last = None
+    best = None
     t0 = time.perf_counter()
     for _ in range(n):
         nv12, ratio, pad, frame = q.get()
         outs = m.forward(nv12)
         boxes, scores = m.postprocess(m.as_bufs(outs), ratio, pad, frame.shape)
-        last = (frame, boxes, scores)
+        key = (len(boxes), float(scores.max()) if len(scores) else 0.0)
+        if best is None or key > (best[0], best[1]):
+            best = (key[0], key[1], frame, boxes, scores)
     dt = time.perf_counter() - t0
     stop.set()
     th.join(timeout=1.0)
@@ -370,11 +373,21 @@ def camera_bench(m, args):
 
     print(f"camera x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS end-to-end | "
           f"capture {read_count[0]/dt:.1f} FPS")
-    if last is not None:
-        frame, boxes, scores = last
+    if best is not None:
+        _, _, frame, boxes, scores = best
         draw(frame, boxes, scores)
         cv2.imwrite(args.save, frame)
         print("saved", args.save, "detections", len(boxes))
+        if args.json:
+            payload = {
+                "frame": [int(frame.shape[1]), int(frame.shape[0])],
+                "detections": [
+                    {"class": "person", "score": round(float(s), 4),
+                     "box": [round(float(v), 1) for v in b]}
+                    for b, s in zip(boxes, scores)
+                ],
+            }
+            print(json.dumps(payload, ensure_ascii=False))
 
 
 def main():
@@ -397,6 +410,7 @@ def main():
     ap.add_argument("--cv-threads", type=int, default=1)
     ap.add_argument("--cpost", action="store_true", help="use C++ postprocess (libpost.so)")
     ap.add_argument("--lib", default="./libpost.so")
+    ap.add_argument("--json", action="store_true", help="print last-frame detections as JSON")
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
