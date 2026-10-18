@@ -1,4 +1,4 @@
-# RDK X5 单类 person YOLOv8n 快速包（v7：640 + 512 + C++ 后处理）
+# RDK X5 单类 person YOLOv8n 快速包（v8：576 定稿）
 
 自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
@@ -71,10 +71,11 @@ python3 yolov8_person1.py \
 | 640 pipeline3 + cpost | — | — | 3.82 | 11.46 ms | **87.2** |
 | **512 pipeline + cpost** | — | — | **2.41** | **7.39 ms** | **135.3** |
 | 512 pipeline3 + cpost | — | — | 2.43 | 7.70 ms | 130.0 |
+| 576 pipeline + cpost | — | — | 2.85 | 10.97 ms | 91.1 |
+| **576 pipeline3 + cpost** | — | — | 3.27 | **9.60 ms** | **104.1** |
 
-512 + C++ 后处理 + 两段流水线是当前最佳：**135.3 FPS**。
-640 的 C++ 后处理没有超过 Python 两段（74 vs 82），因为 640 的 2 MB
-输出取数拷贝占了大头；640 最好的是 pipeline3 + cpost（87.2）。
+**最终选择：576 + 三段流水线 + C++ 后处理 = 104.1 FPS，person AP 0.7178。**
+640 的 C++ 后处理受 2 MB 输出拷贝拖累，最好 87.2 FPS；512 虽 135 FPS 但 AP 只有 0.557。
 
 ## C++ 后处理（推荐）
 

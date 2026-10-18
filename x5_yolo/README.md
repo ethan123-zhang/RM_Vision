@@ -126,6 +126,11 @@ python3 yolov8_person1.py --model yolov8n_person1_512_bayese_512x512_nv12.bin \
 | 640 pipeline3 + cpost | 11.46 ms | 87.2 |
 | **512 pipeline + cpost** | **7.39 ms** | **135.3** |
 | 512 pipeline3 + cpost | 7.70 ms | 130.0 |
+| 576 pipeline + cpost | 10.97 ms | 91.1 |
+| **576 pipeline3 + cpost** | **9.60 ms** | **104.1** |
+
+**最终选择：576 输入 + 三段流水线 + C++ 后处理 = 104.1 FPS，person AP 0.7178。**
+640 最好 87.2 FPS；512 虽 135 FPS，但 AP 只有 0.557。
 
 512 的 BPU 4.41 ms、pre 2.28 ms、post 3.06 ms。512 + C++ 后处理 + 两段流水线
 达到 **135.3 FPS**；640 的 C++ 后处理受 2 MB 输出拷贝拖累，最好 87.2 FPS。
