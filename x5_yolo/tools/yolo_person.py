@@ -69,9 +69,10 @@ def decode(outputs, conf=0.25, iou=0.45, orig_shape=None, ratio=1.0, pad=(0, 0),
             a = a[0]
         if a.ndim != 3:
             continue
-        if a.shape[0] in (1, 64) and a.shape[1] == a.shape[2] and a.shape[1] in (20, 40, 80):
+        valid = (INPUT_SIZE // 8, INPUT_SIZE // 16, INPUT_SIZE // 32)
+        if a.shape[0] in (1, 64) and a.shape[1] == a.shape[2] and a.shape[1] in valid:
             c, h = a.shape[0], a.shape[1]
-        elif a.shape[-1] in (1, 64) and a.shape[0] == a.shape[1] and a.shape[0] in (20, 40, 80):
+        elif a.shape[-1] in (1, 64) and a.shape[0] == a.shape[1] and a.shape[0] in valid:
             h, c = a.shape[0], a.shape[-1]
             a = np.ascontiguousarray(a.transpose(2, 0, 1))
         else:

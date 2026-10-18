@@ -1,4 +1,4 @@
-# RDK X5 单类 person YOLOv8n 快速包（v5）
+# RDK X5 单类 person YOLOv8n 快速包（v6：640 + 512）
 
 自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
@@ -6,53 +6,61 @@
 
 | 文件 | 说明 |
 |---|---|
-| `yolov8_person1.py` | 板端推理 + 分段测速（v2：NEAREST resize、预分配 NV12、可选流水线） |
-| `yolov8n_person1_bayese_640x640_nv12.bin` | X5 bayes-e 量化模型，3.7 MB |
+| `yolov8_person1.py` | 板端推理 + 分段测速（复用 canvas、单线程 OpenCV、2/3 段流水线、`--crop`） |
+| `yolov8n_person1_bayese_640x640_nv12.bin` | 640 输入，3.7 MB |
+| `yolov8n_person1_512_bayese_512x512_nv12.bin` | 512 输入，3.4 MB，BPU 约 4.5 ms |
 | `person.names` | 单类标签 |
 | `bus.jpg` | 测试图 |
 
-## 跑
+## 640 基准
 
 ```bash
 cd ~/rdk_model_zoo/yolov8_person1
 
-# 1) 看预处理三段耗时
 python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
-  --img bus.jpg --profile
+  --img bus.jpg --bench 200 --cv-threads 4
 
-# 2) 串行基准
 python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
-  --img bus.jpg --bench 200
+  --img bus.jpg --bench 200 --pipeline --cv-threads 4
 
-# 3) 两段流水线（pre 与 bpu 重叠）
 python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
-  --img bus.jpg --bench 200 --pipeline
-
-# 4) 三段流水线（pre / bpu / post 各一线程，最快）
-python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
-  --img bus.jpg --bench 200 --pipeline3 --cv-threads 4
+  --img bus.jpg --bench 200 --crop --cv-threads 4
 ```
 
-输出示例：
+## 512 基准（冲 100+）
 
+```bash
+python3 yolov8_person1.py \
+  --model yolov8n_person1_512_bayese_512x512_nv12.bin --size 512 \
+  --img bus.jpg --bench 200 --cv-threads 4
+
+python3 yolov8_person1.py \
+  --model yolov8n_person1_512_bayese_512x512_nv12.bin --size 512 \
+  --img bus.jpg --bench 200 --pipeline --cv-threads 4
+
+python3 yolov8_person1.py \
+  --model yolov8n_person1_512_bayese_512x512_nv12.bin --size 512 \
+  --img bus.jpg --bench 200 --pipeline3 --cv-threads 1
 ```
-serial x200: pre 6.9 | bpu 6.3 | post 3.0 | total 16.2 ms | 61.7 FPS
-pipeline x200: 9.4 ms/frame | 106.4 FPS
-```
 
-模型输出是 raw logits（不含 Sigmoid/DFL），DFL/sigmoid/NMS 都在 CPU 做，
-不会出现 INT8 检测头下溢。
+## 已有实测（640，bus.jpg 1080p）
 
-## v5 改了什么
+| 配置 | total | FPS |
+|---|---|---|
+| serial, cv_threads=1 | 16.51 ms | 60.6 |
+| serial, cv_threads=4 | 13.54 ms | 73.9 |
+| pipeline（2 段） | 12.15 ms | 82.3 |
+| pipeline3（3 段） | 16.35 ms | 61.2 |
+| serial --crop | 12.92 ms | 77.4 |
 
-1. **三段流水线** `--pipeline3`：pre / BPU(+输出拷贝) / post 各一个线程；
-2. anchor 网格预计算，后处理不再每帧 `tile/repeat`；
-3. 后处理输入改为 `(array, shape, scale)`，避免跨线程持有 SDK buffer。
+3 段流水线反而更慢：多一次 2 MB 输出拷贝 + Python GIL 争用。
+**Python 线程方案的上限约 82 FPS**；100+ 走 512 或 C++ 后处理。
 
-## 下一步
+## v6 改了什么
 
-如果 `pre` 仍 > 10 ms，说明瓶颈在 `BGR→YUV_I420`：
-下一步把模型重编为 `input_type_rt: rgb`，直接喂 RGB HWC uint8，省掉整段 YUV 转换。
+1. 增加 512 输入模型与 `--size`；
+2. 640/512 共用同一套后处理，anchor 按 `(size, stride)` 缓存；
+3. 保留 v5 的 canvas 复用、`cv2.setNumThreads`、三段流水线。
 
 ## 如果 `hobot_dnn` 导入失败
 

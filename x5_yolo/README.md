@@ -36,6 +36,8 @@ cls_20 [1,20,20,1]   box_20 [1,20,20,64]
 | `model/yolov8n_person1_nchw.onnx` | 验证用 NCHW 6 输出 |
 | `model/yolov8n_person1_nhwc.onnx` | 官方同款 NHWC 布局 |
 | `model/yolov8n_person1_op11.onnx` | **送 hb_mapper 的最终模型**（opset 11） |
+| `model/yolov8n_person1_512_op11.onnx` | 512 输入版本（仅改输入尺寸） |
+| `model/yolov8n_person1_512_bayese_512x512_nv12.bin` | 512 输入 X5 模型，3.4 MB |
 | `tools/make_person_head.py` | head surgery |
 | `tools/verify_parity.py` | 与原 80 类模型逐 anchor 对比 |
 | `tools/evaluate_person.py` | person AP@0.5 |
@@ -63,6 +65,9 @@ python tools/make_calibration.py \
 ```
 
 要求：OE 1.2.8 / hb_mapper >= 1.24.3，输入 640×640 NV12。
+
+512 版本：`tools/make_input_size.py` 改输入尺寸，`config_x5_512.yaml` + `calib512/`
+编译，产物 `yolov8n_person1_512_bayese_512x512_nv12.bin`（3.4 MB）。
 
 ### 本机实测（WSL，无 Docker）
 

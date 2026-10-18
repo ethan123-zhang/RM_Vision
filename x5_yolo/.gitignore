@@ -1,5 +1,7 @@
 calib/
+calib512/
 bpu_model_output/
+bpu_model_output_512/
 *.bin
 *.hbm
 *.onnx

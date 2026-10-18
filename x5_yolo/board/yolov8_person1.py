@@ -48,7 +48,8 @@ def bgr_to_nv12(bgr):
     return nv12
 
 
-def letterbox_nv12(img, size=INPUT):
+def letterbox_nv12(img, size=None):
+    size = INPUT if size is None else size
     global _CANVAS, _LAST
     h, w = img.shape[:2]
     r = min(size / h, size / w)
@@ -60,7 +61,7 @@ def letterbox_nv12(img, size=INPUT):
     resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_NEAREST)
     t1 = time.perf_counter()
 
-    if _CANVAS is None:
+    if _CANVAS is None or _CANVAS.shape[0] != size:
         _CANVAS = np.full((size, size, 3), PAD_COLOR, np.uint8)
         _LAST = None
     canvas = _CANVAS
@@ -78,7 +79,8 @@ def letterbox_nv12(img, size=INPUT):
     return bgr_to_nv12(canvas), r, (left, top)
 
 
-def crop_nv12(img, size=INPUT):
+def crop_nv12(img, size=None):
+    size = INPUT if size is None else size
     h, w = img.shape[:2]
     if h < size or w < size:
         return letterbox_nv12(img, size)
@@ -96,11 +98,12 @@ def _dfl(box):
 
 
 def _anchors(s):
-    if s not in _ANCHORS:
+    key = (INPUT, s)
+    if key not in _ANCHORS:
         n = INPUT // s
         g = (np.arange(n, dtype=np.float32) + 0.5) * s
-        _ANCHORS[s] = (np.tile(g, n), np.repeat(g, n), n)
-    return _ANCHORS[s]
+        _ANCHORS[key] = (np.tile(g, n), np.repeat(g, n), n)
+    return _ANCHORS[key]
 
 
 def nms(boxes, scores, iou, topk=3000):
@@ -263,6 +266,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--img", required=True)
+    ap.add_argument("--size", type=int, default=640, help="model input size (640/512)")
     ap.add_argument("--save", default="person_result.jpg")
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)
@@ -274,6 +278,8 @@ def main():
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
+    global INPUT
+    INPUT = args.size
     cv2.setNumThreads(args.cv_threads)
     m = PersonYOLO(args.model, args.conf, args.iou)
     img = cv2.imread(args.img)
