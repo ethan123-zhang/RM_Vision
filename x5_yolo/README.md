@@ -37,7 +37,9 @@ cls_20 [1,20,20,1]   box_20 [1,20,20,64]
 | `model/yolov8n_person1_nhwc.onnx` | 官方同款 NHWC 布局 |
 | `model/yolov8n_person1_op11.onnx` | **送 hb_mapper 的最终模型**（opset 11） |
 | `model/yolov8n_person1_512_op11.onnx` | 512 输入版本（仅改输入尺寸） |
+| `model/yolov8n_person1_576_op11.onnx` | 576 输入版本（精度折中） |
 | `model/yolov8n_person1_512_bayese_512x512_nv12.bin` | 512 输入 X5 模型，3.4 MB |
+| `model/yolov8n_person1_576_bayese_576x576_nv12.bin` | 576 输入 X5 模型，3.5 MB |
 | `tools/make_person_head.py` | head surgery |
 | `tools/verify_parity.py` | 与原 80 类模型逐 anchor 对比 |
 | `tools/evaluate_person.py` | person AP@0.5 |
@@ -141,9 +143,10 @@ python3 board/yolov8_person1.py --model ... --img bus.jpg \
 | 输入 | AP@0.5 |
 |---|---|
 | 640 | **0.7244** |
+| 576 | **0.7178**（只差 0.0066） |
 | 512 | 0.5572 |
 
-512 的 AP 相对掉 23%。**自瞄建议 640**；512 适合速度优先、目标较大的场景。
+576 几乎不掉精度，适合作为 100+ FPS 的折中；512 掉 23%，只适合目标较大的场景。
 
 ## 待办
 

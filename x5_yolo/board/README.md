@@ -10,6 +10,7 @@
 | `postprocess.cpp` / `build_post.sh` | C++ DFL+sigmoid+NMS，ctypes 调用，无需 Python 头文件 |
 | `yolov8n_person1_bayese_640x640_nv12.bin` | 640 输入，3.7 MB |
 | `yolov8n_person1_512_bayese_512x512_nv12.bin` | 512 输入，3.4 MB，BPU 约 4.5 ms |
+| `yolov8n_person1_576_bayese_576x576_nv12.bin` | 576 输入，3.5 MB，精度接近 640 |
 | `person.names` | 单类标签 |
 | `bus.jpg` | 测试图 |
 
@@ -42,6 +43,18 @@ python3 yolov8_person1.py \
 python3 yolov8_person1.py \
   --model yolov8n_person1_512_bayese_512x512_nv12.bin --size 512 \
   --img bus.jpg --bench 200 --pipeline3 --cv-threads 1
+```
+
+## 576 基准（精度/速度折中）
+
+```bash
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --img bus.jpg --bench 200 --pipeline --cv-threads 4 --cpost
+
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --img bus.jpg --bench 200 --pipeline3 --cv-threads 1 --cpost
 ```
 
 ## 实测（bus.jpg 1080p，200 次）
@@ -86,10 +99,10 @@ python3 yolov8_person1.py \
 | 输入 | AP@0.5 |
 |---|---|
 | 640 | **0.7244** |
+| 576 | **0.7178**（只差 0.0066） |
 | 512 | 0.5572 |
 
-512 快，但 person AP 掉 **0.167（相对 -23%）**。自瞄远距离小目标建议 640；
-512 只适合“速度优先、目标较大”的场景。
+576 几乎不掉精度，是推荐折中；512 掉得太多，只适合目标较大的场景。
 
 ## v7 改了什么
 
