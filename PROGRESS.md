@@ -46,3 +46,5 @@ person AP 0.7178（640 为 0.7244）。切尾巴、量化、板端测速全部�
 - 2026-10-18：C++ 后处理（ctypes）上线；512 135.3 FPS、640 87.2 FPS。
 - 2026-10-18：576 定稿，104.1 FPS、AP 0.7178；三档对比见
   `docs/decisions/2026-10-18-yolo-input-576.md`。
+- 2026-10-18：USB2 MJPG 摄像头实测（软解瓶颈 24/48/11 FPS），待换 CSI/USB3；
+  aiVault 草稿见 `docs/aiVault/2026-10-18-rdk-x5-yolo-int8-tailcut.md`。
