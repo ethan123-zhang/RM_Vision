@@ -80,7 +80,8 @@ python3 yolov8_person1.py \
 ```
 
 脚本会打印实际协商到的分辨率/帧率、`end-to-end FPS` 和 `capture FPS`，并保存
-一张带框的 `person_result.jpg`。摄像头是 148° 鱼眼、-17% 畸变，当前未做去畸变；
+一张带框的 `person_result.jpg`。默认置信度已调到 **0.5**：仍误检就 `--conf 0.6`，
+漏检就 `--conf 0.4`。摄像头是 148° 鱼眼、-17% 畸变，当前未做去畸变；
 自瞄前需要按实际内参做一次 undistort。
 
 ### 实时窗口 / 浏览器预览
