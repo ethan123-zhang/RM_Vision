@@ -1,4 +1,4 @@
-# RDK X5 单类 person YOLOv8n 快速包（v6：640 + 512）
+# RDK X5 单类 person YOLOv8n 快速包（v7：640 + 512 + C++ 后处理）
 
 自包含，只依赖镜像自带的 `hobot_dnn` (pyeasy_dnn) / OpenCV / numpy。
 
@@ -6,7 +6,8 @@
 
 | 文件 | 说明 |
 |---|---|
-| `yolov8_person1.py` | 板端推理 + 分段测速（复用 canvas、单线程 OpenCV、2/3 段流水线、`--crop`） |
+| `yolov8_person1.py` | 板端推理 + 分段测速（复用 canvas、单线程 OpenCV、2/3 段流水线、`--crop`、`--cpost`） |
+| `postprocess.cpp` / `build_post.sh` | C++ DFL+sigmoid+NMS，ctypes 调用，无需 Python 头文件 |
 | `yolov8n_person1_bayese_640x640_nv12.bin` | 640 输入，3.7 MB |
 | `yolov8n_person1_512_bayese_512x512_nv12.bin` | 512 输入，3.4 MB，BPU 约 4.5 ms |
 | `person.names` | 单类标签 |
@@ -56,7 +57,25 @@ python3 yolov8_person1.py \
 
 512 + 两段流水线是当前最佳：**115 FPS**。3 段流水线受 GIL 影响，不再提升。
 
-## 精度（COCO val 200 张，person AP@0.5）
+## C++ 后处理（推荐）
+
+```bash
+bash build_post.sh                     # g++ -O3 -shared -fPIC -> libpost.so
+
+# 640
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --bench 200 --pipeline --cv-threads 4 --cpost
+
+# 512
+python3 yolov8_person1.py \
+  --model yolov8n_person1_512_bayese_512x512_nv12.bin --size 512 \
+  --img bus.jpg --bench 200 --pipeline --cv-threads 4 --cpost
+```
+
+`postprocess.cpp` 只做 DFL + sigmoid + NMS，不依赖 OpenCV；Python 通过 ctypes
+传 6 个 float 指针，不需要 `python3-dev`。
+
+## 精度对照（COCO val 200 张，person AP@0.5）
 
 | 输入 | AP@0.5 |
 |---|---|
@@ -66,11 +85,11 @@ python3 yolov8_person1.py \
 512 快，但 person AP 掉 **0.167（相对 -23%）**。自瞄远距离小目标建议 640；
 512 只适合“速度优先、目标较大”的场景。
 
-## v6 改了什么
+## v7 改了什么
 
-1. 增加 512 输入模型与 `--size`；
+1. 增加 `postprocess.cpp` / `build_post.sh`，`--cpost` 走 C++ DFL+sigmoid+NMS；
 2. 640/512 共用同一套后处理，anchor 按 `(size, stride)` 缓存；
-3. 保留 v5 的 canvas 复用、`cv2.setNumThreads`、三段流水线。
+3. 保留 canvas 复用、`cv2.setNumThreads`、两段流水线。
 
 ## 如果 `hobot_dnn` 导入失败
 

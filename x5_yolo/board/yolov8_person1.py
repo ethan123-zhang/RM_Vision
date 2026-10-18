@@ -4,6 +4,7 @@
 v5: 三段流水线 pre / bpu(+copy) / post；anchor 预计算。
 """
 import argparse
+import ctypes
 import queue
 import threading
 import time
@@ -116,6 +117,32 @@ def nms(boxes, scores, iou, topk=3000):
     return np.asarray(idx).reshape(-1).astype(np.int64)
 
 
+class CPost:
+    """ctypes wrapper for postprocess.cpp (DFL + sigmoid + NMS)."""
+
+    def __init__(self, path):
+        self.lib = ctypes.CDLL(path)
+        p = ctypes.POINTER(ctypes.c_float)
+        self.fn = self.lib.yolo_person_post
+        self.fn.argtypes = [
+            p, p, p, p, p, p,
+            ctypes.c_int, ctypes.c_float, ctypes.c_float,
+            ctypes.c_float, ctypes.c_float, ctypes.c_float,
+            ctypes.c_int, ctypes.c_int, p, p, ctypes.c_int,
+        ]
+        self.fn.restype = ctypes.c_int
+
+    @staticmethod
+    def _p(a):
+        return a.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+
+    def __call__(self, arrs, size, conf, iou, ratio, padx, pady, ow, oh, outb, outs):
+        return self.fn(self._p(arrs[0]), self._p(arrs[1]), self._p(arrs[2]),
+                       self._p(arrs[3]), self._p(arrs[4]), self._p(arrs[5]),
+                       size, conf, iou, ratio, padx, pady, ow, oh,
+                       self._p(outb), self._p(outs), 300)
+
+
 class PersonYOLO:
     def __init__(self, model_path, conf=0.25, iou=0.45):
         t0 = time.time()
@@ -130,6 +157,11 @@ class PersonYOLO:
         self.conf = conf
         self.iou = iou
         self.logit_thr = float(np.log(conf / (1.0 - conf)))
+        self.cpost = None
+
+    def enable_cpost(self, path):
+        self.cpost = CPost(path)
+        print("C++ postprocess enabled:", path)
 
     def preprocess(self, img, crop=False):
         return crop_nv12(img) if crop else letterbox_nv12(img)
@@ -148,7 +180,33 @@ class PersonYOLO:
             bufs.append((arr, shp, getattr(t.properties, "scale_data", None)))
         return bufs
 
+    def _post_c(self, bufs, ratio, pad, orig_shape):
+        arrs = {}
+        for a, shp, scale in bufs:
+            if a.dtype != np.float32:
+                a = a.astype(np.float32)
+                if scale is not None:
+                    a = a * np.asarray(scale, np.float32).reshape(1, 1, 1, -1)
+            if shp[-1] in (1, 64):
+                c, h = shp[-1], shp[1]
+                a = np.ascontiguousarray(a)
+            else:
+                c, h = shp[1], shp[2]
+                a = np.ascontiguousarray(a.transpose(0, 2, 3, 1))
+            arrs[(INPUT // h, c)] = a.reshape(-1)
+        h0, w0 = orig_shape[:2]
+        outb = np.empty((300, 4), np.float32)
+        outs = np.empty(300, np.float32)
+        n = self.cpost([arrs[(8, 1)], arrs[(8, 64)],
+                        arrs[(16, 1)], arrs[(16, 64)],
+                        arrs[(32, 1)], arrs[(32, 64)]],
+                       INPUT, self.conf, self.iou, ratio, pad[0], pad[1],
+                       w0, h0, outb, outs)
+        return outb[:n], outs[:n]
+
     def postprocess(self, bufs, ratio, pad, orig_shape):
+        if self.cpost is not None:
+            return self._post_c(bufs, ratio, pad, orig_shape)
         boxes, clses = {}, {}
         for a, shp, scale in bufs:
             if shp[-1] in (1, 64):
@@ -275,6 +333,8 @@ def main():
     ap.add_argument("--pipeline3", action="store_true")
     ap.add_argument("--crop", action="store_true")
     ap.add_argument("--cv-threads", type=int, default=1)
+    ap.add_argument("--cpost", action="store_true", help="use C++ postprocess (libpost.so)")
+    ap.add_argument("--lib", default="./libpost.so")
     ap.add_argument("--profile", action="store_true")
     args = ap.parse_args()
 
@@ -282,6 +342,8 @@ def main():
     INPUT = args.size
     cv2.setNumThreads(args.cv_threads)
     m = PersonYOLO(args.model, args.conf, args.iou)
+    if args.cpost:
+        m.enable_cpost(args.lib)
     img = cv2.imread(args.img)
     if img is None:
         raise SystemExit(f"cannot read {args.img}")

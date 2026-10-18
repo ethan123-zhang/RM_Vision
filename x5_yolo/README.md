@@ -124,6 +124,14 @@ python3 yolov8_person1.py --model yolov8n_person1_512_bayese_512x512_nv12.bin \
 512 的 BPU 4.41 ms、pre 2.28 ms、post 3.06 ms。640 想上 100+ 需要把
 post 从 3 ms 压到 <1 ms（C++ postprocess）；512 已经达到 100–150 的下沿。
 
+C++ 后处理已实现（`board/postprocess.cpp`，ctypes 调用）：
+
+```bash
+bash board/build_post.sh
+python3 board/yolov8_person1.py --model ... --img bus.jpg \
+  --bench 200 --pipeline --cv-threads 4 --cpost
+```
+
 ## 精度对照（COCO val 200 张，person AP@0.5）
 
 | 输入 | AP@0.5 |
@@ -138,5 +146,5 @@ post 从 3 ms 压到 <1 ms（C++ postprocess）；512 已经达到 100–150 的
 - [x] X5 `.bin` 编译（640 / 512）
 - [x] 板端实测 60+ / 100+
 - [x] 512 的 COCO person AP 对照（0.5572 vs 0.7244）
-- [ ] 640 输入 + C++ 后处理，冲 120+ 且不掉精度
+- [ ] 640 输入 + C++ 后处理，冲 120+ 且不掉精度（C++ 已实现，待板端实测）
 - [ ] 用自有数据微调 person 头（可选）
