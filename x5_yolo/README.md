@@ -120,9 +120,13 @@ python3 yolov8_person1.py --model yolov8n_person1_512_bayese_512x512_nv12.bin \
 | **512 serial, cv_threads=4** | **9.76 ms** | **102.5** |
 | **512 pipeline（2 段）** | **8.68 ms** | **115.2** |
 | 512 pipeline3（3 段） | 8.96 ms | 111.6 |
+| 640 pipeline + cpost | 13.50 ms | 74.0 |
+| 640 pipeline3 + cpost | 11.46 ms | 87.2 |
+| **512 pipeline + cpost** | **7.39 ms** | **135.3** |
+| 512 pipeline3 + cpost | 7.70 ms | 130.0 |
 
-512 的 BPU 4.41 ms、pre 2.28 ms、post 3.06 ms。640 想上 100+ 需要把
-post 从 3 ms 压到 <1 ms（C++ postprocess）；512 已经达到 100–150 的下沿。
+512 的 BPU 4.41 ms、pre 2.28 ms、post 3.06 ms。512 + C++ 后处理 + 两段流水线
+达到 **135.3 FPS**；640 的 C++ 后处理受 2 MB 输出拷贝拖累，最好 87.2 FPS。
 
 C++ 后处理已实现（`board/postprocess.cpp`，ctypes 调用）：
 
