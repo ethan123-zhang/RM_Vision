@@ -26,8 +26,9 @@ def letterbox(im, new_size=INPUT_SIZE, color=(114, 114, 114)):
     return out, r, (left, top)
 
 
-def preprocess(im):
-    lb, r, pad = letterbox(im)
+def preprocess(im, size=None):
+    size = INPUT_SIZE if size is None else size
+    lb, r, pad = letterbox(im, size)
     x = lb[:, :, ::-1].transpose(2, 0, 1)[None].astype(np.float32) / 255.0
     return np.ascontiguousarray(x), r, pad
 

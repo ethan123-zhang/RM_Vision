@@ -1,12 +1,12 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-10-17
+> 最后更新：2026-10-18
 
 ## 一句话状态
 
-RDK X5 单类（person）YOLOv8n 切尾巴方案已跑通：ONNX 手术、parity、AP、opset 11、
-`.bin` 编译全部完成；下一步板端部署与 100~150 FPS 测速。
+RDK X5 单类 person YOLOv8n 已上板：640 串行 73.9 FPS、512 + 两段流水线 115.2 FPS；
+切尾巴、量化、板端测速全部跑通。
 
 ## 里程碑
 
@@ -17,11 +17,11 @@ RDK X5 单类（person）YOLOv8n 切尾巴方案已跑通：ONNX 手术、parity
 | 3 | 确定赛季视觉目标与量化指标 | ⬜ 待开始 | 依赖里程碑 2 |
 | 4 | RDK X5 环境跑通（相机采集 + BPU 推理） | ⬜ 待开始 | 镜像已备 |
 | 5 | 单类 person YOLOv8n 切尾巴 + X5 .bin | ✅ 完成 | 2026-10-17，AP 0.78 不变、量化 cosine ≥0.997 |
+| 6 | X5 板端 512 输入达 100+ FPS | ✅ 完成 | 2026-10-18，115.2 FPS（pipeline） |
 
 ## 正在做
 
-- 把 `\\wsl.localhost\Ubuntu-22.04\home\ethan\RM_test` 的 `.bin` 与 runtime 部署到 X5，
-  记录预处理/BPU/后处理分段耗时，冲 100~150 FPS。
+- 512 + 两段流水线已 115 FPS；下一步评估 512 的 person mAP，以及 640 + C++ 后处理冲 120+。
 
 ## 下一步（按优先级）
 
@@ -41,3 +41,4 @@ RDK X5 单类（person）YOLOv8n 切尾巴方案已跑通：ONNX 手术、parity
 - 2026-10-17：初始化仓库；加入协作规则、环境清单、issue/decision 模板；首次推送。
 - 2026-10-17：完成单类 person 切尾巴（`x5_yolo/`）；494 张 COCO person AP@0.5 0.7800 不变；
   opset 11 + hb_mapper 1.24.3 本地编出 3.7 MB `.bin`；决策见 `docs/decisions/2026-10-17-yolo-person-head-x5.md`。
+- 2026-10-18：板端实测 640 73.9 FPS、512 115.2 FPS；512 `.bin`（3.4 MB）与快速包已交付。

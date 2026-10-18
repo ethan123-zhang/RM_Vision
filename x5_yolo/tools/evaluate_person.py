@@ -13,6 +13,7 @@ import numpy as np
 import onnxruntime as ort
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import yolo_person  # noqa: E402
 from yolo_person import INPUT_SIZE, decode, letterbox, nms  # noqa: E402
 
 CONF = 0.001
@@ -136,9 +137,11 @@ def main():
     ap.add_argument("--orig", default=r"E:\RM\x5_yolo\model\yolov8n.onnx")
     ap.add_argument("--person", default=r"E:\RM\x5_yolo\model\yolov8n_person1.onnx")
     ap.add_argument("--data", default=r"E:\RM\_probe\precision_analysis\data")
+    ap.add_argument("--size", type=int, default=640, help="person model input size")
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
 
+    yolo_person.INPUT_SIZE = args.size
     imgs = sorted(glob.glob(os.path.join(args.data, "images", "*.jpg")))
     if args.limit:
         imgs = imgs[: args.limit]
@@ -153,12 +156,13 @@ def main():
             continue
         h, w = im.shape[:2]
         x, r, pad = preprocess(im)
+        xp, rp, padp = preprocess(im, args.size)
         gt = load_gt(os.path.join(args.data, "labels",
                                   os.path.splitext(os.path.basename(f))[0] + ".txt"), w, h)
         gts.append(gt)
         npos += len(gt)
         d_orig.append(dets_orig(so.run(None, {iname: x})[0], r, pad, (h, w)))
-        d_per.append(dets_person(sp.run(None, {iname: x}), r, pad, (h, w)))
+        d_per.append(dets_person(sp.run(None, {iname: xp}), rp, padp, (h, w)))
         if (k + 1) % 50 == 0:
             print(f"  {k+1}/{len(imgs)} images, gt={npos}", flush=True)
 

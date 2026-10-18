@@ -43,18 +43,18 @@ python3 yolov8_person1.py \
   --img bus.jpg --bench 200 --pipeline3 --cv-threads 1
 ```
 
-## 已有实测（640，bus.jpg 1080p）
+## 实测（bus.jpg 1080p，200 次）
 
-| 配置 | total | FPS |
-|---|---|---|
-| serial, cv_threads=1 | 16.51 ms | 60.6 |
-| serial, cv_threads=4 | 13.54 ms | 73.9 |
-| pipeline（2 段） | 12.15 ms | 82.3 |
-| pipeline3（3 段） | 16.35 ms | 61.2 |
-| serial --crop | 12.92 ms | 77.4 |
+| 配置 | pre | bpu | post | total | FPS |
+|---|---|---|---|---|---|
+| 640 serial, cv4 | 3.38 | 6.67 | 3.49 | 13.54 ms | 73.9 |
+| 640 pipeline | — | — | — | 12.15 ms | 82.3 |
+| 640 pipeline3 | — | — | — | 16.35 ms | 61.2 |
+| **512 serial, cv4** | **2.28** | **4.41** | **3.06** | **9.76 ms** | **102.5** |
+| **512 pipeline** | — | — | — | **8.68 ms** | **115.2** |
+| 512 pipeline3 | — | — | — | 8.96 ms | 111.6 |
 
-3 段流水线反而更慢：多一次 2 MB 输出拷贝 + Python GIL 争用。
-**Python 线程方案的上限约 82 FPS**；100+ 走 512 或 C++ 后处理。
+512 + 两段流水线是当前最佳：**115 FPS**。3 段流水线受 GIL 影响，不再提升。
 
 ## v6 改了什么
 

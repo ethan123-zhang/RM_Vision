@@ -96,39 +96,38 @@ hb_mapper 给出的量化余弦相似度：
 
 没有出现类别分数塌陷；head 本身也不在 INT8 图里做 sigmoid。
 
-## 板端
+## 板端（已实测）
+
+用自包含脚本 `board/yolov8_person1.py`（镜像自带 `hobot_dnn.pyeasy_dnn`）：
 
 ```bash
-# 1) 官方 runtime 先跑通（推荐，零自研代码）
-git clone https://github.com/D-Robotics/rdk_model_zoo
-cd rdk_model_zoo
-python samples/vision/ultralytics_yolo/runtime/python/main.py \
-  --platform x5 --family yolov8 --task detect \
-  --model-path ~/yolov8n_person1_bayese_640x640_nv12.bin \
-  --classes-num 1 --label-file ~/person.names \
-  --test-img samples/vision/ultralytics_yolo/test_data/bus.jpg \
-  --img-save-path /tmp/person.jpg
+# 640
+python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
+  --img bus.jpg --bench 200 --cv-threads 4
+
+# 512（推荐，100+）
+python3 yolov8_person1.py --model yolov8n_person1_512_bayese_512x512_nv12.bin \
+  --size 512 --img bus.jpg --bench 200 --pipeline --cv-threads 4
 ```
 
-`--classes-num 1` 是必须的，否则 decoder 会按 80 类解释。
+## 性能实测（bus.jpg 1080p，200 次）
 
-## 性能预期（640×640）
+| 配置 | total | FPS |
+|---|---|---|
+| 640 serial, cv_threads=4 | 13.54 ms | 73.9 |
+| 640 pipeline（2 段） | 12.15 ms | 82.3 |
+| 640 pipeline3（3 段） | 16.35 ms | 61.2 |
+| **512 serial, cv_threads=4** | **9.76 ms** | **102.5** |
+| **512 pipeline（2 段）** | **8.68 ms** | **115.2** |
+| 512 pipeline3（3 段） | 8.96 ms | 111.6 |
 
-| 阶段 | X5 实测/估算 |
-|---|---|
-| BPU（1 类，6 输出） | ~7.5–8.0 ms |
-| 预处理（NV12） | ~1.8 ms |
-| CPU 后处理（C++ 优化） | <1 ms |
-| 串行 | ~11 ms → **~90 FPS** |
-| 三段流水线 | max(8, 1.8, 1) → **~120 FPS** |
-| 双 BPU 线程 + 流水线 | **130–150 FPS** |
-
-Python 后处理约 5 ms（80 类）；1 类 + 先筛后算可压到 ~1.5–2 ms，串行 ~90 FPS。
-要稳定 100–150 必须 C++ 后处理 + 流水线。
+512 的 BPU 4.41 ms、pre 2.28 ms、post 3.06 ms。640 想上 100+ 需要把
+post 从 3 ms 压到 <1 ms（C++ postprocess）；512 已经达到 100–150 的下沿。
 
 ## 待办
 
-- [ ] 在 X5 上编译 `.bin` 并跑官方 runtime，记录实际 BPU/预处理/后处理耗时
-- [ ] 1 类 C++ 后处理（先筛后算）+ 双线程流水线
-- [ ] 若 640 不够：512 输入对照（BPU 约 5 ms）
-- [ ] 用自有数据微调 person 头（可选，当前 COCO 权重已可用）
+- [x] X5 `.bin` 编译（640 / 512）
+- [x] 板端实测 60+ / 100+
+- [ ] 640 输入 + C++ 后处理，冲 120+
+- [ ] 512 的 COCO person mAP 对照（当前只有 640 的 0.7800）
+- [ ] 用自有数据微调 person 头（可选）
