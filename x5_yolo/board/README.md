@@ -57,6 +57,32 @@ python3 yolov8_person1.py \
   --img bus.jpg --bench 200 --pipeline3 --cv-threads 1 --cpost
 ```
 
+## 摄像头（USB UVC）
+
+```bash
+# 720p60 MJPG（推荐先测）
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --camera 0 --cam-width 1280 --cam-height 720 --cam-fps 60 --fourcc MJPG \
+  --bench 300 --cpost --cv-threads 4
+
+# 480p120（要 100+ 只能用这档；但 480p 上采样到 576 会损失细节）
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --camera 0 --cam-width 640 --cam-height 480 --cam-fps 120 --fourcc MJPG \
+  --bench 300 --cpost --cv-threads 4
+
+# 1080p30
+python3 yolov8_person1.py \
+  --model yolov8n_person1_576_bayese_576x576_nv12.bin --size 576 \
+  --camera 0 --cam-width 1920 --cam-height 1080 --cam-fps 30 --fourcc MJPG \
+  --bench 300 --cpost --cv-threads 4
+```
+
+脚本会打印实际协商到的分辨率/帧率、`end-to-end FPS` 和 `capture FPS`，并保存
+一张带框的 `person_result.jpg`。摄像头是 148° 鱼眼、-17% 畸变，当前未做去畸变；
+自瞄前需要按实际内参做一次 undistort。
+
 ## 实测（bus.jpg 1080p，200 次）
 
 | 配置 | pre | bpu | post | total | FPS |

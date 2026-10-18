@@ -110,6 +110,11 @@ python3 yolov8_person1.py --model yolov8n_person1_bayese_640x640_nv12.bin \
 # 512（推荐，100+）
 python3 yolov8_person1.py --model yolov8n_person1_512_bayese_512x512_nv12.bin \
   --size 512 --img bus.jpg --bench 200 --pipeline --cv-threads 4
+
+# USB 摄像头（720p60 MJPG）
+python3 yolov8_person1.py --model yolov8n_person1_576_bayese_576x576_nv12.bin \
+  --size 576 --camera 0 --cam-width 1280 --cam-height 720 --cam-fps 60 \
+  --bench 300 --cpost --cv-threads 4
 ```
 
 ## 性能实测（bus.jpg 1080p，200 次）

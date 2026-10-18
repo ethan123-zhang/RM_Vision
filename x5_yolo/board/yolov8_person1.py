@@ -320,10 +320,72 @@ def bench_pipeline3(m, img, n, crop=False):
     print(f"pipeline3 x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS")
 
 
+def camera_bench(m, args):
+    cap = cv2.VideoCapture(args.camera, cv2.CAP_V4L2)
+    if not cap.isOpened():
+        raise SystemExit(f"cannot open camera {args.camera}")
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*args.fourcc))
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.cam_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.cam_height)
+    cap.set(cv2.CAP_PROP_FPS, args.cam_fps)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"camera {args.camera}: {w}x{h} @ {fps:.0f} fps, fourcc={args.fourcc}")
+
+    q = queue.Queue(maxsize=2)
+    stop = threading.Event()
+    read_count = [0]
+
+    def producer():
+        while not stop.is_set():
+            ok, frame = cap.read()
+            if not ok:
+                time.sleep(0.001)
+                continue
+            read_count[0] += 1
+            item = (*m.preprocess(frame, args.crop), frame)
+            try:
+                if q.full():
+                    q.get_nowait()
+            except queue.Empty:
+                pass
+            q.put(item)
+
+    th = threading.Thread(target=producer, daemon=True)
+    th.start()
+    n = args.bench if args.bench > 0 else 300
+    last = None
+    t0 = time.perf_counter()
+    for _ in range(n):
+        nv12, ratio, pad, frame = q.get()
+        outs = m.forward(nv12)
+        boxes, scores = m.postprocess(m.as_bufs(outs), ratio, pad, frame.shape)
+        last = (frame, boxes, scores)
+    dt = time.perf_counter() - t0
+    stop.set()
+    th.join(timeout=1.0)
+    cap.release()
+
+    print(f"camera x{n}: {1000*dt/n:.2f} ms/frame | {n/dt:.1f} FPS end-to-end | "
+          f"capture {read_count[0]/dt:.1f} FPS")
+    if last is not None:
+        frame, boxes, scores = last
+        draw(frame, boxes, scores)
+        cv2.imwrite(args.save, frame)
+        print("saved", args.save, "detections", len(boxes))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
-    ap.add_argument("--img", required=True)
+    ap.add_argument("--img", default=None)
+    ap.add_argument("--camera", type=int, default=None, help="V4L2 camera index")
+    ap.add_argument("--cam-width", type=int, default=1280)
+    ap.add_argument("--cam-height", type=int, default=720)
+    ap.add_argument("--cam-fps", type=int, default=60)
+    ap.add_argument("--fourcc", default="MJPG")
     ap.add_argument("--size", type=int, default=640, help="model input size (640/512)")
     ap.add_argument("--save", default="person_result.jpg")
     ap.add_argument("--conf", type=float, default=0.25)
@@ -344,6 +406,11 @@ def main():
     m = PersonYOLO(args.model, args.conf, args.iou)
     if args.cpost:
         m.enable_cpost(args.lib)
+    if args.camera is not None:
+        camera_bench(m, args)
+        return
+    if not args.img:
+        raise SystemExit("need --img or --camera")
     img = cv2.imread(args.img)
     if img is None:
         raise SystemExit(f"cannot read {args.img}")
