@@ -83,6 +83,32 @@ python3 yolov8_person1.py \
 一张带框的 `person_result.jpg`。摄像头是 148° 鱼眼、-17% 畸变，当前未做去畸变；
 自瞄前需要按实际内参做一次 undistort。
 
+## 摄像头实测与瓶颈（USB2.0 OV2710）
+
+实测 `end-to-end FPS == capture FPS`，说明模型不是瓶颈，`cap.read()` 才是：
+
+| 档位 | 协商 | 实际读帧 | 读一帧 |
+|---|---|---|---|
+| 1080p30 MJPG | 1920x1080@30 | 11.2 FPS | ~80 ms |
+| 720p60 MJPG | 1280x720@60 | 24.3 FPS | ~36 ms |
+| 480p120 MJPG | 640x480@120 | 47.9 FPS | ~20 ms |
+
+读帧时间随像素数线性增长 → **OpenCV 在用 CPU 软解 MJPG**，USB2.0 带宽不是唯一限制。
+先用 `cam_probe.py` 只测取帧确认：
+
+```bash
+python3 cam_probe.py --camera 0
+```
+
+要 100+ FPS，有三条路（按推荐顺序）：
+
+1. **MIPI CSI 相机**：直接 NV12，不经过 USB/MJPG 解码，X5 有双 CSI；
+2. **USB3 相机 + YUYV/NV12**：无解码，带宽足够；
+3. **USB2 相机 + 硬件 JPEG 解码**（RDK VPU / `sp` codec / GStreamer 硬解）：
+   能把 720p 的解码从 36 ms 降到几 ms，但 720p60 仍被 60 fps 采集限制。
+
+另外这颗 148° 鱼眼、-17% 畸变，对远距离小目标不友好；自瞄建议 60~90° FOV。
+
 ## 实测（bus.jpg 1080p，200 次）
 
 | 配置 | pre | bpu | post | total | FPS |
