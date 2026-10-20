@@ -12,15 +12,31 @@ RDK X5 + Odin1 的感知链路已跑通（见 `x5_odin/README.md`），手上有
 
 ## 2. 决策
 
-### D1 控制源：X5 串口 → C8T6 → CAN，遥控器保留
+### D1 控制源：X5 → C8T6 USART1，遥控器留在 USART2，电机走 USART3 的 slcan 模块
 
-- **选择**：X5 通过 USB-TTL 接 **C8T6 USART3（PB10/PB11，115200 8N1）**，C8T6 收到指令后
-  转成原有 `0x1314` CAN 帧；USART1 仍接 DT7 接收机，USART2 保留 printf 调试。
-- **为什么不是 USART1**：USART1 是 DT7 的 100000 8E1 专用时序，且"保留遥控器"要求它继续工作。
+- **串口分配**（按实物接线，2026-10-20 修正）：USART1(PA9/PA10, 115200 8N1) = X5 40pin
+  第 8/10 脚；USART2(PA2/PA3, 100000 8E1) = DT7 接收机；USART3(PB10/PB11, 115200 8N1) =
+  串口转CAN 模块。
+- **第一版设计错在哪**：曾按"遥控器在 USART1、X5 在 USART3、printf 在 USART2"设计，
+  与实物不符。教训：串口分配要以**实物接线和用户说明**为准，不能从代码里的 `HAL_UART_*`
+  调用反推——代码可能比接线旧。
+- **电机指令改走外挂模块**：C8T6 不再初始化片内 CAN，改用 slcan 文本帧发给
+  "串口转CAN 模块"，由模块上总线。好处是换板子不用焊 TJA1050；代价是多一层文本协议、
+  且模块上电顺序变得敏感（模块晚启动不会自动重开通道）。
 - **仲裁**：`s2==3` 硬急停 > 串口（300 ms 内有帧）> 遥控器（100 ms 内有帧）> 发 0。
-  遥控器留作建图时的手动驾驶和随时急停，这是练习阶段最实用的安全兜底。
-- **放弃的方案**：X5 直连 CAN（需要 USB-CAN 适配器，且要自己实现 0x1314 帧与总线仲裁）；
-  完全去掉遥控器（省钱省事，但建图时必须靠键盘远程开车，且丢了最后一道人肉刹车）。
+  串口优先而不是遥控器优先：跑建图/走圈时人松手，摇杆回中会持续抢控制权。
+- **放弃的方案**：X5 直连 CAN（仍需收发器）；完全去掉遥控器（丢了最后一道人肉刹车）。
+
+### D1b 电机链路用 slcan 文本，不用自定义二进制
+
+- **选择**：C8T6 用 `T<8位hex ID><1位hex DLC><16位hex 数据>\r` 发给模块，
+  启动时发 `S5\r`(250K) + `O\r`(开通道)。
+- **为什么**：slcan 是 CANable/candleLight 的既成事实标准，模块厂家普遍支持，
+  且可读性极好——抓串口原始字节就能肉眼看出 ID 和数据对不对。
+- **代价**：26 字节/帧 @10 ms ≈ 26 kbit/s，阻塞发送约 2.3 ms，对 10 ms 周期可接受；
+  如果以后要提频，改 DMA 发送即可。
+- **验证**：编码层 `Hardware/CAN/slcan.c` 与 HAL 无关，PC 上 21 项逐字节断言
+  （`tests/slcan_test.c`）。这类文本协议错一个字符不会崩，只会静默丢帧。
 
 ### D2 建图与走圈：用 Odin1 原生 SLAM，不引 FAST-LIO2 / nav2
 
@@ -53,24 +69,30 @@ RDK X5 + Odin1 的感知链路已跑通（见 `x5_odin/README.md`），手上有
 ## 3. 过程中确认的事实
 
 - **CAN 实际是 250 kbit/s**，不是厂商文档写的 500K：`.ioc` 里
-  `CalculateBaudRate=250000`（36 MHz / 8 / (1+9+8)）。遥控器版实测能跑，故不动。
+  `CalculateBaudRate=250000`（36 MHz / 8 / (1+9+8)）。现在这个值通过 slcan 的
+  `S5` 命令配置给模块；若实测电机不动而帧格式无误，第一个要怀疑的就是这里。
 - **Odin1 的 TF 链是 `odom → imu → lidar`，`map` 是 `odom` 的子帧**，没有
   `odin1_base_link`（README FAQ 里的旧说法属于上一版驱动）。`/odin1/odometry` 的
   `child_frame_id` 是 `imu`，`cloud_slam` 在 `odom` 系。因此车体帧用 `imu`，
   点云累积默认在 `odom` 系（建图模式下 map 与 odom 同原点，不需要查 TF）。
+- **RDK X5 40pin 第 8 脚 = UART_TX、第 10 脚 = UART_RX，节点 `/dev/ttyS1`**，3.3V 电平
+  （D-Robotics 官方 UART 案例）。所以 X5 侧不需要 USB-TTL。
 
-## 4. 发现的既有固件缺陷（待随固件改造一并修）
+## 4. 原有固件的三处缺陷（已随本次改造修掉）
 
-| 位置 | 问题 | 后果 |
-| :--- | :--- | :--- |
-| `main.c` | `rc_tick = HAL_GetTick()` 每轮刷新，随后的 `HAL_GetTick() - rc_tick > 100` 永远为假 | 遥控器失联保护形同虚设 |
-| `can_bus.c` | `CAN_Send()` 里 `while(HAL_CAN_IsTxMessagePending(...))`，主循环又无延时 | 实际以几 kHz 发帧，与协议要求的 5–20 ms 周期不符 |
-| `DBUS.c` | `HAL_UART_RxCpltCallback` 定义在这里，再加 USART3 会重复定义 | 链接报 multiply defined |
+| 位置 | 问题 | 后果 | 处理 |
+| :--- | :--- | :--- | :--- |
+| `main.c` | `rc_tick = HAL_GetTick()` 每轮刷新，随后的判断永远为假 | 遥控器失联保护形同虚设 | 改为按 `DBUS_Alive()` 判活 |
+| `can_bus.c` | `CAN_Send()` 里 `while(HAL_CAN_IsTxMessagePending(...))`，主循环无延时 | 几 kHz 狂发，违反 5–20 ms 周期 | 改为 10 ms 调度 + 单次发送 |
+| `DBUS.c` | `HAL_UART_RxCpltCallback` 定义在业务文件里 | 加第二个串口就 multiply defined | 收敛到 `uart_rx.c` 统一分发 |
+
+新增的一条同类风险：`HAL_UART_Receive_IT` 在溢出/帧错误后会停摆，所以补了
+`HAL_UART_ErrorCallback` 重新挂接收——否则某个口会"静默死亡"，且没有任何报错。
 
 ## 5. 影响
 
 - 新增 `car_slam_lap/`（固件工程 + ROS2 包 + 脚本 + 文档），原 `practice/` 目录已废弃。
-- 板端新增 `~/car_ws`（colcon 工作区）、`/dev/car_link`（udev 固定串口名）、
+- 板端新增 `~/car_ws`（colcon 工作区）、`/dev/car_link`（udev 软链，指向 ttyS1 或 USB-TTL）、
   `~/car_ws/maps/<名字>/`（每次建图的产物）。
 - `x5_odin/` 那套驱动部署不变，本方案只是给它换配置（`-p config_file:=`），
   不覆盖出厂 `control_command.yaml`。
@@ -78,5 +100,8 @@ RDK X5 + Odin1 的感知链路已跑通（见 `x5_odin/README.md`），手上有
 ## 6. 复审条件
 
 1. 固件烧写完成、`link_test` 通过后，复核仲裁优先级是否符合实车手感（尤其 `s2` 档位语义）。
-2. 若重定位成功率低，考虑改用 Odometry 模式（mode 0）+ 同会话回放。
-3. `senddtof: 0` 若导致 `cloud_slam` 无数据，改回 1（性能换稳定）。
+2. 若电机不动而 USART3 上确实有正确的 slcan 帧，依次怀疑：模块波特率、模块 CAN 侧波特率、
+   模块是否处于开通道状态（`O`）、上电顺序。
+3. 若模块重启导致通道丢失，加"周期性重发 `O\r`"。
+4. 若重定位成功率低，考虑改用 Odometry 模式（mode 0）+ 同会话回放。
+5. `senddtof: 0` 若导致 `cloud_slam` 无数据，改回 1（性能换稳定）。

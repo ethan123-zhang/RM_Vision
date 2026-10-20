@@ -6,10 +6,39 @@
 > **当前状态**（2026-10-20）：
 > - ✅ 链路协议（C + Python 双端，黄金向量测试通过）
 > - ✅ X5 侧全部 ROS2 节点、配置、脚本、部署
-> - ⬜ 固件 HAL 部分（USART3 接入、仲裁、看门狗）—— 等你确认接线后做，清单见 [§9](#9-固件还差什么)
->
-> 原来的底盘工程只支持 DT7 遥控器；本项目的目标是把控制源换成
-> **X5 串口 → C8T6 → CAN → 电机控制器**，同时保留遥控器做手动驾驶和急停。
+> - ✅ 固件改造（USART1=X5、USART2=遥控器、USART3=串口转CAN 模块、10 ms 仲裁、看门狗）
+> - ⬜ **烧写 + 上车验证**（本机没有 Keil，编译要你在 Keil 里点一次，见 [§9](#9-固件状态与烧写)）
+
+---
+
+## 0. 链路拓扑（改过一次，以这张为准）
+
+```
+RDK X5                               C8T6                       外设
+┌──────────────┐ 40pin 8(TX)  ┌────────────────┐  USART2   ┌──────────────┐
+│ UART /dev/ttyS1├───────────→│ USART1 (PA9/10)│←──────────│ DT7 接收机   │
+│              │ 40pin 10(RX) │                │  100000   └──────────────┘
+│              │←───────────→│                │
+└──────────────┘  115200 8N1 │  10 ms 仲裁    │  USART3   ┌──────────────┐
+                             │                ├──────────→│ 串口转CAN模块│
+                             └────────────────┘  115200   └──────┬───────┘
+                                                     slcan 文本    │ CAN 250k
+                                                                  ↓ extID 0x1314
+                                                          ┌──────────────┐
+                                                          │ XHSMCUW50 双驱│
+                                                          └──────────────┘
+```
+
+三个串口各司其职，**互不复用**：
+
+| 口 | 引脚 | 参数 | 对端 |
+| :--- | :--- | :--- | :--- |
+| USART1 | PA9 / PA10 | 115200 8N1 | RDK X5 40pin 第 8/10 脚 |
+| USART2 | PA2 / PA3 | **100000 8E1** | DT7 接收机（DBUS） |
+| USART3 | PB10 / PB11 | 115200 8N1 | 串口转CAN 模块（slcan） |
+
+> `printf` 已经改成丢弃：三个口都名花有主，往任何一个塞调试文本都会毒化链路。
+> 诊断走 10 Hz 的 status 帧（X5 侧 `/car/status`）。
 
 ---
 
@@ -17,39 +46,36 @@
 
 ```
 car_slam_lap/
-├─ firmware/C8T6_DT7_car/         原 Keil 工程（遥控器版）+ Hardware/LINK/protocol.c
-├─ tests/                         协议测试（gcc 编译，不需要硬件）
-│   ├─ protocol_test.c            70 项断言：CRC/布局/重同步/坏帧/黄金向量
-│   └─ run_tests.ps1              一键跑 C + Python 全部离线测试
+├─ firmware/C8T6_DT7_car/               Keil 工程
+│   ├─ Core/                            CubeMX 生成（usart.c 改了三路参数，.ioc 同步改过）
+│   └─ Hardware/
+│       ├─ LINK/protocol.c,h            X5 链路帧编解码（HAL 无关，PC 可测）
+│       ├─ LINK/x5_link.c,h             USART1 收帧 + 10 Hz status
+│       ├─ CAN/slcan.c,h                slcan 文本编码（HAL 无关，PC 可测）
+│       ├─ CAN/can_bus.c,h              8 字节混控帧 -> slcan -> USART3
+│       └─ UART/{uart_rx.c,DBUS.c}      唯一的接收中断入口 + DT7 解码
+├─ tests/
+│   ├─ protocol_test.c                  70 项：CRC/布局/重同步/坏帧/黄金向量
+│   ├─ slcan_test.c                     21 项：slcan 逐字节断言
+│   ├─ hal_stub/                        PC 上的极简 HAL 替身（只做语法/类型检查）
+│   ├─ check_keil_project.py            工程一致性：文件挂没挂、include、.ioc 参数
+│   └─ run_tests.ps1                    一键跑全部离线检查
 ├─ x5/
-│   ├─ car_bridge/                ROS2 包（python）
-│   │   ├─ car_bridge/protocol.py         与固件同源的帧实现
-│   │   ├─ car_bridge/path_io.py          轨迹文件读写 + 几何（不依赖 ROS）
-│   │   ├─ car_bridge/bridge_node.py      /cmd_vel → 串口，回读 /car/status
-│   │   ├─ car_bridge/link_test.py        链路自检（含看门狗验证）
-│   │   ├─ car_bridge/teleop_keys.py      键盘遥控
-│   │   ├─ car_bridge/record_path.py      建图时录轨迹
-│   │   ├─ car_bridge/follow_path.py      纯追踪回放走一圈
-│   │   ├─ car_bridge/map_from_cloud.py   点云累积成 PCD + 俯视图
-│   │   ├─ car_bridge/calibrate_speed.py  实测 m/s 与指令的换算
-│   │   ├─ test/test_protocol.py          同一组黄金向量
-│   │   └─ test/test_path_io.py           轨迹文件往返读写
-│   ├─ config/                    Odin1 的建图 / 重定位两份配置
-│   ├─ scripts/                   板端一键脚本（安装/建图/存图/重定位/走圈）
-│   └─ pc/deploy.ps1              打包 + pscp + 远程安装
-└─ README.md                      本文件
-```
-
-数据流：
-
-```
-PC 键盘 ─┐
-         ├→ /cmd_vel ─→[car_bridge 50Hz]─串口 115200→[C8T6 USART3]
-路点回放 ─┘                                              │ 10ms 仲裁
-                                                         ↓ CAN 250k, extID 0x1314
-                                                   [XHSMCUW50 双驱] → 左右轮
-Odin1 ─USB3→ /odin1/{odometry, cloud_slam, imu} ─→ 建图(mode 1) / 重定位(mode 2)
-C8T6 ── status 10Hz ──→ /car/status ──→ 日志 + follow_path 的安全联锁
+│   ├─ car_bridge/                      ROS2 包
+│   │   ├─ car_bridge/protocol.py       与固件同源的帧实现
+│   │   ├─ car_bridge/path_io.py        轨迹文件读写 + 几何（不依赖 ROS）
+│   │   ├─ car_bridge/bridge_node.py    /cmd_vel → 串口，回读 /car/status
+│   │   ├─ car_bridge/link_test.py      链路自检（含看门狗验证）
+│   │   ├─ car_bridge/teleop_keys.py    键盘遥控
+│   │   ├─ car_bridge/record_path.py    建图时录轨迹
+│   │   ├─ car_bridge/follow_path.py    纯追踪回放走一圈
+│   │   ├─ car_bridge/map_from_cloud.py 点云累积成 PCD + 俯视图
+│   │   ├─ car_bridge/calibrate_speed.py 实测 m/s 与指令的换算
+│   │   └─ test/                        协议黄金向量 + 轨迹往返测试
+│   ├─ config/                          Odin1 建图 / 重定位两份配置
+│   ├─ scripts/                         板端脚本（安装/探测/建图/存图/重定位/走圈）
+│   └─ pc/deploy.ps1                    打包 + pscp + 远程安装
+└─ README.md
 ```
 
 ---
@@ -58,22 +84,22 @@ C8T6 ── status 10Hz ──→ /car/status ──→ 日志 + follow_path 的
 
 | 连接 | 细节 | 注意 |
 | :--- | :--- | :--- |
-| X5 USB ↔ USB-TTL ↔ C8T6 | X5 任意 USB 口 → CH340/CP2102 → **PB10/PB11（USART3）** | **TX 接 RX、RX 接 TX**；115200 8N1 |
-| 共地 | USB-TTL GND ↔ C8T6 GND | 少了这根线，收到的一定是乱码 |
-| USB-TTL 供电脚 | **不接**（3V3/VCC 悬空） | C8T6 由车上 5V 供电，接上会打架 |
-| DT7 接收机 ↔ C8T6 | PA9/PA10（USART1），100000 8E1 | 原样保留，s2 打到底 = 硬急停 |
-| 电机控制器 ↔ C8T6 | CAN_H/CAN_L，PA11/PA12，**250 kbit/s**，扩展帧 `0x1314` | 总线两端各 120 Ω 终端电阻 |
-| Odin1 ↔ X5 | Type-C → **蓝色 USB3 口** | 必须 USB3，SLAM 模式传地图文件要靠它 |
+| **X5 40pin ↔ C8T6 USART1** | 第 8 脚(TX) → **PA10**(RX)；第 10 脚(RX) → **PA9**(TX)；GND 互连 | **必须交叉**；3.3V 电平，可直接对接 |
+| DT7 接收机 ↔ C8T6 USART2 | PA2/PA3，100000 8E1 | 已在 USART2 上；s2 打到底 = 硬急停 |
+| C8T6 USART3 ↔ 串口转CAN 模块 | PB10(TX) → 模块 RX；PB11 ← 模块 TX；GND 互连 | 模块串口按 115200；**模块 CAN 侧要 250K** |
+| 模块 ↔ 电机控制器 | CAN_H / CAN_L，扩展帧 `0x1314` | 总线两端各 120 Ω 终端电阻 |
+| Odin1 ↔ X5 | Type-C → **蓝色 USB3 口** | SLAM 模式传地图文件必须 USB3 |
 | Odin1 供电 | 航插 12V / 2A（≥15W） | 跟 Type-C 分开，Type-C 不供电 |
 
-> ⚠️ 为什么 X5 接 USART3 而不是 USART1：遥控器接收机占着 USART1，而且它是
-> 100000 8E1 的专用时序；USART2 留给 printf 调试。USART3(PB10/PB11) 是空的。
+上电顺序建议：**模块先于 C8T6**。固件启动时会给模块发 `S5\r`（250K）+ `O\r`（开通道）；
+如果模块在之后才上电/复位，它自己不会重新开通道，表现是"程序在发帧但电机不动"——
+这时复位一次 C8T6 即可（见 §11）。
 
 ---
 
-## 3. 串口协议
+## 3. 两层协议
 
-二进制帧，115200 8N1，小端。
+### 3.1 X5 ↔ C8T6（二进制帧，115200 8N1）
 
 **下行 X5 → C8T6，50 Hz，9 字节**
 
@@ -95,12 +121,12 @@ C8T6 ── status 10Hz ──→ /car/status ──→ 日志 + follow_path 的
 ```
 
 - `speed > 0` 前进，`angular > 0` 右转
-- `status`：b0 CAN 正常 / b1 串口在线 / b2 遥控在线 / b3 急停
+- `status`：b0 电机链路正常 / b1 串口在线 / b2 遥控在线 / b3 急停
 - `src`：0 无 / 1 串口 / 2 遥控
-- **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 字节及其后 `LEN` 个字节
+- **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 及其后 `LEN` 字节
 - 外部校验：`crc8("123456789") == 0xF4`
 
-黄金向量（`tests/protocol_test.c` 与 `x5/car_bridge/test/test_protocol.py` 断言同一份）：
+黄金向量（`protocol_test.c` 与 `test_protocol.py` 断言同一份）：
 
 | 内容 | 字节 |
 | :--- | :--- |
@@ -109,59 +135,66 @@ C8T6 ── status 10Hz ──→ /car/status ──→ 日志 + follow_path 的
 | `set_vel(-1000, 1000)` | `A5 5A 05 01 18 FC E8 03 4C` |
 | `status(0x03, serial)` | `5A A5 03 81 03 01 62` |
 
-**为什么是二进制帧而不是 `V,400,-200\n` 这种文本**：文本协议上线快，但 CRC 和长度
-字段是后面接更多外设（云台、发射机构）时的必需品；这套帧格式和 RoboMaster 常见的
-裁判系统/串口协议同构，练手价值更高。调试照样方便——`bridge_node` 的 `dry_run`
-参数会把每帧 hex 打出来。
+### 3.2 C8T6 ↔ 串口转CAN 模块（slcan 文本，115200 8N1）
+
+模块收到的是 **ASCII**，`\r` 结尾（CANable / candleLight 那一套）：
+
+```
+T000013148CDAB900138FF6555\r
+└T └00001314 └8 └CDAB 9001 38FF 6555
+ 扩展帧       DLC  帧头 ang  spd  crc
+```
+
+启动时固件先发两条命令：
+
+```
+S5\r    # 250 kbit/s（S4=125K S5=250K S6=500K）
+O\r     # 打开通道，不开模块不往总线上发
+```
+
+编码在 `Hardware/CAN/slcan.c`，**21 项逐字节断言**（`tests/slcan_test.c`）——
+这种文本协议写错一个字符不会崩，只会静默丢帧，现场表现是"电机不动但程序没报错"，
+所以必须在接线上车之前锁死。
+
+8 字节混控帧内容与原来一模一样：`0xABCD + angular + speed + 异或校验`，小端。
 
 ---
 
 ## 4. 部署（PC → 板端）
 
 ```powershell
-# PC：打包 + 上传 + 远程安装（一条命令）
 pwsh -File car_slam_lap\x5\pc\deploy.ps1 -Install
 ```
 
-分步做也行：
-
-```powershell
-pwsh -File car_slam_lap\x5\pc\deploy.ps1          # 只上传
-```
-
-```bash
-# 板端
-cd ~ && rm -rf car_slam_lap && mkdir -p car_slam_lap
-unzip -o car_slam_lap_deploy.zip -d car_slam_lap
-bash ~/car_slam_lap/x5/scripts/install_car.sh
-```
-
 `install_car.sh` 会做：apt 依赖（`python3-serial`/`python3-yaml`）→ 建
-`~/car_ws/{src,config,maps,logs}` → 拷源码和配置 → 装 udev 规则（USB-TTL 固定成
-`/dev/car_link`）→ `colcon build`。
+`~/car_ws/{src,config,maps,logs}` → 拷源码和配置 → 装 udev 规则（40pin 的
+`/dev/ttyS1` 和 USB-TTL 都软链到 `/dev/car_link`）→ `colcon build`。
 
-前置：Odin1 驱动已按 [x5_odin/README.md](../x5_odin/README.md) 部署在 `~/odin_ws`，本套脚本不碰它。
+前置：Odin1 驱动已按 [x5_odin/README.md](../x5_odin/README.md) 部署在 `~/odin_ws`。
 
 ---
 
 ## 5. 第一次跑：按这个顺序
 
 ```bash
-# ① 链路自检（车轮不会动；验证收发 + 看门狗）
-ros2 run car_bridge link_test --port /dev/car_link
+# ① 先确认 40pin 串口是哪个节点、有没有被 getty 占
+bash ~/car_slam_lap/x5/scripts/probe_uart.sh
+#   把第 8、10 脚短接后它会做回环自测；通过说明节点和针脚都对
+
+# ② 链路自检（车轮不会动；验证收发 + 看门狗）
+ros2 run car_bridge link_test --port /dev/ttyS1
 #   期望：status ~10 Hz、crc_err 0、停发后 LINK_OK 掉落 -> PASS
 
-# ② 底盘桥接（另开一个终端，保持运行）
+# ③ 底盘桥接（另开终端，保持运行）
 ros2 run car_bridge bridge_node
 
-# ③ 键盘遥控（第三个终端）
+# ④ 键盘遥控
 ros2 run car_bridge teleop_keys
 #   w/s/a/d 走一下，确认方向和停止都正常
 
-# ④ 标定速度（让 /cmd_vel 的 m/s 是真单位）
+# ⑤ 标定速度
 ros2 run car_bridge calibrate_speed
 ros2 run car_bridge calibrate_speed --ros-args -p axis:=angular
-#   把打印的建议值填进 scripts/drive_lap.sh 的 v_max 依据里（见 §7）
 ```
 
 ---
@@ -172,11 +205,11 @@ ros2 run car_bridge calibrate_speed --ros-args -p axis:=angular
 bash ~/car_slam_lap/x5/scripts/start_mapping.sh lab1
 #  → 起 Odin1（建图模式）+ 点云导出 + 轨迹录制 + 底盘桥接
 #  → 你开车把房间走一圈（遥控器，或 ros2 run car_bridge teleop_keys）
-bash ~/car_slam_lap/x5/scripts/save_map.sh        # 存设备地图 .bin
-bash ~/car_slam_lap/x5/scripts/stop_mapping.sh    # 收尾，落盘
+bash ~/car_slam_lap/x5/scripts/save_map.sh
+bash ~/car_slam_lap/x5/scripts/stop_mapping.sh
 ```
 
-产物都在 `~/car_ws/maps/lab1/`：
+产物在 `~/car_ws/maps/lab1/`：
 
 | 文件 | 是什么 |
 | :--- | :--- |
@@ -200,14 +233,11 @@ bash ~/car_slam_lap/x5/scripts/drive_lap.sh lab1       # 纯追踪跑一圈
 ```
 
 `start_relocal.sh` 判成功的依据是 TF `map ← imu` 通了（重定位成功前 `map` 帧不在
-TF 树里）。成功后：
+TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲率、发 `/cmd_vel`；
+到终点做一次原地朝向修正，打印横向误差 max/rms，并把实际轨迹写到 `lap_actual.yaml`。
 
-- `follow_path` 每 50 ms 查一次位姿，算前视点、曲率、角速度，发 `/cmd_vel`
-- 到终点会做一次原地朝向修正，然后停
-- 结束时打印横向误差 max/rms，并把实际轨迹写到 `lap_actual.yaml`
-
-**第一次一定要先用 `VMAX=0.15` 慢速试**：`VMAX=0.15 bash drive_lap.sh lab1`。
-`v_max` 是 m/s，别超过标定出来的 `mps_at_max`。
+**第一次一定先用 `VMAX=0.15 bash drive_lap.sh lab1` 慢速试**，
+`v_max` 别超过标定出来的 `mps_at_max`。
 
 ---
 
@@ -216,34 +246,38 @@ TF 树里）。成功后：
 | 层级 | 机制 | 失效后果 |
 | :--- | :--- | :--- |
 | L1 遥控器 | `s2` 打到底 = 硬急停，**压过串口** | 任何时刻人肉刹车 |
-| L2 固件 | 串口 300 ms 无有效帧 → 发 0 | X5 死机/拔线，车 0.3 s 内停 |
+| L2 固件 | USART1 300 ms 无有效帧 → 发 0 | X5 死机/拔线，车 0.3 s 内停 |
 | L3 节点 | `cmd_timeout` 300 ms 无新 `/cmd_vel` → 发 0 | 遥控程序崩了，车停 |
 | L4 跟随器 | `/car/status` 报 estop 或断流 → 立即退出 | 底盘异常时不再发指令 |
 | L5 跟随器 | TF 丢 >0.5 s → 发 0 并退出 | 定位跳变时不瞎跑 |
 
-急停生效时 `status` 的 b3 置位，`bridge_node` 会打一次 `底盘报 ESTOP` 的红字，
-`link_test` 也会把它打出来——**建图/走圈前先确认它不是 `estop:true`**。
+急停生效时 `status` 的 b3 置位，`bridge_node` 会打一次 `底盘报 ESTOP` 的红字。
+**注意**：急停只在遥控器数据新鲜时生效——接收机拔掉不会误锁死（见 `DBUS_Estop()`）。
 
 ---
 
-## 9. 固件还差什么
+## 9. 固件状态与烧写
 
-`protocol.c` 已经写好且测过，剩下的是把它接进 Keil 工程。按这个顺序改：
+代码已改完，`tests/run_tests.ps1` 会做语法+类型检查，但**整片编译必须在 Keil 里做一次**
+（本机没有 Keil / arm-none-eabi-gcc）。
 
-- [ ] `Core/Src/usart.c` + `C8T6_DT7_car.ioc`：加 **USART3（PB10=TX, PB11=RX，115200 8N1，开 NVIC）**。
-      必须同步改 `.ioc`，否则 CubeMX 一重生成就把 USART3 冲掉。
-- [ ] 新增 `Hardware/UART/uart_rx.c`：`HAL_UART_RxCpltCallback` 只放这一个（现在在 `DBUS.c` 里），
-      按句柄分发：`huart1 → DBUS_OnByte()`、`huart3 → X5_Link_OnByte()`。
-      两处都定义回调会直接链接报 `multiply defined`。
-- [ ] 新增 `Hardware/LINK/x5_link.c/h`：`HAL_UART_Receive_IT(&huart3,...)`、
-      `proto_rx_feed()`、`X5_Link_Alive()`、10 Hz 发 `proto_build_status()`。
-- [ ] `Core/Src/main.c`：改成 10 ms 调度 + 仲裁
-      （`s2==3` 急停 > 串口 > 遥控 > 停），删掉现在这个**永远不成立**的
-      `rc_tick` 超时判断（`rc_tick` 每轮都被刷新了）。
-- [ ] `Hardware/CAN/can_bus.c`：把 `while(HAL_CAN_IsTxMessagePending(...))` 去掉
-      （现在等于在主循环里以几 kHz 狂发，协议要求 5–20 ms）。
-- [ ] `MDK-ARM/C8T6_DT7_car.uvprojx`：`protocol.c` 加进 Hardware 组，新文件同理。
-- [ ] 烧写后跑 `link_test` 验验收项 A1/A2。
+改动清单（都已完成）：
+
+- [x] `usart.c` + `.ioc`：USART1 改 115200 8N1（X5）、USART2 改 100000 8E1（DT7）、
+      新增 USART3（PB10/PB11，115200 8N1）；三个口都开了 NVIC。
+- [x] `Hardware/UART/uart_rx.c`：全工程唯一的 `HAL_UART_RxCpltCallback`，按句柄分发；
+      同时补了 `HAL_UART_ErrorCallback` 重新挂接收（溢出后不重挂会永久静默）。
+- [x] `Hardware/LINK/x5_link.c/h`：USART1 收帧、300 ms 判活、10 Hz 发 status。
+- [x] `Hardware/CAN/slcan.c/h` + `can_bus.c`：8 字节混控帧 → slcan 文本 → USART3。
+      片内 CAN 外设不再初始化（`can.c` 保留，方便哪天换回收发器）。
+- [x] `main.c`：10 ms 调度 + 仲裁（s2 急停 > 串口 > 遥控 > 停），
+      删掉了原来那个**永远不成立**的 `rc_tick` 超时判断。
+- [x] `C8T6_DT7_car.uvprojx`：4 个新文件挂进 Hardware 组，include 路径加 `..\Hardware\LINK`。
+- [ ] **烧写 + 跑 A1/A2 验收**。
+
+烧写后在 X5 上跑 `link_test`，它会把三个口的状态一次说清：
+收到 status 说明 USART1/固件都活了；`src:"serial"` 说明仲裁走了串口；
+`src:"rc"` 说明串口帧没被认（回去看 A1）。
 
 ---
 
@@ -251,8 +285,8 @@ TF 树里）。成功后：
 
 | # | 项目 | 判据 | 状态 |
 | :--- | :--- | :--- | :--- |
-| A1 | 链路 | `link_test` 500+ 帧、`crc_err=0`、status ≈10 Hz、停发后 `LINK_OK` 掉落 | ⬜ 待固件 |
-| A2 | 键盘遥控 | 四向正确，松键 ≤300 ms 停，拔 USB 车停 | ⬜ 待固件 |
+| A1 | 链路 | `link_test` 500+ 帧、`crc_err=0`、status ≈10 Hz、停发后 `LINK_OK` 掉落 | ⬜ 待烧写 |
+| A2 | 键盘遥控 | 四向正确，松键 ≤300 ms 停，拔线 0.3 s 内停 | ⬜ 待烧写 |
 | A3 | 建图 | 产出 `.bin` + `path.yaml` + `map.pcd`；`map_bev.png` 与房间形状吻合 | ⬜ |
 | A4 | 重定位 | `tf2_echo map imu` 有输出 | ⬜ |
 | A5 | 走圈 | 跑完一圈无碰撞，横向误差 rms < 0.15 m，终点 < 0.3 m / 15° | ⬜ |
@@ -264,30 +298,36 @@ TF 树里）。成功后：
 
 | 现象 | 先查什么 |
 | :--- | :--- |
-| `link_test` 一帧上行都没有 | TX/RX 是否交叉、GND 是否共地、固件烧了没、波特率是不是 115200 |
-| 有上行但 `crc_err` 一直涨 | 杜邦线太长/接触不良；波特率两边不一致 |
-| `bridge_node` 日志 `打开 /dev/car_link 失败` | USB-TTL 没插；`ls /dev/ttyUSB*`；重新 `sudo udevadm trigger` |
+| `link_test` 一帧上行都没有 | 40pin 8/10 与 PA9/PA10 是否交叉、GND 是否共地、固件烧了没、`probe_uart.sh` 回环过不过 |
+| 有上行但 `crc_err` 一直涨 | 线太长/接触不良；两边波特率不一致；getty 在抢 ttyS1 |
+| `bridge_node` 报 `打开 /dev/ttyS1 失败` | 节点名不对（跑 `probe_uart.sh`）、权限不够（`sudo udevadm trigger`） |
 | `/car/status` 里 `estop:true` | 遥控器 s2 打在急停档 |
-| `/car/status` 里 `src:"rc"` | 串口帧没被认，固件还是走了遥控分支（看 A1） |
+| `/car/status` 里 `src:"rc"` | 串口帧没被认，固件走了遥控分支 |
 | 车往反方向走 | `bridge_node -p invert_speed:=true`（或 `invert_angular`） |
-| `cloud_slam` 没数据 | 把 `x5/config/control_command.mapping.yaml` 里 `senddtof: 0` 改回 `1` 再试 |
+| **程序在发帧、电机完全不动** | ① 模块有没有先上电/被复位过（重发 `S5`+`O`：复位 C8T6）；② 模块 CAN 侧是不是 250K；③ 抓 USART3 的原始字节，确认是 `T000013148...` 而不是乱码 |
+| 电机转但方向/速度不对 | 混控帧的 `angular/speed` 次序与符号约定；先单独发 `speed` 再发 `angular` 试 |
+| `cloud_slam` 没数据 | `control_command.mapping.yaml` 里把 `senddtof: 0` 改回 `1` |
 | 重定位一直不成功 | 起点不在建图位置 1 m 内；场景变化大；灯光太暗；轻轻晃一下设备 |
 | `follow_path` 起步就报 TF 丢失 | 重定位没成功（`map` 帧不在 TF 树里） |
-| 走圈时画龙/撞墙 | `v_max` 太大或 `mps_at_max` 没标定；先把 `VMAX` 降到 0.15 试 |
+| 走圈画龙/撞墙 | `v_max` 太大或 `mps_at_max` 没标定；先降 `VMAX` 到 0.15 |
 
 ---
 
 ## 12. 已知不确定 / 待确认
 
-1. **CAN 波特率**：`.ioc` 里算出来是 **250 kbit/s**（36 MHz / 8 / 18TQ），
-   但厂商文档写 500K。既然遥控器版实测能跑，本项目按 250K 不动，
-   等有空用示波器或 CAN 分析仪确认后统一。
-2. **`senddtof: 0`**（关掉 cloud_raw 省 9.6 MB/s）：基于"`sendcloudslam` 是独立数据流"
-   的判断。若建图时 `cloud_slam` 无数据，第一件事就是改回 `1`。
-3. **Odin1 装车位置**：现在直接把 `imu` 系当车体中心。装得离转向中心远的话，
-   转弯时会有系统性偏差，需要用静态 TF 补偏移（`follow_path` 的 `base_frame` 参数）。
-4. **重定位成功后 map→odom 的发布频率**：未实测，若 TF 查得太频繁导致抖动，
-   把 `follow_path` 的 `rate_hz` 降到 10。
+1. **CAN 波特率 250K**：`.ioc` 里算出来是 250 kbit/s（36 MHz / 8 / 18TQ），厂商文档写
+   500K 与实测不符。本项目按 250K，通过 slcan 的 `S5` 命令配给模块。若电机确实按
+   500K 工作，改 `can_bus.h` 的 `MOTOR_CAN_BITRATE` 为 500000 即可（自动发 `S6`）。
+2. **模块的串口波特率**：按 115200 假设（slcan 固件的常见默认）。若模块是 9600，
+   改 `usart.c` 的 USART3 `BaudRate`（和 `.ioc`）。
+3. **模块上电顺序**：模块晚于 C8T6 上电时不会自动重开通道，需要复位 C8T6。
+   如果实测经常发生，下一步可以在固件里加"每 5 s 重发一次 `O\r`"。
+4. **`senddtof: 0`**（关掉 cloud_raw 省 9.6 MB/s）：基于 `sendcloudslam` 是独立数据流的
+   判断；若建图时 `cloud_slam` 无数据，第一件事就是改回 `1`。
+5. **Odin1 装车位置**：现在直接把 `imu` 系当车体中心。装得离转向中心远的话，
+   转弯有系统性偏差，需要用静态 TF 补偏移（`follow_path` 的 `base_frame`）。
+6. **重定位后 map→odom 的发布频率**：未实测；若 TF 抖动，把 `follow_path` 的
+   `rate_hz` 降到 10。
 
 ---
 
@@ -297,6 +337,13 @@ TF 树里）。成功后：
 pwsh -File car_slam_lap\tests\run_tests.ps1
 ```
 
-跑三件事：gcc 编译 `protocol.c` + `protocol_test.c` 跑 70 项断言；
-`test_protocol.py` 11 项、`test_path_io.py` 8 项。协议两侧断言同一组黄金向量，
-所以"固件和 X5 各写一遍 CRC 然后对不上"这类问题在接线上车之前就会暴露。
+四组：
+
+1. **C 单元测试**：`protocol.c` 70 项 + `slcan.c` 21 项，逐字节断言
+2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 6 个固件模块跑
+   `gcc -Wall -Wextra -Werror -fsyntax-only`（`main.c` 依赖大量 RCC/NVIC 类型，不在范围内）
+3. **Python 单元测试**：协议黄金向量 11 项 + 轨迹文件往返 8 项
+4. **Keil 工程一致性**：文件在磁盘上有、在 `uvprojx` 里挂着、include 路径与 `.ioc` 参数一致
+
+第 4 项专门防"文件写好了但没加进工程，某个 .c 根本没编译"——这类问题在 Keil 里
+表现为链接报错或更隐蔽的"串口永远收不到数据"。
