@@ -1,13 +1,23 @@
-#include "dbus.h"
+/**
+ ******************************************************************************
+ * @file    DBUS.c
+ * @brief   DT7 接收机解码 —— USART2，100000 8E1
+ ******************************************************************************
+ */
+#include "DBUS.h"
 
 RC_TypeDef rc;
-uint8_t dbus_buf[18];
-uint8_t dbus_cnt = 0;
-uint8_t  rx_byte;
 
-void DBUS_Init(UART_HandleTypeDef *huart)
+static uint8_t s_buf[DBUS_FRAME_LEN];
+static uint8_t s_cnt;
+static volatile uint32_t s_last_ms;
+static volatile uint32_t s_frames;
+
+void DBUS_Init(void)
 {
-    HAL_UART_Receive_IT(huart, &rx_byte, 1);
+    s_cnt = 0u;
+    s_frames = 0u;
+    s_last_ms = HAL_GetTick();
 }
 
 void DBUS_Decode(uint8_t *buf)
@@ -18,20 +28,42 @@ void DBUS_Decode(uint8_t *buf)
     rc.ch3 = (((buf[4] >> 1) | (buf[5] << 7)) & 0x07FF) - 1024;
 
     /* S1/S2 在字节5的高4位（bit偏移44/46，非字节17！见数据手册） */
-    rc.s2 = (buf[5] >> 4) & 0x03;   /* S1 = 字节5 bit4-5，值 1上 2下 3中 */
-    rc.s1 = (buf[5] >> 6) & 0x03;   /* S2 = 字节5 bit6-7 */
+    rc.s2 = (uint8_t)((buf[5] >> 4) & 0x03);
+    rc.s1 = (uint8_t)((buf[5] >> 6) & 0x03);
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void DBUS_OnByte(uint8_t byte)
 {
-    if (huart == &huart1)
+    s_buf[s_cnt] = byte;
+    s_cnt++;
+    if (s_cnt < DBUS_FRAME_LEN)
     {
-        dbus_buf[dbus_cnt++] = rx_byte;
-        if (dbus_cnt >= 18)
-        {
-            DBUS_Decode(dbus_buf);
-            dbus_cnt = 0;
-        }
-        HAL_UART_Receive_IT(&huart1, &rx_byte, 1);  /* 关键：必须重新启动下一次接收 */
+        return;
     }
+
+    s_cnt = 0u;
+    DBUS_Decode(s_buf);
+    s_last_ms = HAL_GetTick();
+    s_frames++;
+}
+
+uint8_t DBUS_Alive(void)
+{
+    return (uint8_t)((HAL_GetTick() - s_last_ms) < DBUS_TIMEOUT_MS);
+}
+
+uint8_t DBUS_Estop(void)
+{
+    /* 必须在数据新鲜时才算急停：接收机拔掉后 rc 会停留在最后一帧，
+       如果那一帧恰好是 s2=3，就会永久锁死，看起来像"串口指令没生效"。 */
+    if ((DBUS_Alive() != 0u) && (rc.s2 == DBUS_ESTOP_S2))
+    {
+        return 1u;
+    }
+    return 0u;
+}
+
+uint32_t DBUS_Frames(void)
+{
+    return s_frames;
 }

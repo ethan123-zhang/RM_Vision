@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../Hardware/CAN;../Hardware/UART</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../Hardware/CAN;../Hardware/UART;../Hardware/LINK</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -619,6 +619,41 @@
               <FileName>DBUS.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Hardware\UART\DBUS.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_rx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\UART\uart_rx.c</FilePath>
+            </File>
+            <File>
+              <FileName>slcan.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\CAN\slcan.c</FilePath>
+            </File>
+            <File>
+              <FileName>slcan.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Hardware\CAN\slcan.h</FilePath>
+            </File>
+            <File>
+              <FileName>protocol.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\LINK\protocol.c</FilePath>
+            </File>
+            <File>
+              <FileName>protocol.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Hardware\LINK\protocol.h</FilePath>
+            </File>
+            <File>
+              <FileName>x5_link.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\LINK\x5_link.c</FilePath>
+            </File>
+            <File>
+              <FileName>x5_link.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Hardware\LINK\x5_link.h</FilePath>
             </File>
           </Files>
         </Group>

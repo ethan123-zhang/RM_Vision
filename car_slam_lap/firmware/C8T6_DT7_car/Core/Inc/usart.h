@@ -36,12 +36,20 @@ extern UART_HandleTypeDef huart1;
 
 extern UART_HandleTypeDef huart2;
 
-/* USER CODE BEGIN Private defines */
+extern UART_HandleTypeDef huart3;
 
+/* USER CODE BEGIN Private defines */
+/*
+ * 串口分配（改线时同步改这里、usart.c 和 .ioc）
+ *   USART1  PA9/PA10   115200 8N1   X5 上位机：下行速度帧 + 上行状态帧
+ *   USART2  PA2/PA3    100000 8E1   DT7 接收机（DBUS）
+ *   USART3  PB10/PB11  115200 8N1   串口转CAN 模块（slcan 文本）
+ */
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);
 void MX_USART2_UART_Init(void);
+void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
