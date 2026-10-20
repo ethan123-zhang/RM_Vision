@@ -121,7 +121,8 @@ car_slam_lap/
 ```
 
 - `speed > 0` 前进，`angular > 0` 右转
-- `status`：b0 电机链路正常 / b1 串口在线 / b2 遥控在线 / b3 急停
+- `status`：b0 往串口转CAN 模块写成功（**只代表 UART 写成功，不代表 CAN 总线上有帧**）/
+  b1 串口在线 / b2 遥控在线 / b3 急停
 - `src`：0 无 / 1 串口 / 2 遥控
 - **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 及其后 `LEN` 字节
 - 外部校验：`crc8("123456789") == 0xF4`
@@ -324,7 +325,7 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 
 | # | 项目 | 判据 | 状态 |
 | :--- | :--- | :--- | :--- |
-| A1 | 链路 | `link_test` 500+ 帧、`crc_err=0`、status ≈10 Hz、停发后 `LINK_OK` 掉落 | ⬜ 待烧写 |
+| A1 | 链路 | `link_test` 500+ 帧、`crc_err=0`、status ≈10 Hz、停发后 `LINK_OK` 掉落 | ✅ 2026-10-20：300 帧发 / 70 帧收、**10.00 Hz**、最大间隔 101 ms、crc_err 0、停发后 LINK_OK 掉落、`src=serial` |
 | A2 | 键盘遥控 | 四向正确，松键 ≤300 ms 停，拔线 0.3 s 内停 | ⬜ 待烧写 |
 | A3 | 建图 | 产出 `.bin` + `path.yaml` + `map.pcd`；`map_bev.png` 与房间形状吻合 | ⬜ |
 | A4 | 重定位 | `tf2_echo map imu` 有输出 | ⬜ |
@@ -337,7 +338,8 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 
 | 现象 | 先查什么 |
 | :--- | :--- |
-| `link_test` 一帧上行都没有 | 40pin 8/10 与 PA9/PA10 是否交叉、GND 是否共地、固件烧了没、`probe_uart.sh` 回环过不过 |
+| `link_test` 一帧上行都没有 | **串口 ISP 烧完后 BOOT0 忘了拨回 0**（芯片跑系统 bootloader，固件根本没执行——本项已实测踩过）；再查 40pin 8/10 与 PA9/PA10 是否交叉、GND 是否共地、`probe_uart.sh` 回环 |
+| 串口 ISP 烧写时 | 先把 RDK 那两根线从 PA9/PA10 拔掉，否则 USB-TTL 和 RDK 抢同一对脚 |
 | 有上行但 `crc_err` 一直涨 | 线太长/接触不良；两边波特率不一致；getty 在抢 ttyS1 |
 | `bridge_node` 报 `打开 /dev/ttyS1 失败` | 节点名不对（跑 `probe_uart.sh`）、权限不够（`sudo udevadm trigger`） |
 | `/car/status` 里 `estop:true` | 遥控器 s2 打在急停档 |

@@ -7,7 +7,9 @@
     RDK X5 与 C8T6 底盘的串口链路桥接（/cmd_vel -> 串口帧 -> CAN），
     以及建图/录轨迹/纯追踪回放/点云导出的配套工具。
   </description>
-  <maintainer email="rm@local">RM Vision</maintainer>
+  <!-- 邮箱必须是合法地址（带域名后缀），否则 colcon 解析 manifest 会失败：
+       "Invalid email ... for person"，表现是包编出来了但 ros2 pkg 找不到 -->
+  <maintainer email="rm@example.com">RM Vision</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclpy</depend>

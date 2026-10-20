@@ -13,10 +13,9 @@ setup(
     install_requires=["setuptools", "pyserial", "PyYAML"],
     zip_safe=True,
     maintainer="RM Vision",
-    maintainer_email="rm@local",
+    maintainer_email="rm@example.com",
     description="X5 <-> C8T6 串口底盘桥接与建图/回放工具",
     license="Apache-2.0",
-    tests_require=["pytest"],
     entry_points={
         "console_scripts": [
             "bridge_node = car_bridge.bridge_node:main",

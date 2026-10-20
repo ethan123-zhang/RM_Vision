@@ -54,6 +54,9 @@
 #define PROTO_FRAME_UP_LEN   7u      /* build_status 输出长度 */
 
 /* ---- status 位 ---- */
+/* 注意 CAN_OK 的含义很窄：只表示"往串口转CAN 模块的 UART 写成功了"。
+   它**不能**证明 CAN 总线上真的有帧——模块没上电、没开通道（O）、波特率不对，
+   这一位照样是 1。真正确认电机链路要靠轮子有没有转（验收 A2）。 */
 #define PROTO_ST_CAN_OK      0x01u
 #define PROTO_ST_LINK_OK     0x02u
 #define PROTO_ST_RC_OK       0x04u

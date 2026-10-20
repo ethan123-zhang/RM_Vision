@@ -45,7 +45,7 @@ Write-Host "包: $zip  ($kb KB)"
 
 $remoteHome = "/home/$User"
 Write-Host "上传到 ${User}@${X5Ip}:$remoteHome/ ..."
-& $pscp -batch -pw $Password $zip "${User}@${X5Ip}:$remoteHome/"
+& $pscp -batch -hostkey $HostKey -pw $Password $zip "${User}@${X5Ip}:$remoteHome/"
 
 if (-not $Install) {
     Write-Host @"
