@@ -6,9 +6,10 @@
 
 | 项 | 值 | 备注 |
 | :--- | :--- | :--- |
-| 主控板 | RDK X5（D-Robotics） | 具体型号/内存版本待补充 |
-| 相机 | 待补充 | 型号、分辨率、接口、帧率 |
-| 算力单元 | RDK X5 BPU | 工具链版本待补充 |
+| 主控板 | RDK X5（D-Robotics），8 核 aarch64 / 3062 MB / 32 GB SD | Ubuntu 22.04.5，kernel 6.1.83（2026-10-20 重灌实测） |
+| 空间感知 | Odin1（奥丁之眼），USB3 `2207:0019 hawk` | 1600×1296 RGB + 49152 点 DTOF，10 Hz，SuperSpeed 5000M；见 `x5_odin/README.md` |
+| 相机 | 待补充 | 型号、分辨率、接口、帧率（YOLO 链路另算，见 `x5_yolo/`） |
+| 算力单元 | RDK X5 BPU | 工具链 hb_mapper 1.24.3 / hbdk 3.49.15 |
 
 ## 2. 系统镜像
 
@@ -25,6 +26,13 @@
 ```powershell
 Get-FileHash "RDK_X5镜像/rdk-x5-ubuntu22-preinstalled-desktop-3.5.0-arm64.img" -Algorithm SHA256
 ```
+
+重灌记录（2026-10-20，原卡损坏）：
+
+- 镜像 SHA256 与上表一致（复核过）；Rufus / balenaEtcher 写卡，**首次上电自动扩容**，rootfs 29 GB。
+- 板端指纹：kernel 6.1.83、内存 3062 MB（默认无 swap）、`/opt/ros/humble` 190 包。
+- 网络：DHCP `172.17.90.239`，SSH `sunrise / sunrise`；plink 首次连接需 `-hostkey SHA256:K8oy…Bb4`。
+- 完整恢复步骤与踩坑见 `x5_odin/README.md` §11。
 
 ## 3. 工具链
 
@@ -72,7 +80,7 @@ python _extract/extractor.py "相关文件/未加密可AI访问/<文档>.pdf" "_
 
 ## 6. 复现检查
 
-- [ ] 镜像 SHA256 与上表一致
+- [x] 镜像 SHA256 与上表一致（2026-10-20 复核）
 - [ ] Python 3 可用
 - [ ] 三份 PDF 的 SHA256 与上表一致
-- [ ] 板端系统版本与镜像一致
+- [x] 板端系统版本与镜像一致（2026-10-20：Ubuntu 22.04.5 / kernel 6.1.83）

@@ -14,6 +14,12 @@
 
 # ---- 本地实验素材（不入库）----
 _probe/
+_downloads/
+
+# ---- 板端部署包与采集产物（可重新生成）----
+x5_odin/odin_deploy.zip
+x5_odin/capture/
+x5_odin/*.log
 
 # ---- 密钥与本地配置 ----
 .env
