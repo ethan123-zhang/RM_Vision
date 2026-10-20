@@ -8,3 +8,6 @@ __pycache__/
 firmware/C8T6_DT7_car/MDK-ARM/C8T6_CAN_car/
 firmware/C8T6_DT7_car/MDK-ARM/startup_stm32f103xb.lst
 *.uvguix.*
+
+# VSCode / Keil Assistant 的本地状态与编译日志
+.vscode/

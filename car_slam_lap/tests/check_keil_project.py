@@ -141,9 +141,45 @@ def check_irq_handlers() -> list:
     return problems
 
 
+def check_extern_definitions() -> list:
+    """头文件里 `extern <type> <name>;` 的变量，必须在同名 .c 里有定义。
+
+    这条防的是链接期错误，例如：
+        Error: L6218E: Undefined symbol huart3 (referred from main.o)
+    成因就是"在 .h 加了 extern、忘了在 .c 写定义"——语法检查完全看不出来，
+    只有链接才炸。规则很窄（只查同名 .c），所以不会误报。
+    """
+    problems = []
+    pairs = 0
+    headers = sorted((FW / "Core" / "Inc").glob("*.h")) + sorted((FW / "Hardware").rglob("*.h"))
+    for hdr in headers:
+        # CubeMX 是 Inc/ + Src/ 两个目录，硬件模块是 .h/.c 同级，两种都要找
+        candidates = [
+            hdr.with_suffix(".c"),
+            hdr.parent.parent / "Src" / f"{hdr.stem}.c",
+            hdr.parent / "Src" / f"{hdr.stem}.c",
+        ]
+        src = next((c for c in candidates if c.is_file()), None)
+        if src is None:
+            continue  # 纯宏/纯函数原型头文件
+        hdr_text = hdr.read_text(encoding="utf-8", errors="replace")
+        src_text = src.read_text(encoding="utf-8", errors="replace")
+        for m in re.finditer(r"^extern\s+([A-Za-z_][\w\s\*]*?)\b(\w+)\s*;", hdr_text, re.MULTILINE):
+            vtype = " ".join(m.group(1).split())
+            name = m.group(2)
+            pairs += 1
+            if re.search(rf"^\s*{re.escape(vtype)}\s+{re.escape(name)}\s*;", src_text, re.MULTILINE) is None:
+                problems.append(
+                    f"{hdr.name} 声明了 extern {vtype} {name}；"
+                    f"但 {src.name} 里没有 `{vtype} {name};` 定义（会链接报 L6218E）"
+                )
+    print(f"  extern: 核对 {pairs} 个跨文件变量定义")
+    return problems
+
+
 def main() -> int:
     print("check_keil_project — 工程一致性")
-    problems = check_uvprojx() + check_ioc() + check_irq_handlers()
+    problems = check_uvprojx() + check_ioc() + check_irq_handlers() + check_extern_definitions()
     if problems:
         print("\n发现问题:")
         for p in problems:

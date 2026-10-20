@@ -258,8 +258,15 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 
 ## 9. 固件状态与烧写
 
-代码已改完，`tests/run_tests.ps1` 会做语法+类型检查，但**整片编译必须在 Keil 里做一次**
-（本机没有 Keil / arm-none-eabi-gcc）。
+代码已改完，并且**已用 Keil AC5 实编译通过**：
+
+```
+Program Size: Code=9392 RO-data=328 RW-data=64 ZI-data=1328
+"C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
+```
+
+即 flash 约 9.8 KB / 64 KB、RAM 约 1.4 KB / 20 KB，余量很大。
+`tests/run_tests.ps1` 里的第 5 步会自动调 `UV4.exe` 重编一遍（找不到 Keil 就跳过）。
 
 改动清单（都已完成）：
 
@@ -369,14 +376,16 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 pwsh -File car_slam_lap\tests\run_tests.ps1
 ```
 
-四组：
+五组：
 
 1. **C 单元测试**：`protocol.c` 70 项 + `slcan.c` 21 项，逐字节断言
 2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 8 个固件模块（含
    `main.c`、`stm32f1xx_it.c`）跑 `gcc -Wall -Wextra -Werror -fsyntax-only`
 3. **Python 单元测试**：协议黄金向量 11 项 + 轨迹文件往返 8 项
 4. **Keil 工程一致性**：文件在磁盘上有、在 `uvprojx` 里挂着、include 路径与 `.ioc` 参数一致、
-   **开了中断的外设都有对应的 `X_IRQHandler`**
+   **开了中断的外设都有对应的 `X_IRQHandler`**、**头文件里的 `extern` 变量都有定义**
+5. **真实编译**：自动找 `UV4.exe` 跑一次 `-b`，要求 `0 Error(s)`；没装 Keil 则跳过
 
-第 4 项专门防两类"编译能过、板子却不动"的问题：文件写好了没加进工程（某个 .c 根本没被编译），
-以及开了 NVIC 却忘了中断入口（startup 的弱符号是 `B .`，中断一进来就死循环挂住）。
+第 4 项防的是"编译能过、板子却不动"的三类问题：文件写好了没加进工程（某个 .c 根本没被编译）、
+开了 NVIC 却忘了中断入口（startup 的弱符号是 `B .`，中断一进来就死循环挂住）、
+加了 `extern` 忘了写定义（链接期 `L6218E: Undefined symbol`）。
