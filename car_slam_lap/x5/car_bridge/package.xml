@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>car_bridge</name>
+  <version>0.1.0</version>
+  <description>
+    RDK X5 与 C8T6 底盘的串口链路桥接（/cmd_vel -> 串口帧 -> CAN），
+    以及建图/录轨迹/纯追踪回放/点云导出的配套工具。
+  </description>
+  <maintainer email="rm@local">RM Vision</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>python3-serial</depend>
+  <depend>python3-yaml</depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

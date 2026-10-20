@@ -1,0 +1,14 @@
+# /etc/udev/rules.d/99-car-link.rules
+# USB-TTL 适配器固定成 /dev/car_link，免得 /dev/ttyUSB0 一会儿变 ttyUSB1。
+# MODE=0666 让普通用户（sunrise）不用加 dialout 组也能开串口。
+#
+# 生效：sudo udevadm control --reload && sudo udevadm trigger
+
+# CH340（蓝板最常见的蓝色 USB-TTL）
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="car_link", MODE="0666"
+
+# CP2102 / CP2104
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="car_link", MODE="0666"
+
+# FT232
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="car_link", MODE="0666"

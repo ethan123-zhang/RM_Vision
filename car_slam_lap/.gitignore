@@ -1,0 +1,10 @@
+# 本地构建产物，不入库
+tests/build/
+x5/pc/*.zip
+__pycache__/
+*.py[cod]
+
+# Keil 构建产物（重新编译就有）
+firmware/C8T6_DT7_car/MDK-ARM/C8T6_CAN_car/
+firmware/C8T6_DT7_car/MDK-ARM/startup_stm32f103xb.lst
+*.uvguix.*

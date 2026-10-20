@@ -1,0 +1,76 @@
+# =============================================================================
+# Odin1 配置 —— 建图（custom_map_mode: 1）
+#
+# 用法：由 x5/scripts/start_mapping.sh 通过 -p config_file:=... 传给驱动，
+#       **不覆盖** ~/odin_ws/src/odin_ros_driver/config/control_command.yaml，
+#       所以随时能把原来那份配置跑回来。
+#
+# 和出厂配置相比只改了 4 类：
+#   1. 关掉所有"主机侧后处理"（cloud_render / depth / reprojection / overlay / RGB）
+#      —— 这些是给人看的，建图用不到，实测省 ~1 核 + 37 MB。
+#   2. 关掉 cloud_raw（senddtof: 0）：49000 点 × 10 Hz ≈ 9.6 MB/s，建图用 cloud_slam。
+#      **如果 cloud_slam 出不来数据，第一件事就是把 senddtof 改回 1 再试。**
+#   3. custom_map_mode: 1（建图，带回环 + 存图），showpath: 1。
+#   4. tf_extra_publish_rate: 50，让 map->odom->imu->lidar 的 TF 始终覆盖点云时间戳。
+# =============================================================================
+
+register_keys:
+  strict_usb3.0_check: 0
+  use_host_ros_time: 0
+  streamctrl: 1
+
+  # ---- RGB：建图/走圈都不需要，全部关掉 ----
+  sendrgbcompressed: 0
+  sendrgb: 0
+  sendrgbundistort: 0
+  rgb_format: 1
+  rgb_width: 1600
+  rgb_height: 1296
+  rgb_fps: 100
+
+  # ---- IMU：保留（低带宽，TF 链和排查都要用） ----
+  sendimu: 1
+  enable_imu_smooth: 0
+  imu_smooth_frequency: 400
+
+  # ---- 里程计与 TF ----
+  sendodom: 1
+  send_odom_baselink_tf: 1
+  tf_extra_publish_rate: 50
+
+  # ---- 点云 ----
+  senddtof: 0                      # cloud_raw 关掉，省 9.6 MB/s（见文件头说明）
+  cloud_raw_confidence_threshold: 35
+  dtof_fps: 100                    # 10 Hz；要和 rgb_fps 成对改
+  sendcloudslam: 1                 # 建图靠这个
+  sendcloudrender: 0
+  senddepth: 0
+  sendreprojection: 0
+  sendoverlay: 0
+  overlay_reprojected_topic: "/odin1/reprojected_image"
+  overlay_camera_topic: "/odin1/image/undistorted"
+  overlay_output_topic: "/odin1/overlay_image"
+  overlay_alpha: 0.6
+
+  # ---- 录制/日志 ----
+  recorddata: 0
+  devstatuslog: 1
+  save_log: 0
+  pubintensitygray: 0
+  showpath: 1
+  showcamerapose: 0
+
+  # ---- 模式：1 = 建图（回环 + 可存图） ----
+  custom_map_mode: 1
+  custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+  custom_init_pose_search_radius: 4.0
+  custom_init_pose_max_rot_deg: 180.0
+  relocalization_map_abs_path: ""
+
+  # 留空 = 存到 {ws}/src/odin_ros_driver/map/{驱动启动时间}/，save_map.sh 会去那儿拷
+  mapping_result_dest_dir: ""
+  mapping_result_file_name: ""
+
+  sendimagemask: 0
+  image_mask_abs_path: ""
+  resetalgo: 0
