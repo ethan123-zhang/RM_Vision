@@ -54,9 +54,14 @@ echo
 echo "---- 自检 ----"
 python3 -c "import serial, yaml, numpy; print('python 依赖 ok')"
 if [ -e /dev/car_link ]; then
-  echo "串口: /dev/car_link 存在 ✓"
+  echo "串口: /dev/car_link -> $(readlink -f /dev/car_link) ✓"
+elif [ -e /dev/ttyS1 ]; then
+  echo "串口: /dev/ttyS1 存在（40pin UART，udev 软链没建成也能直接用）"
+  ls -l /dev/ttyS1
 else
-  echo "串口: /dev/car_link 还没出现（USB-TTL 插上了吗？插上后再跑一次 udevadm trigger）"
-  ls -l /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || echo "  连 ttyUSB 都没有：换根线或查 dmesg | tail"
+  echo "串口: 既没有 /dev/car_link 也没有 /dev/ttyS1"
+  ls -l /dev/ttyS* /dev/ttyUSB* 2>/dev/null | head -5 || echo "  一个串口节点都没有：查 dmesg"
 fi
-echo "装完了。下一步：把 x5/README 里的线接好 -> link_test"
+echo "装完了。下一步："
+echo "  1) bash $(dirname "${BASH_SOURCE[0]}")/probe_uart.sh   # 确认 40pin 串口节点"
+echo "  2) ros2 run car_bridge link_test --port /dev/ttyS1    # 链路 + 看门狗自检"

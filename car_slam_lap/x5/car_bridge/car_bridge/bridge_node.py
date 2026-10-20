@@ -44,7 +44,9 @@ class BridgeNode(Node):
         super().__init__("car_bridge")
 
         # ---- 串口 ----
-        self.declare_parameter("port", "/dev/car_link")
+        # 默认走 RDK X5 40pin 的 UART：第 8 脚 TX / 第 10 脚 RX，设备节点 /dev/ttyS1。
+        # 如果 udev 规则生效，/dev/car_link 会指向同一个节点，两个都能用。
+        self.declare_parameter("port", "/dev/ttyS1")
         self.declare_parameter("baud", 115200)
         self.declare_parameter("auto_fallback_usb", True)
         self.declare_parameter("dry_run", False)
@@ -117,7 +119,9 @@ class BridgeNode(Node):
             return self._port_name
         if os.path.exists(self._port_name):
             return self._port_name
-        candidates = sorted(glob.glob("/dev/ttyUSB*")) + sorted(glob.glob("/dev/ttyACM*"))
+        # 40pin UART 优先（X5 上就是 ttyS1），其次才是 USB-TTL 转接板
+        candidates = sorted(glob.glob("/dev/ttyS1")) + sorted(glob.glob("/dev/ttyUSB*")) \
+            + sorted(glob.glob("/dev/ttyACM*"))
         if candidates:
             self.get_logger().warn(
                 f"{self._port_name} 不存在，回退到 {candidates[0]}（建议装 udev 规则固定名字）"

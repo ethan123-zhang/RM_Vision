@@ -1,14 +1,17 @@
 # /etc/udev/rules.d/99-car-link.rules
-# USB-TTL 适配器固定成 /dev/car_link，免得 /dev/ttyUSB0 一会儿变 ttyUSB1。
+# 给底盘串口一个固定名字 /dev/car_link，免得换了 USB-TTL 之后 /dev/ttyUSB0 变 ttyUSB1。
 # MODE=0666 让普通用户（sunrise）不用加 dialout 组也能开串口。
 #
 # 生效：sudo udevadm control --reload && sudo udevadm trigger
 
-# CH340（蓝板最常见的蓝色 USB-TTL）
-SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="car_link", MODE="0666"
+# ---- RDK X5 40pin UART（第 8 脚 TX / 第 10 脚 RX）----
+# 官方文档：RDK X5 40PIN 默认使能 UART1，设备节点就是 /dev/ttyS1，3.3V 电平。
+KERNEL=="ttyS1", SYMLINK+="car_link", MODE="0666"
 
+# ---- 备用：外接 USB-TTL（如果哪天不走 40pin）----
+# CH340
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="car_link", MODE="0666"
 # CP2102 / CP2104
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="car_link", MODE="0666"
-
 # FT232
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="car_link", MODE="0666"

@@ -167,7 +167,8 @@ class LinkTester:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="X5<->C8T6 串口链路自检")
-    ap.add_argument("--port", default="/dev/car_link")
+    ap.add_argument("--port", default="/dev/ttyS1",
+                    help="RDK X5 40pin UART 默认 /dev/ttyS1；用 udev 规则时也可写 /dev/car_link")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--seconds", type=float, default=10.0)
     ap.add_argument("--rate", type=float, default=50.0)
