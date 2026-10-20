@@ -25,6 +25,7 @@ import sys
 import time
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 
@@ -134,10 +135,11 @@ def main(args=None) -> None:
     node = TeleopKeys()
     try:
         code = node.run()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):  # SIGINT 时 spin() 抛的是后者
         code = 0
     node.destroy_node()
-    rclpy.shutdown()
+    if rclpy.ok():  # SIGINT 时 rclpy 已自行关闭，重复调用会抛 RCLError
+        rclpy.shutdown()
     sys.exit(code)
 
 

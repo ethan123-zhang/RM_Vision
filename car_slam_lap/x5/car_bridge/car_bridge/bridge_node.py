@@ -27,6 +27,7 @@ import time
 from typing import Optional
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -297,14 +298,13 @@ def main(args=None) -> None:
     io_thread.start()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):  # SIGINT 时 spin() 抛的是后者
         pass
     finally:
         node._stop_event.set()
         node.stop()  # 退出前补一帧 0，别让车带着最后一条指令继续跑
         node.destroy_node()
-        rclpy.shutdown()
-
-
+        if rclpy.ok():  # SIGINT 时 rclpy 已自行关闭，重复调用会抛 RCLError
+            rclpy.shutdown()
 if __name__ == "__main__":
     main()

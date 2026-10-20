@@ -391,3 +391,26 @@ pwsh -File car_slam_lap\tests\run_tests.ps1
 第 4 项防的是"编译能过、板子却不动"的三类问题：文件写好了没加进工程（某个 .c 根本没被编译）、
 开了 NVIC 却忘了中断入口（startup 的弱符号是 `B .`，中断一进来就死循环挂住）、
 加了 `extern` 忘了写定义（链接期 `L6218E: Undefined symbol`）。
+
+### 13.1 不用 Odin1 也能验建图导出（合成点云）
+
+`map_from_cloud` 里有体素去重、numpy 变换、PCD 写出、俯视图绘制一堆逻辑。真机第一次跑时，
+"没出图"既可能是传感器没数据，也可能是自己代码有 bug。先用合成的房间点云把它跑通，
+真机阶段就只剩一个变量：
+
+```bash
+# 板端：终端 A 起导出节点
+ros2 run car_bridge map_from_cloud --ros-args -p out_dir:=/tmp/maptest
+# 终端 B 喂一个 6x6x2 m 的合成房间（10 Hz）
+python3 ~/car_slam_lap/tests/sim_room_cloud.py
+# 跑几秒后 Ctrl-C 掉 A，检查 /tmp/maptest/{map.pcd,map_bev.png,map_info.txt}
+```
+
+实测结果：21 帧 / 10092 点（体素后）/ 包围盒 6.00 × 6.00 × 2.00 m，俯视图是一个 7 m 见方的框
+（6 m 墙 + 0.5 m 留白），退出无 traceback：
+
+![合成房间的俯视图](demo/bev_sim_room.png)
+
+已经用它抓到过三个 bug：俯视图被 `medianBlur(3)` 把 1 px 宽的墙线整条抹掉、
+`Ctrl-C` 时 `rclpy.shutdown()` 被调两次报 `RCLError`、以及关停后往 rosout 写日志报
+`publisher's context is invalid`。

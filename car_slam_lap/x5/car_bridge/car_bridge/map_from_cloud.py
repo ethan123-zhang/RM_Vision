@@ -22,6 +22,7 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
 
@@ -161,7 +162,7 @@ class MapFromCloud(Node):
     # ---------------------------------------------------------- 落盘
     def save(self) -> None:
         if not self._vox:
-            self.get_logger().warn("还没收到任何点云，不写文件")
+            print("还没收到任何点云，不写文件")
             return
         arr = np.array(list(self._vox.values()), dtype=np.float64)
         pcd = os.path.join(self.out_dir, "map.pcd")
@@ -188,7 +189,9 @@ class MapFromCloud(Node):
         txt = os.path.join(self.out_dir, "map_info.txt")
         with open(txt, "w", encoding="utf-8") as fh:
             fh.write("car_slam_lap 建图结果\n" + "\n".join(info) + "\n")
-        self.get_logger().info("已写 " + ", ".join([pcd, txt]) + f"（{len(arr)} 点）")
+        # 这里一律用 print 而不是 get_logger：本函数在 SIGINT 之后执行，此时 rclpy
+        # 已经关停，往 rosout 发日志会报 "publisher's context is invalid"。
+        print("已写 " + ", ".join([pcd, txt]) + f"（{len(arr)} 点）")
         for line in info:
             print("  " + line)
 
@@ -207,28 +210,33 @@ class MapFromCloud(Node):
         try:
             import cv2
         except ImportError:  # pragma: no cover
-            self.get_logger().warn("没有 cv2，跳过俯视图（PCD 仍然生成了）")
+            print("没有 cv2，跳过俯视图（PCD 仍然生成了）")
             return
         res = self.png_res
-        lo = pts[:, :2].min(axis=0) - 0.3
-        hi = pts[:, :2].max(axis=0) + 0.3
+        margin = 0.5  # 留白，别让墙线贴着图边（也给文字留位置）
+        lo = pts[:, :2].min(axis=0) - margin
+        hi = pts[:, :2].max(axis=0) + margin
         w = int(math.ceil((hi[0] - lo[0]) / res))
         h = int(math.ceil((hi[1] - lo[1]) / res))
         if w <= 0 or h <= 0 or w * h > 40_000_000:
-            self.get_logger().warn(f"俯视图尺寸异常 {w}x{h}，跳过")
+            print(f"俯视图尺寸异常 {w}x{h}，跳过")
             return
         img = np.full((h, w), 255, dtype=np.uint8)
-        # 图像坐标 y 向下，世界坐标 y 向上 -> 翻转
+
+        # 画成 2x2 块。
+        # 不要用 medianBlur/erode 去"柔化"：墙在图上只有 1 px 宽，3x3 中值滤波会把
+        # 整条墙线抹掉（8 个白像素压过 1 个黑像素），只剩一片空白——这个坑踩过。
         for x, y in pts[:, :2]:
             cx = int((x - lo[0]) / res)
-            cy = h - 1 - int((y - lo[1]) / res)
+            cy = h - 1 - int((y - lo[1]) / res)  # 图像 y 向下，世界 y 向上
             if 0 <= cx < w and 0 <= cy < h:
-                img[cy, cx] = 0
-        img = cv2.medianBlur(img, 3)
-        cv2.putText(img, f"{w * res:.1f} x {h * res:.1f} m", (6, 16),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, 100, 1, cv2.LINE_AA)
+                img[cy:cy + 2, cx:cx + 2] = 0
+
+        # 文字放左下角（左上角会被墙线压住）
+        cv2.putText(img, f"{w * res:.1f} x {h * res:.1f} m", (4, h - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, 0, 1, cv2.LINE_AA)
         cv2.imwrite(path, img)
-        self.get_logger().info(f"俯视图 {path}（{w}x{h} px @ {res} m/px）")
+        print(f"俯视图 {path}（{w}x{h} px @ {res} m/px）")
 
 
 def main(args=None) -> None:
@@ -236,13 +244,12 @@ def main(args=None) -> None:
     node = MapFromCloud()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):  # SIGINT 时 spin() 抛的是后者
         pass
     finally:
         node.save()
         node.destroy_node()
-        rclpy.shutdown()
-
-
+        if rclpy.ok():  # SIGINT 时 rclpy 已自行关闭，重复调用会抛 RCLError
+            rclpy.shutdown()
 if __name__ == "__main__":
     main()

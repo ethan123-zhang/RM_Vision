@@ -19,6 +19,7 @@ import time
 from typing import List, Optional, Tuple
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 
@@ -153,13 +154,12 @@ def main(args=None) -> None:
     node = RecordPath()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):  # SIGINT 时 spin() 抛的是后者
         pass
     finally:
         node.save()
         node.destroy_node()
-        rclpy.shutdown()
-
-
+        if rclpy.ok():  # SIGINT 时 rclpy 已自行关闭，重复调用会抛 RCLError
+            rclpy.shutdown()
 if __name__ == "__main__":
     main()

@@ -58,7 +58,9 @@ if (-not $Install) {
 }
 
 Write-Host '板端解包 + 安装 ...'
-$cmd = "cd ~ && rm -rf car_slam_lap && mkdir -p car_slam_lap && " +
+# 只重置脚本托管的 x5/，别把 ~/car_slam_lap 整个删掉——用户或调试脚本会往
+# ~/car_slam_lap/tests/ 之类的地方放东西，rm -rf 会连带清掉（踩过一次）。
+$cmd = "cd ~ && mkdir -p car_slam_lap && rm -rf car_slam_lap/x5 && " +
        "unzip -o car_slam_lap_deploy.zip -d car_slam_lap && " +
        "bash ~/car_slam_lap/x5/scripts/install_car.sh"
 & $plink -batch -hostkey $HostKey -pw $Password "${User}@${X5Ip}" $cmd
