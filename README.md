@@ -20,6 +20,7 @@ RoboMaster 2027 视觉方向的项目工作区。这里记录**当前进度、�
 | `_extract/` | PDF 文本提取脚本与产物 |
 | `相关文件/` | RM2027 官方 PDF（加密原件 + 未加密可 AI 读取版） |
 | `RDK_X5镜像/` | RDK X5 系统镜像（**不入库**，见 `docs/environment.md`） |
+| `car_slam_lap/` | 小车练习场：C8T6 底盘串口化 + Odin1 建图/重定位 + 回放走一圈（见该目录 README） |
 
 ## 资料
 
