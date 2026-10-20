@@ -273,11 +273,43 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 - [x] `main.c`：10 ms 调度 + 仲裁（s2 急停 > 串口 > 遥控 > 停），
       删掉了原来那个**永远不成立**的 `rc_tick` 超时判断。
 - [x] `C8T6_DT7_car.uvprojx`：4 个新文件挂进 Hardware 组，include 路径加 `..\Hardware\LINK`。
+- [x] `stm32f1xx_it.c`：补 **`USART2_IRQHandler` / `USART3_IRQHandler`**。
+      startup 里这两个是 `[WEAK]` 的空实现（函数体只有 `B .`），开了 NVIC 却忘了 handler，
+      编译链接下载全成功，**第一个字节进来就整机卡死**，且没有任何报错。
 - [ ] **烧写 + 跑 A1/A2 验收**。
 
-烧写后在 X5 上跑 `link_test`，它会把三个口的状态一次说清：
-收到 status 说明 USART1/固件都活了；`src:"serial"` 说明仲裁走了串口；
-`src:"rc"` 说明串口帧没被认（回去看 A1）。
+### 9.1 在 VSCode 里编译（Keil Assistant）
+
+1. VSCode 打开文件夹 `car_slam_lap/firmware/C8T6_DT7_car`
+2. `MDK-ARM/C8T6_DT7_car.uvprojx` → 右键 **Build**（Target 选 `C8T6_DT7_car`）
+3. 产物在 `MDK-ARM/C8T6_CAN_car/`：`C8T6_CAN_car.axf`（调试用）和 `C8T6_CAN_car.hex`（烧写用）
+   —— 输出目录/文件名是工程里原有的设置（`OutputDirectory=C8T6_CAN_car\`、`CreateHexFile=1`），
+   和 Target 名 `C8T6_DT7_car` 不一致是历史原因，别按 Target 名去找文件。
+
+编译前先跑一次工程一致性检查，能提前发现"文件没挂进工程"这类问题：
+
+```powershell
+python car_slam_lap\tests\check_keil_project.py
+```
+
+它会核对：工程引用的 31 个文件都在磁盘上、6 个新源文件都挂进了 Hardware 组、
+include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
+以及**每个开了中断的外设都有对应的 `X_IRQHandler(`**。
+
+### 9.2 烧写
+
+两种都行，取决于手上有什么：
+
+| 方式 | 工具 | 接法 | 注意 |
+| :--- | :--- | :--- | :--- |
+| SWD（推荐） | STM32CubeProgrammer / ST-Link Utility | SWDIO/SWCLK/GND/3V3 | PA13/PA14 已在 `.ioc` 里配成 Serial_Wire，没被占用 |
+| 串口 ISP | FlyMcu / STM32CubeProgrammer(UART) | PA9/PA10 + BOOT0 拉高 | 烧完把 BOOT0 拨回 0 再上电；**注意和 X5 抢 PA9/PA10，烧写时先把 40pin 那两根线拔掉** |
+
+### 9.3 上电后的自检顺序
+
+1. 先看 C8T6 是否活着：X5 上 `ros2 topic echo /car/status --once`
+2. `link_test` 会一次说清三件事：有没有上行（USART1+固件活没活）、`crc_err` 是不是 0、
+   `src` 是 `serial` 还是 `rc`（`rc` 说明串口帧没被认，仲裁退回了遥控器）
 
 ---
 
@@ -340,10 +372,11 @@ pwsh -File car_slam_lap\tests\run_tests.ps1
 四组：
 
 1. **C 单元测试**：`protocol.c` 70 项 + `slcan.c` 21 项，逐字节断言
-2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 6 个固件模块跑
-   `gcc -Wall -Wextra -Werror -fsyntax-only`（`main.c` 依赖大量 RCC/NVIC 类型，不在范围内）
+2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 8 个固件模块（含
+   `main.c`、`stm32f1xx_it.c`）跑 `gcc -Wall -Wextra -Werror -fsyntax-only`
 3. **Python 单元测试**：协议黄金向量 11 项 + 轨迹文件往返 8 项
-4. **Keil 工程一致性**：文件在磁盘上有、在 `uvprojx` 里挂着、include 路径与 `.ioc` 参数一致
+4. **Keil 工程一致性**：文件在磁盘上有、在 `uvprojx` 里挂着、include 路径与 `.ioc` 参数一致、
+   **开了中断的外设都有对应的 `X_IRQHandler`**
 
-第 4 项专门防"文件写好了但没加进工程，某个 .c 根本没编译"——这类问题在 Keil 里
-表现为链接报错或更隐蔽的"串口永远收不到数据"。
+第 4 项专门防两类"编译能过、板子却不动"的问题：文件写好了没加进工程（某个 .c 根本没被编译），
+以及开了 NVIC 却忘了中断入口（startup 的弱符号是 `B .`，中断一进来就死循环挂住）。

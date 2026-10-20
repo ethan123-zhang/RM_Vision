@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -103,15 +104,53 @@ def check_ioc() -> list:
     return problems
 
 
+def check_irq_handlers() -> list:
+    """`.ioc` 里开了中断的外设，必须在 stm32f1xx_it.c 里有对应的 X_IRQHandler。
+
+    为什么这条值得单独查：Keil 的 startup_stm32f103xb.s 把每个中断都声明成 [WEAK]
+    的空实现，函数体只有一条 "B ."（原地死循环）。开了 NVIC 却忘了写 handler，
+    编译链接全过、下载也成功，**第一个字节/第一个中断进来就整机卡死**，没有任何报错。
+    """
+    problems = []
+    it_c = FW / "Core" / "Src" / "stm32f1xx_it.c"
+    if not it_c.is_file():
+        return [f"找不到 {it_c}"]
+    text = it_c.read_text(encoding="utf-8", errors="replace")
+    ioc = IOC.read_text(encoding="utf-8", errors="replace")
+
+    core_exceptions = {
+        "NonMaskableInt", "HardFault", "MemoryManagement", "BusFault", "UsageFault",
+        "SVCall", "DebugMonitor", "PendSV", "SysTick",
+    }
+    enabled = re.findall(r"^NVIC\.(\w+)_IRQn=true", ioc, re.MULTILINE)
+    checked = 0
+    for irq in enabled:
+        if irq in core_exceptions:
+            continue
+        checked += 1
+        handler = f"{irq}_IRQHandler"
+        # 必须匹配"完整的函数名 + 左括号"：单纯找子串会被 USART3_IRQHandler_x 这类改名骗过
+        if re.search(rf"\b{handler}\s*\(", text) is None:
+            problems.append(
+                f".ioc 开了 {irq} 中断，但 stm32f1xx_it.c 里没有 {handler}("
+                "（startup 里是弱符号 B .，中断一触发就挂死）"
+            )
+
+    print(f"  IRQ: .ioc 开了 {checked} 个外设中断，handler 全部存在"
+          if not problems else f"  IRQ: 检查 {checked} 个外设中断")
+    return problems
+
+
 def main() -> int:
     print("check_keil_project — 工程一致性")
-    problems = check_uvprojx() + check_ioc()
+    problems = check_uvprojx() + check_ioc() + check_irq_handlers()
     if problems:
         print("\n发现问题:")
         for p in problems:
-            print(f"  ✗ {p}")
+            # 用 ASCII 的 [x] 而不是 ✗：Windows 控制台默认 GBK，U+2717 编不出来会直接抛异常
+            print(f"  [x] {p}")
         return 1
-    print("\nOK：工程引用完整、新模块已挂载、include 路径与串口参数一致")
+    print("\nOK：工程引用完整、新模块已挂载、include 路径与串口参数一致、中断入口齐全")
     return 0
 
 

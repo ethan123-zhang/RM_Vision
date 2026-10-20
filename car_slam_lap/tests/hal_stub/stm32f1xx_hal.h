@@ -28,7 +28,16 @@ typedef struct
     uint32_t instance;
 } UART_HandleTypeDef;
 
+typedef struct
+{
+    uint32_t instance;
+} CAN_HandleTypeDef;
+
+void HAL_UART_IRQHandler(UART_HandleTypeDef *huart);
+void HAL_CAN_IRQHandler(CAN_HandleTypeDef *hcan);
+
 uint32_t HAL_GetTick(void);
+void HAL_IncTick(void);
 void HAL_Delay(uint32_t ms);
 HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData,
                                     uint16_t Size, uint32_t Timeout);

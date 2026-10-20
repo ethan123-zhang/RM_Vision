@@ -40,6 +40,7 @@ Write-Host "`n=== [2/4] 固件模块语法/类型检查（HAL 替身）===" -For
 $stub = Join-Path $root 'tests\hal_stub'
 $fwFiles = @(
     "$fw\Core\Src\main.c",
+    "$fw\Core\Src\stm32f1xx_it.c",
     "$fw\Hardware\LINK\protocol.c",
     "$fw\Hardware\CAN\slcan.c",
     "$fw\Hardware\LINK\x5_link.c",
@@ -51,7 +52,7 @@ gcc -std=gnu99 -Wall -Wextra -Werror -fsyntax-only `
     -I $stub -I "$fw\Core\Inc" -I "$fw\Hardware\LINK" -I "$fw\Hardware\CAN" -I "$fw\Hardware\UART" `
     @fwFiles
 if ($LASTEXITCODE -ne 0) { $fail = 1; Write-Host '  语法检查失败' }
-else { Write-Host '  7 个模块（含 main.c）全部通过 -Wall -Wextra -Werror' }
+else { Write-Host '  8 个模块（含 main.c / stm32f1xx_it.c）全部通过 -Wall -Wextra -Werror' }
 
 # ---------------------------------------------------------------- 3. Python 测试
 Write-Host "`n=== [3/4] Python 单元测试 ===" -ForegroundColor Cyan
