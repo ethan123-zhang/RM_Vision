@@ -54,6 +54,11 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
+- 2026-10-21：**C8T6 重烧后 X5↔C8T6 链路恢复**：`/car/status` 返回
+  `{"ok":true,"src":"serial","flags":["link_ok"],"recv_ok":29,"crc_errors":0}`。
+  踩坑：PA9/PA10 插错 + 烧完没断电复位，表现为 `/dev/ttyS1` 3 秒 0 字节。
+  `can_ok` 此时为 0 是正常的——控制器还没开机，没人 ACK，3 个 CAN 邮箱被重传帧占满；
+  按 PowerKey 后应出现 `can_ok` + `can_ack`。
 - 2026-10-21：**X5 侧已部署到 172.17.90.239**（`deploy.ps1 -Install`，colcon build 通过，
   `can_ack` 代码已在板端，`/dev/car_link -> ttyS1`）。C8T6 还需重烧
   `MDK-ARM/C8T6_CAN_car/C8T6_CAN_car.hex`，否则板上仍跑旧的 USART3/slcan 固件。

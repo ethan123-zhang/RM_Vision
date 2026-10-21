@@ -335,7 +335,7 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 
 | 现象 | 先查什么 |
 | :--- | :--- |
-| `link_test` 一帧上行都没有 | **串口 ISP 烧完后 BOOT0 忘了拨回 0**（芯片跑系统 bootloader，固件根本没执行——本项已实测踩过）；再查 40pin 8/10 与 PA9/PA10 是否交叉、GND 是否共地、`probe_uart.sh` 回环 |
+| `link_test` 一帧上行都没有 | **BOOT0 忘了拨回 0**（串口 ISP 和 ST-Link 烧完都要断电重上；BOOT0=1 会跑系统 bootloader）；**PA9/PA10 插错**（X5 8→PA10、10→PA9，接成直的就没数据）；GND 是否共地；`probe_uart.sh` 回环 |
 | 串口 ISP 烧写时 | 先把 RDK 那两根线从 PA9/PA10 拔掉，否则 USB-TTL 和 RDK 抢同一对脚 |
 | 有上行但 `crc_err` 一直涨 | 线太长/接触不良；两边波特率不一致；getty 在抢 ttyS1 |
 | `bridge_node` 报 `打开 /dev/ttyS1 失败` | 节点名不对（跑 `probe_uart.sh`）、权限不够（`sudo udevadm trigger`） |
