@@ -256,7 +256,7 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 代码已改完，并且**已用 Keil AC5 实编译通过**：
 
 ```
-Program Size: Code=10944 RO-data=312 RW-data=72 ZI-data=1328
+Program Size: Code=10952 RO-data=312 RW-data=72 ZI-data=1328
 "C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
 ```
 
@@ -272,7 +272,8 @@ Program Size: Code=10944 RO-data=312 RW-data=72 ZI-data=1328
 - [x] `Hardware/LINK/x5_link.c/h`：USART1 收帧、300 ms 判活、10 Hz 发 status。
 - [x] `Hardware/CAN/can_frame.c/h`：混控帧编码（纯 C，PC 逐字节断言）。
 - [x] `Hardware/CAN/can_bus.c/h`：CAN1 非阻塞发送 + ACK 解析（status b4）。
-- [x] `main.c`：`MX_CAN_Init` + `CAN_Bus_Init(&hcan)`；10 ms 调度 + 仲裁
+- [x] `main.c`：`MX_CAN_Init` + `CAN_Bus_Init(&hcan)`；启动先发一帧 status
+      （X5 立刻知道 C8T6 活了，便于区分“串口没通”和“CAN 初始化失败”）；10 ms 调度 + 仲裁
       （s2 急停 > 串口 > 遥控 > 停），删掉了原来**永远不成立**的 `rc_tick` 超时判断。
 - [x] `C8T6_DT7_car.uvprojx`：`can_frame.c` 挂进 Hardware；`slcan.c` 移除。
 - [x] `stm32f1xx_it.c`：`USART2/3_IRQHandler` + `USB_LP_CAN1_RX0_IRQHandler`。

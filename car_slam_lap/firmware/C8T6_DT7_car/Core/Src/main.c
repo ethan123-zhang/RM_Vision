@@ -215,6 +215,10 @@ int main(void)
   X5_Link_Init(&huart1);
   DBUS_Init();
 
+  /* 启动先发一帧 status：让 X5 立刻知道 C8T6 活了。即使后面 CAN 初始化卡住，
+     bridge_node 也能看到这一帧，便于区分“串口没通”和“CAN 初始化失败”。 */
+  X5_Link_SendStatus(0u, PROTO_SRC_NONE);
+
   /* CAN：配置过滤器（全收，便于收 ACK）→ Start → RX 中断 */
   CAN_Bus_Init(&hcan);
 
