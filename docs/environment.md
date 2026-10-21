@@ -11,7 +11,7 @@
 | 相机 | 待补充 | 型号、分辨率、接口、帧率（YOLO 链路另算，见 `x5_yolo/`） |
 | 算力单元 | RDK X5 BPU | 工具链 hb_mapper 1.24.3 / hbdk 3.49.15 |
 | 小车下位机 | STM32F103C8T6 最小系统 | USART1=X5、USART2=DT7、CAN1=PA11/PA12 |
-| 电机控制器 | XHSMCUW50 双驱无刷 | 15–82V，CAN 500K，扩展帧 `0x1314` |
+| 电机控制器 | XHSMCUW50 双驱无刷 | 15–82V，CAN 250K（实测），扩展帧 `0x1314` |
 | CAN 收发器 | SN65HVD230 模块 | 3.3V，H1: GND/3V3/R/D，H2: CANH/CANL，板载 120Ω |
 | 小车电池 | 22.8V（6S） | 控制器直供；12V/5V 各一路降压 |
 | 遥控 | DT7 + 接收机 | 100000 8E1，s2 到底 = 硬急停 |
@@ -73,7 +73,7 @@ SHA256：
 
 | 文件 | 内容 | 用途 |
 | :--- | :--- | :--- |
-| `car_slam_lap/双驱无刷电机控制器规格书A4pdf.pdf` | XHSMCUW50 规格书 6.3/6.4 | CAN 500K、`0x1314`、混控帧/ACK |
+| `car_slam_lap/双驱无刷电机控制器规格书A4pdf.pdf` | XHSMCUW50 规格书 6.3/6.4 | CAN 文档 500K（实测 250K）、`0x1314`、混控帧/ACK |
 | `car_slam_lap/双驱动CAN控制接口使用说明.pdf` | CAN 接口说明 | 5–20 ms 周期、信号丢失 |
 | `car_slam_lap/CAN收发器原理图.pdf` | SN65HVD230 模块原理图 | H1/H2 引脚、120Ω、10K |
 | `car_slam_lap/CAN收发器说明书.pdf` | TI SN65HVD230 datasheet | 3.3V、1 Mbps、RS 模式 |

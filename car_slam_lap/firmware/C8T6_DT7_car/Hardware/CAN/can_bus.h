@@ -20,9 +20,8 @@
  *   - 校验和 = 0xABCD ^ angular ^ speed（16bit 异或）
  *   - 控制器要求 5~20 ms 周期持续发送，超过 3~5 s 未发 → 判信号丢失
  *
- * 波特率：PDF 写 500K，本工程按 500K 配（can.c 的 Prescaler=4）。
- * 旧工程 CubeMX 配的是 250K；若首次上车电机不动，先把 can.c 的 Prescaler
- * 改成 8（250K）再试，这是唯一的一处改动。
+ * 波特率：2026-10-21 实测这台控制器是 250K（can.c 的 Prescaler=8）；
+ * PDF 写 500K，但 500K 下 can_ok=0。若换到 500K 批次，把 Prescaler 改回 4。
  ******************************************************************************
  */
 #ifndef __CAN_BUS_H
@@ -31,7 +30,7 @@
 #include "main.h"
 #include "can.h"
 
-#define MOTOR_CAN_BITRATE    500000u   /* 规格书 6.3：500 kbit/s */
+#define MOTOR_CAN_BITRATE    250000u   /* 实测可用：500K 不 ACK */
 #define MOTOR_CAN_ID         0x1314u   /* 扩展帧 ID（文档规定） */
 
 /**

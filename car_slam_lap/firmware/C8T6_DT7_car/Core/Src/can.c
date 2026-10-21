@@ -39,9 +39,10 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  /* 36 MHz APB1 / 4 / (1 + 9 + 8) TQ = 500 kbit/s（规格书 6.3）
-     若这台控制器实测是 250K：Prescaler 改 8，并同步 .ioc。 */
-  hcan.Init.Prescaler = 4;
+  /* 36 MHz APB1 / 8 / (1 + 9 + 8) TQ = 250 kbit/s。
+     2026-10-21 实测：PDF 写 500K，但这台控制器 500K 不 ACK；250K 下
+     can_ok/can_ack 都正常。若换到 500K 的批次，把 Prescaler 改回 4。 */
+  hcan.Init.Prescaler = 8;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_9TQ;

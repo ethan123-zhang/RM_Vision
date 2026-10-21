@@ -11,7 +11,7 @@ person AP 0.7178（640 为 0.7244）。切尾巴、量化、板端测速全部�
 另起 `car_slam_lap/`：把这套感知装到 C8T6 双驱小车上，跑「建图 → 重定位 → 走一圈」。
 X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（0 error / 0 warning，Code 10.9 KB）**。
 2026-10-21 按实物原理图修正：CAN 是 SN65HVD230 裸收发器（不是串口转CAN模块），
-电机链路已改回片内 CAN1 + 500K；下一步是烧写 + 上车验收。
+电机链路已改回片内 CAN1 + 250K（实测）；下一步是标定 + 建图走圈。
 
 ## 里程碑
 
@@ -25,7 +25,7 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 | 6 | X5 板端 512 输入达 100+ FPS | ✅ 完成 | 2026-10-18，C++ 后处理 135.3 FPS |
 | 7 | 576 输入定稿（精度/速度折中） | ✅ 完成 | 2026-10-18，104.1 FPS、AP 0.7178 |
 | 8 | 坏卡重灌 + Odin1 数据链路恢复 | ✅ 完成 | 2026-10-20，镜像校验一致、30 min 重建、端口转发验证 |
-| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 已按实物改为 SN65HVD230 + CAN1 500K；待烧写 + A2，见 `car_slam_lap/WIRING.md` |
+| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 已按实物改为 SN65HVD230 + CAN1 250K（实测），`can_ok`/`can_ack` 已通；待标定 + A2，见 `car_slam_lap/WIRING.md` |
 
 ## 正在做
 
@@ -34,7 +34,7 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
   （`x5_odin/`，启动/打包/校验脚本齐全）。
 - `car_slam_lap/`：三条链路都写完了 —— 协议（C+Python 同源，70+12 项断言）、`car_bridge`
   ROS2 包（桥接/键盘遥控/录轨迹/纯追踪/点云导出/速度标定）、固件（USART1=X5、
-  USART2=遥控器、**CAN1=SN65HVD230 500K**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
+  USART2=遥控器、**CAN1=SN65HVD230 250K（实测）**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
   自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 10952 / RAM 1400）。
   **下一步**：烧写 C8T6 → 按 `WIRING.md` 上电 → `link_test` 跑 A1，再离地跑 A2。
   X5 侧已部署（2026-10-21），`/dev/car_link -> ttyS1` 已确认。
@@ -54,11 +54,11 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
-- 2026-10-21：**C8T6 重烧后 X5↔C8T6 链路恢复**：`/car/status` 返回
-  `{"ok":true,"src":"serial","flags":["link_ok"],"recv_ok":29,"crc_errors":0}`。
-  踩坑：PA9/PA10 插错 + 烧完没断电复位，表现为 `/dev/ttyS1` 3 秒 0 字节。
-  `can_ok` 此时为 0 是正常的——控制器还没开机，没人 ACK，3 个 CAN 邮箱被重传帧占满；
-  按 PowerKey 后应出现 `can_ok` + `can_ack`。
+- 2026-10-21：**CAN 也通了（实测 250K）**：`/car/status` → `status=19`、
+  `flags=["can_ok","link_ok","can_ack"]`、`src="serial"`、`crc_errors=0`；复位后轮子能转。
+  踩坑：① PA9/PA10 插错 + 烧完没断电复位 → `/dev/ttyS1` 0 字节；
+  ② 500K 下 `can_ok=0`，改 `can.c` Prescaler=8（250K）后 `can_ok`/`can_ack` 都出现。
+  下一步：离地验方向、`calibrate_speed` 标定、建图走圈。
 - 2026-10-21：**X5 侧已部署到 172.17.90.239**（`deploy.ps1 -Install`，colcon build 通过，
   `can_ack` 代码已在板端，`/dev/car_link -> ttyS1`）。C8T6 还需重烧
   `MDK-ARM/C8T6_CAN_car/C8T6_CAN_car.hex`，否则板上仍跑旧的 USART3/slcan 固件。
@@ -67,7 +67,7 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
   + 10K，H1 = GND/3V3/R/D，H2 = CANH/CANL，没有 MCU、没有 UART。原来的
   「USART3 → slcan → 模块」物理上不可能工作。已改回 **片内 CAN1（PA11/PA12）**：
   `can_frame.c` 纯帧编码 + `can_bus.c` 非阻塞发送 + ACK 解析（status b4）；
-  `can.c`/`.ioc` 设 500K；`slcan.c/h` 与测试删除；Keil 实编译 0 error / 0 warning。
+  `can.c`/`.ioc` 设 250K（实测；PDF 写 500K）；`slcan.c/h` 与测试删除；Keil 实编译 0 error / 0 warning。
   接线、上电顺序、终端电阻、控制器 PowerKey/Break 见 `car_slam_lap/WIRING.md`。
   决策记录：`docs/decisions/2026-10-21-can-direct-sn65hvd230.md`。
 - 2026-10-20：**小车串口链路通了（验收 A1 通过）**。RDK(172.17.90.239) 上部署 `car_bridge` 并

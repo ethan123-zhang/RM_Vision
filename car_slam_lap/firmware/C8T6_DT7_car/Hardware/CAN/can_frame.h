@@ -4,7 +4,7 @@
  * @brief   XHSMCUW50 双驱控制器「混控帧」编码 —— 纯 C，无 HAL，可在 PC 上测
  *
  * 依据《双驱无刷电机控制器规格书》6.3 / 6.4 节：
- *   - 扩展帧 ID 0x1314，8 字节数据帧，500 kbit/s
+ *   - 扩展帧 ID 0x1314，8 字节数据帧，250 kbit/s（实测；PDF 写 500K）
  *   - 混控帧： [0xCD][0xAB][angular_L][angular_H][speed_L][speed_H][crc_L][crc_H]
  *   - 校验和 = 0xABCD ^ angular ^ speed（16 位异或，取低 16 位）
  *   - 控制器要求 5~20 ms 周期持续发送；超过 3~5 s 未收到则判信号丢失

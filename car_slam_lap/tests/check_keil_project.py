@@ -35,8 +35,8 @@ IOC_EXPECT = {
     "PB10.Signal": "USART3_TX",
     "PB11.Signal": "USART3_RX",
     # 电机链路：片内 CAN1 -> SN65HVD230，500K。改了这里必须同步 can.c。
-    "CAN.Prescaler": "4",
-    "CAN.CalculateBaudRate": "500000",
+    "CAN.Prescaler": "8",
+    "CAN.CalculateBaudRate": "250000",
     "PA11.Signal": "CAN_RX",
     "PA12.Signal": "CAN_TX",
 }

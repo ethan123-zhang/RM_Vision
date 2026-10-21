@@ -18,7 +18,7 @@
 ```
 Odin1 ──USB3──► RDK X5 ──40pin 8/10──► C8T6 USART1 (PA10/PA9)
                   ▲                        │
-                  │ 10 Hz status           │ CAN1 PA12/PA11 (500K)
+                  │ 10 Hz status           │ CAN1 PA12/PA11 (250K)
                   └────────────────────────┤
                                            ▼
                                     SN65HVD230（3.3V 收发器）
@@ -37,7 +37,7 @@ DT7 ──USART2 (PA3, 100000 8E1)────────────► C8T6
 | :--- | :--- | :--- | :--- |
 | USART1 | PA9 / PA10 | 115200 8N1 | RDK X5 40pin 第 8/10 脚 |
 | USART2 | PA2 / PA3 | **100000 8E1** | DT7 接收机（DBUS） |
-| CAN1 | PA12 / PA11 | **500 kbit/s** | SN65HVD230 → XHSMCUW50 |
+| CAN1 | PA12 / PA11 | **250 kbit/s（实测）** | SN65HVD230 → XHSMCUW50 |
 | USART3 | PB10 / PB11 | 115200 8N1 | **备用/调试，不接电机** |
 
 > `printf` 已经改成丢弃：两个在用串口都不允许混入调试文本。诊断走 10 Hz 的
@@ -50,7 +50,7 @@ DT7 ──USART2 (PA3, 100000 8E1)────────────► C8T6
 ```
 car_slam_lap/
 ├─ firmware/C8T6_DT7_car/               Keil 工程
-│   ├─ Core/                            CubeMX 生成（usart.c 三路参数 + CAN 500K，.ioc 同步）
+│   ├─ Core/                            CubeMX 生成（usart.c 三路参数 + CAN 250K，.ioc 同步）
 │   └─ Hardware/
 │       ├─ LINK/protocol.c,h            X5 链路帧编解码（HAL 无关，PC 可测）
 │       ├─ LINK/x5_link.c,h             USART1 收帧 + 10 Hz status
@@ -139,7 +139,7 @@ car_slam_lap/
 | `set_vel(-1000, 1000)` | `A5 5A 05 01 18 FC E8 03 4C` |
 | `status(0x03, serial)` | `5A A5 03 81 03 01 62` |
 
-### 3.2 C8T6 ↔ 控制器（CAN1，500 kbit/s）
+### 3.2 C8T6 ↔ 控制器（CAN1，250 kbit/s，实测）
 
 扩展帧 `0x1314`，8 字节，10 ms 周期：
 
@@ -266,7 +266,7 @@ Program Size: Code=10952 RO-data=312 RW-data=72 ZI-data=1328
 改动清单（都已完成）：
 
 - [x] `usart.c` + `.ioc`：USART1 115200 8N1（X5）、USART2 100000 8E1（DT7）、
-      USART3 115200 8N1（备用）；**CAN1 500K（Prescaler=4）**；都开了 NVIC。
+      USART3 115200 8N1（备用）；**CAN1 250K（Prescaler=8，实测）**；都开了 NVIC。
 - [x] `Hardware/UART/uart_rx.c`：全工程唯一的 `HAL_UART_RxCpltCallback`，按句柄分发；
       同时补了 `HAL_UART_ErrorCallback` 重新挂接收（溢出后不重挂会永久静默）。
 - [x] `Hardware/LINK/x5_link.c/h`：USART1 收帧、300 ms 判活、10 Hz 发 status。
@@ -342,7 +342,7 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 | `/car/status` 里 `estop:true` | 遥控器 s2 打在急停档 |
 | `/car/status` 里 `src:"rc"` | 串口帧没被认，固件走了遥控分支 |
 | 车往反方向走 | `bridge_node -p invert_speed:=true`（或 `invert_angular`） |
-| **`can_ok` 有、`can_ack` 没有** | ① CANH/CANL 接反；② 波特率（PDF 500K，旧工程 250K）；③ 120 Ω 终端；④ 控制器没按 PowerKey 开机；⑤ 控制器不是 MIX 模式 |
+| **`can_ok` 有、`can_ack` 没有** | ① CANH/CANL 接反；② 波特率（实测 250K；PDF 写 500K 不 ACK）；③ 120 Ω 终端；④ 控制器没按 PowerKey 开机；⑤ 控制器不是 MIX 模式 |
 | **一帧 ACK 都没有、`can_ok` 也没有** | PA11/PA12 与 H1-3/4 接反；H1 没有 3.3V；CAN 没 Start；固件没烧进去。示波器看 PA12 有没有 10 ms 一帧的波形 |
 | 电机转但方向/速度不对 | 混控帧的 `angular/speed` 次序与符号约定；先单独发 `speed` 再发 `angular` 试 |
 | `cloud_slam` 没数据 | `control_command.mapping.yaml` 里把 `senddtof: 0` 改回 `1` |
@@ -354,9 +354,9 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 
 ## 12. 已知不确定 / 待确认
 
-1. **CAN 500K vs 250K**：规格书写 500K，旧 CubeMX 工程是 250K。2026-10-21 按 PDF
-   改成 500K（`can.c` Prescaler=4）。首次上车若 `can_ok` 有、`can_ack` 没有，先把
-   Prescaler 改回 8（250K）并同步 `.ioc` 再试；这是唯一一处改动。
+1. **CAN 实测 250K**：规格书写 500K，但这台控制器 500K 下 `can_ok=0`；改
+   `can.c` Prescaler=8（250K）后 `can_ok`/`can_ack` 都出现。若换到 500K 的批次，
+   把 Prescaler 改回 4 并同步 `.ioc`。
 2. **ACK 的 CAN ID 未公开**：过滤器全收，靠校验和识别；总线上只有控制器，暂不担心误收。
 3. **MIX / 独立模式怎么切换**：规格书只给了两种帧格式，没写切换方式；如果控制器把
    angular/speed 当左右轮，先找厂家上位机确认模式，不要先改代码。

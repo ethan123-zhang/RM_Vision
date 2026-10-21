@@ -10,7 +10,7 @@
 > C8T6 CAN1 (PA11/PA12) -> SN65HVD230 -> CANH/CANL -> XHSMCUW50
 > ```
 >
-> 所以固件已从「USART3 + slcan」改回「片内 CAN1 + 500K」。USART3 留作备用/调试。
+> 所以固件已从「USART3 + slcan」改回「片内 CAN1 + 250K（实测）」。USART3 留作备用/调试。
 > 依据：`CAN收发器原理图.pdf`、`CAN收发器说明书.pdf`（TI SN65HVD230 datasheet）、
 > `双驱无刷电机控制器规格书A4pdf.pdf` 6.3/6.4 节。
 
@@ -24,7 +24,7 @@ Odin1（车上识别/SLAM）
   ▼
 RDK X5  ── 40pin 8/10 (UART1, 3.3V, 115200 8N1) ──►  C8T6 USART1 (PA10/PA9)
   ▲                                                     │
-  │ USB3 蓝色口                                          │ CAN1 (PA12/PA11, 500K)
+  │ USB3 蓝色口                                          │ CAN1 (PA12/PA11, 250K)
   │                                                     ▼
   └──────────── 10 Hz status / 50 Hz cmd_vel        SN65HVD230
                                                         │ H2: CANH/CANL
@@ -42,7 +42,7 @@ DT7 接收机 ── USART2 (PA3, 100000 8E1) ───────────�
 | RDK X5 | 跑 SLAM/重定位/纯追踪，发 `/cmd_vel` | 5V/5A USB-C，`/dev/ttyS1` |
 | C8T6 | 10 ms 仲裁 + 看门狗 + 协议转换 | 5V，USART1/2 + CAN1 |
 | SN65HVD230 | 3.3V CAN 收发器，逻辑 ↔ 差分 | 3.3V，板载 120Ω |
-| XHSMCUW50 | 双电机速度/角速度闭环 | 15–82V，CAN 500K，ext 0x1314 |
+| XHSMCUW50 | 双电机速度/角速度闭环 | 15–82V，CAN 250K（实测），ext 0x1314 |
 | DT7 | 手动驾驶 + 人肉急停 | 5V，100000 8E1 |
 
 ---
@@ -219,7 +219,7 @@ DT7 接收机 ── USART2 (PA3, 100000 8E1) ───────────�
 | 现象 | 先查 |
 | :--- | :--- |
 | 控制器不上电、灯不亮 | PowerKey 有没有对 GND 短接 1 s；电池电压是否 ≥15 V；BAT 极性 |
-| `can_ok` 有、`can_ack` 没有 | CANH/CANL 接反；波特率（PDF 500K，旧工程 250K）；终端电阻；控制器没开机 |
+| `can_ok` 有、`can_ack` 没有 | CANH/CANL 接反；波特率（实测 250K；PDF 写 500K 不 ACK）；终端电阻；控制器没开机 |
 | 一帧 ACK 都没有、`can_ok` 也没有 | PA11/PA12 与 H1-3/4 接反；H1 没供电；CAN 滤波器/固件没烧进去 |
 | 电机不动但 CAN 有 ACK | 控制器模式不是 MIX（独立模式会把 angular/speed 当左右轮）；急停 Break 被拉低 |
 | 直行跑偏/原地转 | 左右电机接反；相线顺序；MIX/独立模式选错 |
@@ -236,9 +236,9 @@ DT7 接收机 ── USART2 (PA3, 100000 8E1) ───────────�
 | X5 40pin UART | 第 8 脚 TX / 第 10 脚 RX，3.3V，`/dev/ttyS1`，115200 8N1 |
 | C8T6 USART1 | PA9 TX / PA10 RX，115200 8N1 |
 | C8T6 USART2 | PA2 TX / PA3 RX，100000 8E1（DT7） |
-| C8T6 CAN1 | PA12 CAN_TX / PA11 CAN_RX，**500 kbit/s** |
+| C8T6 CAN1 | PA12 CAN_TX / PA11 CAN_RX，**250 kbit/s（实测）** |
 | 收发器 | SN65HVD230，3.3V，H1: GND/3V3/R/D，H2: CANH/CANL，板载 120Ω |
-| 控制器 CAN | 扩展帧 `0x1314`，8 字节，500 kbit/s，5–20 ms 周期 |
+| 控制器 CAN | 扩展帧 `0x1314`，8 字节，250 kbit/s（实测），5–20 ms 周期 |
 | 混控帧 | `CD AB angular_L angular_H speed_L speed_H crc_L crc_H` |
 | 校验 | `0xABCD ^ angular ^ speed`，取低 16 位 |
 | ACK 帧 | `speedL speedR voltage crc`，各 2 字节小端，`crc = speedL ^ speedR ^ voltage` |
@@ -252,5 +252,5 @@ DT7 接收机 ── USART2 (PA3, 100000 8E1) ───────────�
 - `../RDK_X5标号.jpg` —— RDK X5 40pin 丝印照片（第 6/8/10 脚）
 - `CAN收发器原理图.pdf` —— H1/H2 引脚、R1/R2 的真实连接
 - `CAN收发器说明书.pdf` —— TI SN65HVD230 datasheet（3.3V、1 Mbps、RS 高电平/低电平模式）
-- `双驱无刷电机控制器规格书A4pdf.pdf` —— 6.3 CAN 500K / 0x1314，6.4 帧格式与 ACK
+- `双驱无刷电机控制器规格书A4pdf.pdf` —— 6.3 文档 500K（实测 250K）/ 0x1314，6.4 帧格式与 ACK
 - `双驱动CAN控制接口使用说明.pdf` —— 5–20 ms 周期、3 s 信号丢失
