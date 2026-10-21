@@ -626,14 +626,14 @@
               <FilePath>..\Hardware\UART\uart_rx.c</FilePath>
             </File>
             <File>
-              <FileName>slcan.c</FileName>
+              <FileName>can_frame.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Hardware\CAN\slcan.c</FilePath>
+              <FilePath>..\Hardware\CAN\can_frame.c</FilePath>
             </File>
             <File>
-              <FileName>slcan.h</FileName>
+              <FileName>can_frame.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\Hardware\CAN\slcan.h</FilePath>
+              <FilePath>..\Hardware\CAN\can_frame.h</FilePath>
             </File>
             <File>
               <FileName>protocol.c</FileName>

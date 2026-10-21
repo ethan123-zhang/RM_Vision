@@ -2,7 +2,7 @@
 /**
  ******************************************************************************
  * @file           : main.c
- * @brief          : 小车底盘主程序（X5 串口控制 + DT7 遥控兜底 + slcan 电机指令）
+ * @brief          : 小车底盘主程序（X5 串口控制 + DT7 遥控兜底 + CAN1 电机指令）
  ******************************************************************************
  * @attention
  *
@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "can.h"
 #include "can_bus.h"
 #include "protocol.h"
 #include "x5_link.h"
@@ -144,6 +145,10 @@ static void car_status_tick(void)
     {
         status |= PROTO_ST_CAN_OK;
     }
+    if (CAN_Bus_AckOkay() != 0u)
+    {
+        status |= PROTO_ST_CAN_ACK;
+    }
     if (X5_Link_Alive() != 0u)
     {
         status |= PROTO_ST_LINK_OK;
@@ -192,14 +197,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_CAN_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /*
-   * 片内 CAN 外设已停用：电机指令改由 USART3 发给串口转CAN 模块。
-   * can.c / MX_CAN_Init 保留在工程里，方便哪天换回直连 CAN 收发器。
+   * 电机链路：片内 CAN1 (PA11/PA12) -> SN65HVD230 -> 控制器。
+   * USART3 只是备用/调试口，不参与电机控制。
    */
 
   /* 三路接收中断（全工程唯一的 HAL_UART_RxCpltCallback 在 uart_rx.c） */
@@ -209,8 +215,8 @@ int main(void)
   X5_Link_Init(&huart1);
   DBUS_Init();
 
-  /* 串口转CAN 模块：先设 250K，再开通道 */
-  CAN_Bus_Init(&huart3);
+  /* CAN：配置过滤器（全收，便于收 ACK）→ Start → RX 中断 */
+  CAN_Bus_Init(&hcan);
 
   /* USER CODE END 2 */
 

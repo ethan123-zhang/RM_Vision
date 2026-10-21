@@ -22,7 +22,7 @@ UVPROJX = FW / "MDK-ARM" / "C8T6_DT7_car.uvprojx"
 IOC = FW / "C8T6_DT7_car.ioc"
 
 #: 必须出现在 Hardware 组里的源文件
-REQUIRED_SOURCES = ["can_bus.c", "slcan.c", "DBUS.c", "uart_rx.c", "protocol.c", "x5_link.c"]
+REQUIRED_SOURCES = ["can_bus.c", "can_frame.c", "DBUS.c", "uart_rx.c", "protocol.c", "x5_link.c"]
 #: 必须在 include 路径里的目录（相对 MDK-ARM）
 REQUIRED_INCLUDES = ["../Hardware/CAN", "../Hardware/UART", "../Hardware/LINK"]
 #: .ioc 里必须成立的串口参数
@@ -34,6 +34,11 @@ IOC_EXPECT = {
     "USART3.BaudRate": "115200",
     "PB10.Signal": "USART3_TX",
     "PB11.Signal": "USART3_RX",
+    # 电机链路：片内 CAN1 -> SN65HVD230，500K。改了这里必须同步 can.c。
+    "CAN.Prescaler": "4",
+    "CAN.CalculateBaudRate": "500000",
+    "PA11.Signal": "CAN_RX",
+    "PA12.Signal": "CAN_TX",
 }
 
 
@@ -100,7 +105,7 @@ def check_ioc() -> list:
     if n_ip != "7":
         problems.append(f".ioc Mcu.IPNb = {n_ip}，应是 7（CAN/NVIC/RCC/SYS/USART1/2/3）")
 
-    print(f"  .ioc: {len(pairs)} 个键，串口参数 {len(IOC_EXPECT)}/{len(IOC_EXPECT)} 项核对")
+    print(f"  .ioc: {len(pairs)} 个键，串口/CAN 参数 {len(IOC_EXPECT)}/{len(IOC_EXPECT)} 项核对")
     return problems
 
 

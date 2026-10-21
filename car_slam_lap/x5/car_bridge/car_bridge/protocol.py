@@ -41,6 +41,7 @@ ST_CAN_OK = 0x01
 ST_LINK_OK = 0x02
 ST_RC_OK = 0x04
 ST_ESTOP = 0x08
+ST_CAN_ACK = 0x10
 
 #: 控制源
 SRC_NONE = 0
@@ -120,6 +121,8 @@ def status_text(status: int) -> List[str]:
         out.append("rc_ok")
     if status & ST_ESTOP:
         out.append("estop")
+    if status & ST_CAN_ACK:
+        out.append("can_ack")
     return out
 
 

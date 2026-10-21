@@ -101,6 +101,8 @@ def test_status_frame() -> None:
     assert status == (p.ST_CAN_OK | p.ST_RC_OK)
     assert src == p.SRC_RC
     assert p.status_text(status) == ["can_ok", "rc_ok"]
+    # b4：控制器 ACK（真实总线证据），与 can_ok 独立
+    assert p.status_text(p.ST_CAN_OK | p.ST_CAN_ACK) == ["can_ok", "can_ack"]
 
 
 def test_wrong_sof_direction() -> None:

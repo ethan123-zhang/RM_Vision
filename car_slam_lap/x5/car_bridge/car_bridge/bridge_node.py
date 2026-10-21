@@ -94,6 +94,8 @@ class BridgeNode(Node):
         self._crc_err = 0
         self._link_warned = False
         self._estop_warned = False
+        self._can_warned = False
+        self._no_ack_since: Optional[float] = None
 
         self._ser = None
         self._open_stamp = 0.0
@@ -249,11 +251,13 @@ class BridgeNode(Node):
             recv_ok, crc_err, sent = self._recv_ok, self._crc_err, self._sent
 
         if status is None or age > self._status_timeout:
+            self._no_ack_since = None
+            self._can_warned = False
             if not self._link_warned:
                 self._link_warned = True
                 self.get_logger().warn(
-                    "没收到 C8T6 上行 status（检查：TX/RX 是否交叉、波特率 115200、"
-                    "固件是否装了 USART3 协议、GND 是否共地）"
+                    "没收到 C8T6 上行 status（检查：40pin 第 8/10 脚与 PA9/PA10 是否交叉、"
+                    "波特率 115200、GND 是否共地、固件是否已烧写）"
                 )
             payload = {"ok": False, "age_s": None if status is None else round(age, 3),
                        "src": "none", "flags": [], "sent": sent}
@@ -261,6 +265,23 @@ class BridgeNode(Node):
             self._link_warned = False
             flags = p.status_text(status[0])
             src = p.SRC_NAMES.get(status[1], f"?{status[1]}")
+
+            # CAN_OK 只说明帧进了邮箱；控制器 ACK 才是总线真的通了。
+            now = time.monotonic()
+            if (status[0] & p.ST_CAN_OK) and not (status[0] & p.ST_CAN_ACK):
+                if self._no_ack_since is None:
+                    self._no_ack_since = now
+                elif (now - self._no_ack_since > 2.0) and not self._can_warned:
+                    self._can_warned = True
+                    self.get_logger().warn(
+                        "CAN 帧已进邮箱，但 2 s 内没收到控制器 ACK："
+                        "查 CANH/CANL 是否接反、CAN 波特率（PDF 500K，旧工程 250K）、"
+                        "120 Ω 终端电阻、控制器是否按 PowerKey 开机"
+                    )
+            else:
+                self._no_ack_since = None
+                self._can_warned = False
+
             if p.ST_ESTOP & status[0]:
                 if not self._estop_warned:
                     self._estop_warned = True

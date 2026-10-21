@@ -3,42 +3,45 @@
 > **这是干嘛的**：拿现成的 C8T6 双驱底盘 + RDK X5 + Odin1，跑通
 > **房间建图 → 重定位 → 小车自己走一圈** 这条完整链路，为之后调比赛机器人打基础。
 >
-> **当前状态**（2026-10-20）：
+> **当前状态**（2026-10-21）：
 > - ✅ 链路协议（C + Python 双端，黄金向量测试通过）
 > - ✅ X5 侧全部 ROS2 节点、配置、脚本、部署
-> - ✅ 固件改造（USART1=X5、USART2=遥控器、USART3=串口转CAN 模块、10 ms 仲裁、看门狗）
-> - ⬜ **烧写 + 上车验证**（本机没有 Keil，编译要你在 Keil 里点一次，见 [§9](#9-固件状态与烧写)）
+> - ✅ 固件：USART1=X5、USART2=遥控器、**CAN1=SN65HVD230**、10 ms 仲裁、看门狗
+> - ✅ 2026-10-21 按实物原理图修正：CAN 是 **裸收发器**，不是串口转CAN模块；
+>   接线见 [WIRING.md](WIRING.md)
+> - ⬜ **烧写 + 上车验证**（Keil 工程已能 0 error 编译，见 [§9](#9-固件状态与烧写)）
 
 ---
 
-## 0. 链路拓扑（改过一次，以这张为准）
+## 0. 链路拓扑（2026-10-21 按实物修正）
 
 ```
-RDK X5                               C8T6                       外设
-┌──────────────┐ 40pin 8(TX)  ┌────────────────┐  USART2   ┌──────────────┐
-│ UART /dev/ttyS1├───────────→│ USART1 (PA9/10)│←──────────│ DT7 接收机   │
-│              │ 40pin 10(RX) │                │  100000   └──────────────┘
-│              │←───────────→│                │
-└──────────────┘  115200 8N1 │  10 ms 仲裁    │  USART3   ┌──────────────┐
-                             │                ├──────────→│ 串口转CAN模块│
-                             └────────────────┘  115200   └──────┬───────┘
-                                                     slcan 文本    │ CAN 250k
-                                                                  ↓ extID 0x1314
-                                                          ┌──────────────┐
-                                                          │ XHSMCUW50 双驱│
-                                                          └──────────────┘
+Odin1 ──USB3──► RDK X5 ──40pin 8/10──► C8T6 USART1 (PA10/PA9)
+                  ▲                        │
+                  │ 10 Hz status           │ CAN1 PA12/PA11 (500K)
+                  └────────────────────────┤
+                                           ▼
+                                    SN65HVD230（3.3V 收发器）
+                                           │ CANH/CANL
+                                           ▼
+                                    XHSMCUW50 双驱
+DT7 ──USART2 (PA3, 100000 8E1)────────────► C8T6
+（手动/急停，s2 打到底 = 硬急停）
 ```
 
-三个串口各司其职，**互不复用**：
+**2026-10-21 修正**：实物是一块 SN65HVD230 裸收发器（`CAN收发器原理图.pdf`），
+不是「串口转CAN 模块」。它没有 UART，**不能接 USART3**；电机链路走片内 CAN1。
+完整接线见 [WIRING.md](WIRING.md)。
 
 | 口 | 引脚 | 参数 | 对端 |
 | :--- | :--- | :--- | :--- |
 | USART1 | PA9 / PA10 | 115200 8N1 | RDK X5 40pin 第 8/10 脚 |
 | USART2 | PA2 / PA3 | **100000 8E1** | DT7 接收机（DBUS） |
-| USART3 | PB10 / PB11 | 115200 8N1 | 串口转CAN 模块（slcan） |
+| CAN1 | PA12 / PA11 | **500 kbit/s** | SN65HVD230 → XHSMCUW50 |
+| USART3 | PB10 / PB11 | 115200 8N1 | **备用/调试，不接电机** |
 
-> `printf` 已经改成丢弃：三个口都名花有主，往任何一个塞调试文本都会毒化链路。
-> 诊断走 10 Hz 的 status 帧（X5 侧 `/car/status`）。
+> `printf` 已经改成丢弃：两个在用串口都不允许混入调试文本。诊断走 10 Hz 的
+> status 帧（X5 侧 `/car/status`）。
 
 ---
 
@@ -47,16 +50,16 @@ RDK X5                               C8T6                       外设
 ```
 car_slam_lap/
 ├─ firmware/C8T6_DT7_car/               Keil 工程
-│   ├─ Core/                            CubeMX 生成（usart.c 改了三路参数，.ioc 同步改过）
+│   ├─ Core/                            CubeMX 生成（usart.c 三路参数 + CAN 500K，.ioc 同步）
 │   └─ Hardware/
 │       ├─ LINK/protocol.c,h            X5 链路帧编解码（HAL 无关，PC 可测）
 │       ├─ LINK/x5_link.c,h             USART1 收帧 + 10 Hz status
-│       ├─ CAN/slcan.c,h                slcan 文本编码（HAL 无关，PC 可测）
-│       ├─ CAN/can_bus.c,h              8 字节混控帧 -> slcan -> USART3
+│       ├─ CAN/can_frame.c,h            混控帧编码（HAL 无关，PC 可测）
+│       ├─ CAN/can_bus.c,h              CAN1 发送 + ACK 解析
 │       └─ UART/{uart_rx.c,DBUS.c}      唯一的接收中断入口 + DT7 解码
 ├─ tests/
 │   ├─ protocol_test.c                  70 项：CRC/布局/重同步/坏帧/黄金向量
-│   ├─ slcan_test.c                     21 项：slcan 逐字节断言
+│   ├─ can_frame_test.c                 12 项：混控帧黄金向量
 │   ├─ hal_stub/                        PC 上的极简 HAL 替身（只做语法/类型检查）
 │   ├─ check_keil_project.py            工程一致性：文件挂没挂、include、.ioc 参数
 │   └─ run_tests.ps1                    一键跑全部离线检查
@@ -75,25 +78,25 @@ car_slam_lap/
 │   ├─ config/                          Odin1 建图 / 重定位两份配置
 │   ├─ scripts/                         板端脚本（安装/探测/建图/存图/重定位/走圈）
 │   └─ pc/deploy.ps1                    打包 + pscp + 远程安装
+├─ WIRING.md                            接线/电源/上电顺序（先看这个）
 └─ README.md
 ```
 
 ---
 
-## 2. 接线
+## 2. 接线（详细版见 [WIRING.md](WIRING.md)）
 
 | 连接 | 细节 | 注意 |
 | :--- | :--- | :--- |
-| **X5 40pin ↔ C8T6 USART1** | 第 8 脚(TX) → **PA10**(RX)；第 10 脚(RX) → **PA9**(TX)；GND 互连 | **必须交叉**；3.3V 电平，可直接对接 |
-| DT7 接收机 ↔ C8T6 USART2 | PA2/PA3，100000 8E1 | 已在 USART2 上；s2 打到底 = 硬急停 |
-| C8T6 USART3 ↔ 串口转CAN 模块 | PB10(TX) → 模块 RX；PB11 ← 模块 TX；GND 互连 | 模块串口按 115200；**模块 CAN 侧要 250K** |
-| 模块 ↔ 电机控制器 | CAN_H / CAN_L，扩展帧 `0x1314` | 总线两端各 120 Ω 终端电阻 |
-| Odin1 ↔ X5 | Type-C → **蓝色 USB3 口** | SLAM 模式传地图文件必须 USB3 |
-| Odin1 供电 | 航插 12V / 2A（≥15W） | 跟 Type-C 分开，Type-C 不供电 |
+| X5 40pin ↔ C8T6 USART1 | 8(TX)→**PA10**(RX)；10(RX)→**PA9**(TX)；GND 互连 | **必须交叉**；3.3V 电平 |
+| DT7 接收机 ↔ C8T6 USART2 | PA3(RX)，5V/GND；100000 8E1 | s2 打到底 = 硬急停 |
+| C8T6 CAN1 ↔ SN65HVD230 | PA12→H1-4(D)；PA11←H1-3(R)；3V3→H1-2；GND→H1-1 | **不是 USART3**；H1 顺序以原理图为准 |
+| 收发器 ↔ 控制器 | H2-1 CANH→J3-1；H2-2 CANL→J3-2；GND→J3-6/7 | 双绞；板载 120Ω，两端合计约 60Ω |
+| 控制器开机/急停 | J3-11 PowerKey 对 J3-10 短接 1 s；J3-12 Break 低=急停 | 不按 PowerKey 控制器不上电 |
+| Odin1 ↔ X5 | Type-C→**蓝色 USB3 口**；12V/2A 航插 | Type-C 不供电 |
 
-上电顺序建议：**模块先于 C8T6**。固件启动时会给模块发 `S5\r`（250K）+ `O\r`（开通道）；
-如果模块在之后才上电/复位，它自己不会重新开通道，表现是"程序在发帧但电机不动"——
-这时复位一次 C8T6 即可（见 §11）。
+上电顺序：先逻辑（C8T6/X5/Odin1），再按 PowerKey 开控制器。CAN 不需要 `S5/O`
+初始化——SN65HVD230 是纯硬件收发器，固件直接 `HAL_CAN_Start`。
 
 ---
 
@@ -121,8 +124,8 @@ car_slam_lap/
 ```
 
 - `speed > 0` 前进，`angular > 0` 右转
-- `status`：b0 往串口转CAN 模块写成功（**只代表 UART 写成功，不代表 CAN 总线上有帧**）/
-  b1 串口在线 / b2 遥控在线 / b3 急停
+- `status`：b0 CAN 帧进邮箱（**只代表 HAL 接受，不代表控制器收到**）/
+  b1 串口在线 / b2 遥控在线 / b3 急停 / **b4 收到控制器 ACK（真实总线证据）**
 - `src`：0 无 / 1 串口 / 2 遥控
 - **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 及其后 `LEN` 字节
 - 外部校验：`crc8("123456789") == 0xF4`
@@ -136,30 +139,20 @@ car_slam_lap/
 | `set_vel(-1000, 1000)` | `A5 5A 05 01 18 FC E8 03 4C` |
 | `status(0x03, serial)` | `5A A5 03 81 03 01 62` |
 
-### 3.2 C8T6 ↔ 串口转CAN 模块（slcan 文本，115200 8N1）
+### 3.2 C8T6 ↔ 控制器（CAN1，500 kbit/s）
 
-模块收到的是 **ASCII**，`\r` 结尾（CANable / candleLight 那一套）：
-
-```
-T000013148CDAB900138FF6555\r
-└T └00001314 └8 └CDAB 9001 38FF 6555
- 扩展帧       DLC  帧头 ang  spd  crc
-```
-
-启动时固件先发两条命令：
+扩展帧 `0x1314`，8 字节，10 ms 周期：
 
 ```
-S5\r    # 250 kbit/s（S4=125K S5=250K S6=500K）
-O\r     # 打开通道，不开模块不往总线上发
+CD AB | angular i16 LE | speed i16 LE | crc i16 LE
 ```
 
-编码在 `Hardware/CAN/slcan.c`，**21 项逐字节断言**（`tests/slcan_test.c`）——
-这种文本协议写错一个字符不会崩，只会静默丢帧，现场表现是"电机不动但程序没报错"，
-所以必须在接线上车之前锁死。
-
-8 字节混控帧内容与原来一模一样：`0xABCD + angular + speed + 异或校验`，小端。
-
----
+- `crc = 0xABCD ^ angular ^ speed`（16 位异或，取低 16 位）
+- 范围 ±1000；>0 前进/右转
+- 控制器 ACK：`speedL speedR voltage crc` 各 2 字节小端，
+  `crc = speedL ^ speedR ^ voltage`；`voltage` 单位 0.1 V
+- 编码在 `Hardware/CAN/can_frame.c`，**12 项逐字节断言**（`tests/can_frame_test.c`）
+- 控制器 3–5 s 收不到帧会判信号丢失并停车；C8T6 即使 X5 失联也继续发 0
 
 ## 4. 部署（PC → 板端）
 
@@ -246,6 +239,7 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 
 | 层级 | 机制 | 失效后果 |
 | :--- | :--- | :--- |
+| L0 硬件 | 控制器 `Break` 低电平 = 急停；主保险 + 主开关 | 最后一道，不依赖任何软件 |
 | L1 遥控器 | `s2` 打到底 = 硬急停，**压过串口** | 任何时刻人肉刹车 |
 | L2 固件 | USART1 300 ms 无有效帧 → 发 0 | X5 死机/拔线，车 0.3 s 内停 |
 | L3 节点 | `cmd_timeout` 300 ms 无新 `/cmd_vel` → 发 0 | 遥控程序崩了，车停 |
@@ -262,28 +256,28 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 代码已改完，并且**已用 Keil AC5 实编译通过**：
 
 ```
-Program Size: Code=9392 RO-data=328 RW-data=64 ZI-data=1328
+Program Size: Code=10944 RO-data=312 RW-data=72 ZI-data=1328
 "C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
 ```
 
-即 flash 约 9.8 KB / 64 KB、RAM 约 1.4 KB / 20 KB，余量很大。
+即 flash 约 11.2 KB / 64 KB、RAM 约 1.4 KB / 20 KB，余量很大。
 `tests/run_tests.ps1` 里的第 5 步会自动调 `UV4.exe` 重编一遍（找不到 Keil 就跳过）。
 
 改动清单（都已完成）：
 
-- [x] `usart.c` + `.ioc`：USART1 改 115200 8N1（X5）、USART2 改 100000 8E1（DT7）、
-      新增 USART3（PB10/PB11，115200 8N1）；三个口都开了 NVIC。
+- [x] `usart.c` + `.ioc`：USART1 115200 8N1（X5）、USART2 100000 8E1（DT7）、
+      USART3 115200 8N1（备用）；**CAN1 500K（Prescaler=4）**；都开了 NVIC。
 - [x] `Hardware/UART/uart_rx.c`：全工程唯一的 `HAL_UART_RxCpltCallback`，按句柄分发；
       同时补了 `HAL_UART_ErrorCallback` 重新挂接收（溢出后不重挂会永久静默）。
 - [x] `Hardware/LINK/x5_link.c/h`：USART1 收帧、300 ms 判活、10 Hz 发 status。
-- [x] `Hardware/CAN/slcan.c/h` + `can_bus.c`：8 字节混控帧 → slcan 文本 → USART3。
-      片内 CAN 外设不再初始化（`can.c` 保留，方便哪天换回收发器）。
-- [x] `main.c`：10 ms 调度 + 仲裁（s2 急停 > 串口 > 遥控 > 停），
-      删掉了原来那个**永远不成立**的 `rc_tick` 超时判断。
-- [x] `C8T6_DT7_car.uvprojx`：4 个新文件挂进 Hardware 组，include 路径加 `..\Hardware\LINK`。
-- [x] `stm32f1xx_it.c`：补 **`USART2_IRQHandler` / `USART3_IRQHandler`**。
-      startup 里这两个是 `[WEAK]` 的空实现（函数体只有 `B .`），开了 NVIC 却忘了 handler，
-      编译链接下载全成功，**第一个字节进来就整机卡死**，且没有任何报错。
+- [x] `Hardware/CAN/can_frame.c/h`：混控帧编码（纯 C，PC 逐字节断言）。
+- [x] `Hardware/CAN/can_bus.c/h`：CAN1 非阻塞发送 + ACK 解析（status b4）。
+- [x] `main.c`：`MX_CAN_Init` + `CAN_Bus_Init(&hcan)`；10 ms 调度 + 仲裁
+      （s2 急停 > 串口 > 遥控 > 停），删掉了原来**永远不成立**的 `rc_tick` 超时判断。
+- [x] `C8T6_DT7_car.uvprojx`：`can_frame.c` 挂进 Hardware；`slcan.c` 移除。
+- [x] `stm32f1xx_it.c`：`USART2/3_IRQHandler` + `USB_LP_CAN1_RX0_IRQHandler`。
+      startup 里这些是 `[WEAK]` 的空实现（函数体只有 `B .`），开了 NVIC 却忘了 handler，
+      编译链接下载全成功，**第一个中断进来就整机卡死**，且没有任何报错。
 - [ ] **烧写 + 跑 A1/A2 验收**。
 
 ### 9.1 在 VSCode 里编译（Keil Assistant）
@@ -300,8 +294,8 @@ Program Size: Code=9392 RO-data=328 RW-data=64 ZI-data=1328
 python car_slam_lap\tests\check_keil_project.py
 ```
 
-它会核对：工程引用的 31 个文件都在磁盘上、6 个新源文件都挂进了 Hardware 组、
-include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
+它会核对：工程引用的 31 个文件都在磁盘上、6 个 Hardware 源文件都挂进了 Hardware 组、
+include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 以及**每个开了中断的外设都有对应的 `X_IRQHandler(`**。
 
 ### 9.2 烧写
@@ -315,9 +309,11 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 
 ### 9.3 上电后的自检顺序
 
-1. 先看 C8T6 是否活着：X5 上 `ros2 topic echo /car/status --once`
+1. 先看 C8T6 是否活着：X5 上 `ros2 topic echo /car/status --once`。
+   `flags` 里应有 `can_ok`；给控制器按 PowerKey 开机后 1 s 内应出现 **`can_ack`**。
 2. `link_test` 会一次说清三件事：有没有上行（USART1+固件活没活）、`crc_err` 是不是 0、
    `src` 是 `serial` 还是 `rc`（`rc` 说明串口帧没被认，仲裁退回了遥控器）
+3. 车轮离地，`teleop_keys` 小速度确认四向；`can_ack` 没有时先别落地。
 
 ---
 
@@ -345,7 +341,8 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 | `/car/status` 里 `estop:true` | 遥控器 s2 打在急停档 |
 | `/car/status` 里 `src:"rc"` | 串口帧没被认，固件走了遥控分支 |
 | 车往反方向走 | `bridge_node -p invert_speed:=true`（或 `invert_angular`） |
-| **程序在发帧、电机完全不动** | ① 模块有没有先上电/被复位过（重发 `S5`+`O`：复位 C8T6）；② 模块 CAN 侧是不是 250K；③ 抓 USART3 的原始字节，确认是 `T000013148...` 而不是乱码 |
+| **`can_ok` 有、`can_ack` 没有** | ① CANH/CANL 接反；② 波特率（PDF 500K，旧工程 250K）；③ 120 Ω 终端；④ 控制器没按 PowerKey 开机；⑤ 控制器不是 MIX 模式 |
+| **一帧 ACK 都没有、`can_ok` 也没有** | PA11/PA12 与 H1-3/4 接反；H1 没有 3.3V；CAN 没 Start；固件没烧进去。示波器看 PA12 有没有 10 ms 一帧的波形 |
 | 电机转但方向/速度不对 | 混控帧的 `angular/speed` 次序与符号约定；先单独发 `speed` 再发 `angular` 试 |
 | `cloud_slam` 没数据 | `control_command.mapping.yaml` 里把 `senddtof: 0` 改回 `1` |
 | 重定位一直不成功 | 起点不在建图位置 1 m 内；场景变化大；灯光太暗；轻轻晃一下设备 |
@@ -356,13 +353,12 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的三路串口参数正确、
 
 ## 12. 已知不确定 / 待确认
 
-1. **CAN 波特率 250K**：`.ioc` 里算出来是 250 kbit/s（36 MHz / 8 / 18TQ），厂商文档写
-   500K 与实测不符。本项目按 250K，通过 slcan 的 `S5` 命令配给模块。若电机确实按
-   500K 工作，改 `can_bus.h` 的 `MOTOR_CAN_BITRATE` 为 500000 即可（自动发 `S6`）。
-2. **模块的串口波特率**：按 115200 假设（slcan 固件的常见默认）。若模块是 9600，
-   改 `usart.c` 的 USART3 `BaudRate`（和 `.ioc`）。
-3. **模块上电顺序**：模块晚于 C8T6 上电时不会自动重开通道，需要复位 C8T6。
-   如果实测经常发生，下一步可以在固件里加"每 5 s 重发一次 `O\r`"。
+1. **CAN 500K vs 250K**：规格书写 500K，旧 CubeMX 工程是 250K。2026-10-21 按 PDF
+   改成 500K（`can.c` Prescaler=4）。首次上车若 `can_ok` 有、`can_ack` 没有，先把
+   Prescaler 改回 8（250K）并同步 `.ioc` 再试；这是唯一一处改动。
+2. **ACK 的 CAN ID 未公开**：过滤器全收，靠校验和识别；总线上只有控制器，暂不担心误收。
+3. **MIX / 独立模式怎么切换**：规格书只给了两种帧格式，没写切换方式；如果控制器把
+   angular/speed 当左右轮，先找厂家上位机确认模式，不要先改代码。
 4. **`senddtof: 0`**（关掉 cloud_raw 省 9.6 MB/s）：基于 `sendcloudslam` 是独立数据流的
    判断；若建图时 `cloud_slam` 无数据，第一件事就是改回 `1`。
 5. **Odin1 装车位置**：现在直接把 `imu` 系当车体中心。装得离转向中心远的话，
@@ -380,7 +376,7 @@ pwsh -File car_slam_lap\tests\run_tests.ps1
 
 五组：
 
-1. **C 单元测试**：`protocol.c` 70 项 + `slcan.c` 21 项，逐字节断言
+1. **C 单元测试**：`protocol.c` 70 项 + `can_frame.c` 12 项，逐字节断言
 2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 8 个固件模块（含
    `main.c`、`stm32f1xx_it.c`）跑 `gcc -Wall -Wextra -Werror -fsyntax-only`
 3. **Python 单元测试**：协议黄金向量 11 项 + 轨迹文件往返 8 项

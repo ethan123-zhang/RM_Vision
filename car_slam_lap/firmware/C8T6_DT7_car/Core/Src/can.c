@@ -39,7 +39,9 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 8;
+  /* 36 MHz APB1 / 4 / (1 + 9 + 8) TQ = 500 kbit/s（规格书 6.3）
+     若这台控制器实测是 250K：Prescaler 改 8，并同步 .ioc。 */
+  hcan.Init.Prescaler = 4;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_9TQ;
@@ -126,30 +128,38 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 
 /**
  * @brief  CAN 初始化：过滤器 + 启动 + 使能 FIFO0 接收中断
- * @note   需在 CubeMX 的 MX_CAN1_Init()（外设时钟/GPIO/NVIC）之后调用
+ * @note   需在 CubeMX 的 MX_CAN_Init()（外设时钟/GPIO/NVIC）之后调用。
+ *
+ * 过滤器故意「全收」：控制器 ACK 帧的 CAN ID 文档未公开，先收全部，
+ * 由 HAL_CAN_RxFifo0MsgPendingCallback 用校验和判断是不是有效 ACK。
+ * 总线上只有这一台控制器，不会误收别的节点。
  */
 void CAN_filter_Init(void)
 {
-    /* ---- 接收过滤器：扩展 ID 0x1314 ---- */
-    CAN_FilterTypeDef filter ;
+    CAN_FilterTypeDef filter = {0};
+
     filter.FilterActivation     = ENABLE;
     filter.FilterMode           = CAN_FILTERMODE_IDMASK;   /* 掩码模式 */
     filter.FilterScale          = CAN_FILTERSCALE_32BIT;   /* 32 位 */
     filter.FilterBank           = 0;                       /* F103 单 CAN 用组 0 */
     filter.FilterFIFOAssignment = CAN_RX_FIFO0;            /* 关联 FIFO0 */
-    /* 扩展 ID 需要左移 3 位后填入寄存器高低位（与文档示例一致） */
-    // filter.FilterIdHigh = (uint16_t)((((uint32_t)0x1314 << 3)
-    //                                   | CAN_ID_EXT | CAN_RTR_DATA) >> 16);
-    // filter.FilterIdLow  = (uint16_t)(((uint32_t)0x1314 << 3)
-    //                                  | CAN_ID_EXT | CAN_RTR_DATA);
-    filter.FilterIdHigh = ((((uint32_t)0x1314 << 3) | CAN_ID_EXT | CAN_RTR_DATA) & 0xFFFF0000) >> 16;;
-    filter.FilterIdLow  = ((((uint32_t)0x1314 << 3) | CAN_ID_EXT | CAN_RTR_DATA) & 0xFFFF);;
-    filter.FilterMaskIdHigh = 0xFFFF;
-    filter.FilterMaskIdLow  = 0xFFFF;
-     HAL_CAN_ConfigFilter(&hcan, &filter);
-   
-    HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-    
+    filter.FilterIdHigh         = 0x0000;
+    filter.FilterIdLow          = 0x0000;
+    filter.FilterMaskIdHigh     = 0x0000;                  /* 掩码全 0 = 不过滤 */
+    filter.FilterMaskIdLow      = 0x0000;
+
+    if (HAL_CAN_ConfigFilter(&hcan, &filter) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_CAN_Start(&hcan) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+    {
+        Error_Handler();
+    }
 }
 
 

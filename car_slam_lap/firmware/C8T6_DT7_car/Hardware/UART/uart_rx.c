@@ -35,7 +35,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
     else if (huart == &huart3)
     {
-        /* slcan 模块会回 'F' 状态、'Z' 时间戳等文本，暂不解析；
+        /* USART3 是备用/调试口，不参与电机控制；收到就丢，
            但必须重新挂中断，否则只会收到第一个字节。 */
         (void)HAL_UART_Receive_IT(&huart3, &s_byte3, 1u);
     }

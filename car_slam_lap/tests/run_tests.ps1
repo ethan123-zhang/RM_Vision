@@ -3,7 +3,7 @@
 #   pwsh -File car_slam_lap\tests\run_tests.ps1
 #
 # 四组：
-#   1. C 单元测试：protocol.c（70 项）+ slcan.c（21 项）
+#   1. C 单元测试：protocol.c（70 项）+ can_frame.c（混控帧黄金向量）
 #   2. 固件模块语法/类型检查：用 tests\hal_stub 的 HAL 替身跑 gcc -fsyntax-only
 #   3. Python 单元测试：协议黄金向量 + 轨迹文件往返
 #   4. Keil 工程一致性：文件在磁盘上有、在 uvprojx 里挂着、include 路径和 .ioc 参数对
@@ -23,8 +23,8 @@ New-Item -ItemType Directory -Path $bld -Force | Out-Null
 Write-Host '=== [1/5] C 单元测试 ===' -ForegroundColor Cyan
 
 $cTests = @(
-    @{ Name = 'protocol_test'; Src = 'tests\protocol_test.c'; Inc = "$fw\Hardware\LINK"; Lib = "$fw\Hardware\LINK\protocol.c" },
-    @{ Name = 'slcan_test';    Src = 'tests\slcan_test.c';    Inc = "$fw\Hardware\CAN";  Lib = "$fw\Hardware\CAN\slcan.c" }
+    @{ Name = 'protocol_test';  Src = 'tests\protocol_test.c';  Inc = "$fw\Hardware\LINK"; Lib = "$fw\Hardware\LINK\protocol.c" },
+    @{ Name = 'can_frame_test'; Src = 'tests\can_frame_test.c'; Inc = "$fw\Hardware\CAN";  Lib = "$fw\Hardware\CAN\can_frame.c" }
 )
 foreach ($t in $cTests) {
     $exe = Join-Path $bld "$($t.Name).exe"
@@ -42,7 +42,7 @@ $fwFiles = @(
     "$fw\Core\Src\main.c",
     "$fw\Core\Src\stm32f1xx_it.c",
     "$fw\Hardware\LINK\protocol.c",
-    "$fw\Hardware\CAN\slcan.c",
+    "$fw\Hardware\CAN\can_frame.c",
     "$fw\Hardware\LINK\x5_link.c",
     "$fw\Hardware\CAN\can_bus.c",
     "$fw\Hardware\UART\DBUS.c",

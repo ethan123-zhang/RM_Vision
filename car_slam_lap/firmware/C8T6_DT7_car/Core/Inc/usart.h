@@ -43,7 +43,8 @@ extern UART_HandleTypeDef huart3;
  * 串口分配（改线时同步改这里、usart.c 和 .ioc）
  *   USART1  PA9/PA10   115200 8N1   X5 上位机：下行速度帧 + 上行状态帧
  *   USART2  PA2/PA3    100000 8E1   DT7 接收机（DBUS）
- *   USART3  PB10/PB11  115200 8N1   串口转CAN 模块（slcan 文本）
+ *   USART3  PB10/PB11  115200 8N1   备用/调试口（不参与电机控制）
+ *   CAN1    PA11/PA12  500 kbit/s   SN65HVD230 -> 双驱控制器
  */
 /* USER CODE END Private defines */
 

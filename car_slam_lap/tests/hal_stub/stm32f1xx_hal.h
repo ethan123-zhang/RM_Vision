@@ -3,7 +3,7 @@
  * @brief   只为了让 gcc -fsyntax-only 能检查固件模块的语法与类型。
  *
  * 用途：本机没有 Keil / arm-none-eabi-gcc，无法编译固件。但这个替身足以把
- * protocol.c、slcan.c、x5_link.c、can_bus.c、DBUS.c、uart_rx.c 过一遍
+ * protocol.c、can_frame.c、x5_link.c、can_bus.c、DBUS.c、uart_rx.c 过一遍
  * 语法和类型检查（函数签名、参数个数、类型不匹配都会报）。
  *
  * 不覆盖：main.c（依赖 RCC/NVIC/GPIO 等大量结构体）、以及任何运行时行为。
@@ -33,8 +33,34 @@ typedef struct
     uint32_t instance;
 } CAN_HandleTypeDef;
 
+typedef struct
+{
+    uint32_t ExtId;
+    uint32_t IDE;
+    uint32_t RTR;
+    uint32_t DLC;
+    uint32_t TransmitGlobalTime;
+} CAN_TxHeaderTypeDef;
+
+typedef struct
+{
+    uint32_t DLC;
+} CAN_RxHeaderTypeDef;
+
+#define CAN_ID_EXT      0x00000004u
+#define CAN_RTR_DATA    0x00000000u
+#define CAN_RX_FIFO0    0x00000000u
+#define DISABLE         0u
+#define ENABLE          1u
+
 void HAL_UART_IRQHandler(UART_HandleTypeDef *huart);
 void HAL_CAN_IRQHandler(CAN_HandleTypeDef *hcan);
+HAL_StatusTypeDef HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan,
+                                       CAN_TxHeaderTypeDef *pHeader,
+                                       uint8_t aData[], uint32_t *pTxMailbox);
+HAL_StatusTypeDef HAL_CAN_GetRxMessage(CAN_HandleTypeDef *hcan, uint32_t RxFifo,
+                                       CAN_RxHeaderTypeDef *pHeader,
+                                       uint8_t aData[]);
 
 uint32_t HAL_GetTick(void);
 void HAL_IncTick(void);

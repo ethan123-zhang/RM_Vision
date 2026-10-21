@@ -54,13 +54,16 @@
 #define PROTO_FRAME_UP_LEN   7u      /* build_status 输出长度 */
 
 /* ---- status 位 ---- */
-/* 注意 CAN_OK 的含义很窄：只表示"往串口转CAN 模块的 UART 写成功了"。
-   它**不能**证明 CAN 总线上真的有帧——模块没上电、没开通道（O）、波特率不对，
-   这一位照样是 1。真正确认电机链路要靠轮子有没有转（验收 A2）。 */
+/* CAN_OK：这一拍 HAL_CAN_AddTxMessage 把帧塞进了邮箱。
+   它**不能**证明控制器收到了——CANH/CANL 接反、波特率不对、控制器没开机，
+   这一位照样是 1。
+   CAN_ACK：最近 500 ms 收到过校验通过的控制器 ACK（真实总线证据）。
+   两位一起看：CAN_OK=1 且 CAN_ACK=0 → 查 500K、CANH/CANL、终端电阻、开机。 */
 #define PROTO_ST_CAN_OK      0x01u
 #define PROTO_ST_LINK_OK     0x02u
 #define PROTO_ST_RC_OK       0x04u
 #define PROTO_ST_ESTOP       0x08u
+#define PROTO_ST_CAN_ACK     0x10u
 
 /* ---- 控制源（status.src） ---- */
 #define PROTO_SRC_NONE       0u

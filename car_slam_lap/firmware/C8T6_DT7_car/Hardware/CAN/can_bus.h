@@ -1,47 +1,56 @@
 /**
  ******************************************************************************
  * @file    can_bus.h
- * @brief   双驱无刷控制器指令层 —— 经「串口转CAN 模块」下发
+ * @brief   双驱无刷控制器指令层 —— 片内 CAN1 + SN65HVD230 收发器
  *
- * 硬件链路变了：C8T6 不再用片内 CAN 外设，而是
- *     USART3 (PB10/PB11) --slcan 文本帧--> 串口转CAN 模块 --CAN--> XHSMCUW50
+ * 实物链路（2026-10-21 按《CAN收发器原理图》确认）：
+ *     C8T6 PA12 (CAN_TX) --> 收发器 H1-4 (D)
+ *     C8T6 PA11 (CAN_RX) <-- 收发器 H1-3 (R)
+ *     C8T6 3V3           --> 收发器 H1-2
+ *     C8T6 GND           --> 收发器 H1-1
+ *     收发器 H2-1 (CANH) --> 控制器 J3-1
+ *     收发器 H2-2 (CANL) --> 控制器 J3-2
  *
- * 所以这一层只负责"把 8 字节混控帧包装成 slcan 文本并发出去"，
- * 帧内容（0xABCD + angular + speed + 异或校验）与原来完全一致。
+ * 注意：SN65HVD230 是 3.3V **CAN 收发器**，不是「串口转CAN 模块」。
+ * 它没有 UART，不能用 USART3 驱动；USART3 在本工程里只是备用/调试口。
  *
- * 协议依据：《双驱动CAN控制接口使用说明》(CS-KZQ-SM-2024-3)
+ * 协议依据：《双驱无刷电机控制器规格书》6.3/6.4
  *   - 扩展帧 ID = 0x1314，8 字节数据帧
  *   - 混控帧: [0xCD][0xAB][angular_L][angular_H][speed_L][speed_H][crc_L][crc_H]
  *   - 校验和 = 0xABCD ^ angular ^ speed（16bit 异或）
- *   - 控制器要求 5~20 ms 周期持续发送，超过 5 s 未发 → 判信号丢失
+ *   - 控制器要求 5~20 ms 周期持续发送，超过 3~5 s 未发 → 判信号丢失
  *
- * 波特率注意：控制器侧实测是 250 kbit/s（CubeMX 里 CalculateBaudRate=250000），
- * 厂商文档写的 500K 与实测不符。这里按 250K 配给模块（slcan 命令 S5）。
+ * 波特率：PDF 写 500K，本工程按 500K 配（can.c 的 Prescaler=4）。
+ * 旧工程 CubeMX 配的是 250K；若首次上车电机不动，先把 can.c 的 Prescaler
+ * 改成 8（250K）再试，这是唯一的一处改动。
  ******************************************************************************
  */
 #ifndef __CAN_BUS_H
 #define __CAN_BUS_H
 
-#include "main.h"          /* 含 HAL 库及 stm32f1xx_hal.h */
+#include "main.h"
+#include "can.h"
 
-#define MOTOR_CAN_ID         0x1314u    /* 扩展帧 ID（文档规定） */
-#define MOTOR_CAN_BITRATE    250000u    /* 控制器实测 250 kbit/s */
-#define MOTOR_FRAME_LEN      8u         /* 混控帧固定 8 字节 */
+#define MOTOR_CAN_BITRATE    500000u   /* 规格书 6.3：500 kbit/s */
+#define MOTOR_CAN_ID         0x1314u   /* 扩展帧 ID（文档规定） */
 
 /**
- * @brief  绑定串口并打开模块通道（发 S5\r 设 250K，再发 O\r 开通道）
- * @param  huart 接串口转CAN 模块的那个串口（本工程是 huart3）
+ * @brief  绑定 CAN 句柄并启动：配置过滤器（收全部，便于收 ACK）→ Start → RX 中断
+ * @param  hcan  CubeMX 初始化后的 CAN1 句柄（本工程是 &hcan）
  */
-void CAN_Bus_Init(UART_HandleTypeDef *huart);
+void CAN_Bus_Init(CAN_HandleTypeDef *hcan);
 
 /**
- * @brief  混控模式：发送 转弯角速度 + 直行速度
+ * @brief  混控模式：发送 转弯角速度 + 直行速度（非阻塞，10 ms 调一次）
  * @param  angular  转弯角速度 [-1000, 1000]（正右转/负左转）
  * @param  speed    直行速度   [-1000, 1000]（正前进/负后退）
  */
 void CAN_Send_MIX(int16_t angular, int16_t speed);
 
-/** 最近一次向模块发送是否成功（0 = 串口发送失败/参数非法） */
+/** 最近一次 HAL_CAN_AddTxMessage 是否成功（0 = 邮箱满/初始化失败） */
 uint8_t CAN_Bus_Okay(void);
+
+/** 最近 500 ms 内是否收到控制器 ACK（校验通过才算） */
+uint8_t CAN_Bus_AckOkay(void);
 
 #endif /* __CAN_BUS_H */

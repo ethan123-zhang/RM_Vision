@@ -249,7 +249,7 @@ void USART2_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USART3 global interrupt.  (串口转CAN 模块)
+  * @brief This function handles USART3 global interrupt.  (备用/调试口)
   */
 void USART3_IRQHandler(void)
 {

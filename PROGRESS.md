@@ -1,7 +1,7 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-10-20
+> 最后更新：2026-10-21
 
 ## 一句话状态
 
@@ -9,8 +9,9 @@ RDK X5 单类 person YOLOv8n 定稿：**576 + 三段流水线 + C++ 后处理 = 
 person AP 0.7178（640 为 0.7244）。切尾巴、量化、板端测速全部跑通。
 2026-10-20 原 SD 卡损坏 → 重灌镜像 + 板端 30 min 重建，Odin1 链路已恢复（10 Hz 数据、网页预览经端口转发在 PC 上验证）。
 另起 `car_slam_lap/`：把这套感知装到 C8T6 双驱小车上，跑「建图 → 重定位 → 走一圈」。
-X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（0 error / 0 warning，Code 9.4 KB）**，
-下一步是烧写 + 上车验收。
+X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（0 error / 0 warning，Code 10.9 KB）**。
+2026-10-21 按实物原理图修正：CAN 是 SN65HVD230 裸收发器（不是串口转CAN模块），
+电机链路已改回片内 CAN1 + 500K；下一步是烧写 + 上车验收。
 
 ## 里程碑
 
@@ -24,18 +25,19 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 | 6 | X5 板端 512 输入达 100+ FPS | ✅ 完成 | 2026-10-18，C++ 后处理 135.3 FPS |
 | 7 | 576 输入定稿（精度/速度折中） | ✅ 完成 | 2026-10-18，104.1 FPS、AP 0.7178 |
 | 8 | 坏卡重灌 + Odin1 数据链路恢复 | ✅ 完成 | 2026-10-20，镜像校验一致、30 min 重建、端口转发验证 |
-| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；待烧写 + 跑 A1/A2，见 `car_slam_lap/README.md` §9 |
+| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 已按实物改为 SN65HVD230 + CAN1 500K；待烧写 + A2，见 `car_slam_lap/WIRING.md` |
 
 ## 正在做
 
 - 576 定稿；接入 USB 摄像头做端到端实测（720p60 / 480p120），之后换正式相机。
 - Odin1 链路 2026-10-20 已恢复：板端起驱动 + 网页预览，PC 经 `plink -L 8080` 端口转发查看
   （`x5_odin/`，启动/打包/校验脚本齐全）。
-- `car_slam_lap/`：三条链路都写完了 —— 协议（C+Python 同源，70+21 项断言）、`car_bridge`
+- `car_slam_lap/`：三条链路都写完了 —— 协议（C+Python 同源，70+12 项断言）、`car_bridge`
   ROS2 包（桥接/键盘遥控/录轨迹/纯追踪/点云导出/速度标定）、固件（USART1=X5、
-  USART2=遥控器、USART3=slcan 模块、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
-  自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 9392 / RAM 1392）。
-  **下一步**：烧写 → `probe_uart.sh` 确认 40pin 串口 → `link_test` 跑 A1/A2。
+  USART2=遥控器、**CAN1=SN65HVD230 500K**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
+  自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 10944 / RAM 1400）。
+  **下一步**：烧写 → `probe_uart.sh` 确认 40pin 串口 → 按 `WIRING.md` 上电 →
+  `link_test` 跑 A1，再离地跑 A2。
 
 ## 下一步（按优先级）
 
@@ -52,6 +54,14 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
+- 2026-10-21：**接线拓扑再修正一次：CAN 是 SN65HVD230 裸收发器，不是串口转CAN模块。**
+  用户补了 `CAN收发器原理图.pdf` / `CAN收发器说明书.pdf`：板子只有 SN65HVD230 + 120Ω
+  + 10K，H1 = GND/3V3/R/D，H2 = CANH/CANL，没有 MCU、没有 UART。原来的
+  「USART3 → slcan → 模块」物理上不可能工作。已改回 **片内 CAN1（PA11/PA12）**：
+  `can_frame.c` 纯帧编码 + `can_bus.c` 非阻塞发送 + ACK 解析（status b4）；
+  `can.c`/`.ioc` 设 500K；`slcan.c/h` 与测试删除；Keil 实编译 0 error / 0 warning。
+  接线、上电顺序、终端电阻、控制器 PowerKey/Break 见 `car_slam_lap/WIRING.md`。
+  决策记录：`docs/decisions/2026-10-21-can-direct-sn65hvd230.md`。
 - 2026-10-20：**小车串口链路通了（验收 A1 通过）**。RDK(172.17.90.239) 上部署 `car_bridge` 并
   跑通 `link_test`：300 帧发 / 70 帧收、**10.00 Hz**、最大间隔 101 ms、`crc_err=0`、
   仲裁 `src=serial`、停发后 `LINK_OK` 正确掉落（300 ms 看门狗真实有效）。

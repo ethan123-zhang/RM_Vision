@@ -1,79 +1,115 @@
 /**
  ******************************************************************************
  * @file    can_bus.c
- * @brief   双驱控制器指令层 —— 8 字节混控帧 -> slcan 文本 -> 串口转CAN 模块
+ * @brief   双驱控制器指令层 —— 片内 CAN1 -> SN65HVD230 -> 250K/500K CAN
  *
- * 原来的实现直接操作 CAN 外设（PA11/PA12 + TJA1050）。改成外挂模块后，
- * CAN 外设可以完全不初始化，换板子也不用再焊收发器。
- *
- * 一帧实际发出去的东西（27 字节）：
- *   "T" + "00001314" + "8" + "CDAB" + angular(4 hex) + speed(4 hex) + crc(4 hex) + "\r"
+ * 发送：10 ms 一次，HAL_CAN_AddTxMessage 非阻塞；邮箱满就跳过这一拍，
+ *       绝不 while 等发送完成（旧代码那样会把主循环拖死）。
+ * 接收：过滤器收全部报文，HAL_CAN_RxFifo0MsgPendingCallback 里解析 ACK：
+ *       [speedL][speedR][voltage][crc] 各 2 字节，小端；
+ *       crc = speedL ^ speedR ^ voltage。
+ *       ACK 的 CAN ID 文档未公开，所以不过滤；校验和不对的帧直接丢。
  ******************************************************************************
  */
 #include "can_bus.h"
 
-#include "slcan.h"
+#include "can_frame.h"
 
-static UART_HandleTypeDef *s_huart;
+static CAN_HandleTypeDef *s_hcan;
 static volatile uint8_t s_ok = 1u;
 
-static void slcan_send(const char *buf, uint16_t n)
+static volatile uint32_t s_ack_ms;
+static volatile uint8_t s_ack_valid;
+
+void CAN_Bus_Init(CAN_HandleTypeDef *hcan)
 {
-    if ((s_huart == 0) || (n == 0u))
+    s_hcan = hcan;
+    s_ok = 1u;
+    s_ack_valid = 0u;
+    s_ack_ms = HAL_GetTick();
+
+    if (hcan == 0)
     {
         s_ok = 0u;
         return;
     }
-    /* 27 字节 @115200 ≈ 2.3 ms，10 ms 周期下阻塞可接受 */
-    s_ok = (HAL_UART_Transmit(s_huart, (uint8_t *)buf, n, 20u) == HAL_OK) ? 1u : 0u;
-}
 
-void CAN_Bus_Init(UART_HandleTypeDef *huart)
-{
-    char cmd[SLCAN_BUF_LEN];
-    uint16_t n;
-    uint8_t code;
-
-    s_huart = huart;
-    s_ok = 1u;
-
-    /* 1) 设波特率：模块上电默认值不可靠，必须显式设置 */
-    code = slcan_bitrate_code(MOTOR_CAN_BITRATE);
-    n = slcan_encode_bitrate(code, cmd);
-    slcan_send(cmd, n);
-    HAL_Delay(20);
-
-    /* 2) 打开通道：未 O 的模块不会把帧发上总线 */
-    n = slcan_encode_open(cmd);
-    slcan_send(cmd, n);
-    HAL_Delay(20);
+    /* 过滤器 + HAL_CAN_Start + RX FIFO0 中断（实现在 can.c） */
+    CAN_filter_Init();
 }
 
 void CAN_Send_MIX(int16_t angular, int16_t speed)
 {
-    uint8_t mix[MOTOR_FRAME_LEN];
-    char out[SLCAN_BUF_LEN];
-    uint16_t start = 0xABCDu;
-    uint16_t crc;
-    uint16_t n;
+    uint8_t data[CAN_FRAME_DLC];
+    CAN_TxHeaderTypeDef tx = {0};
+    uint32_t mailbox = 0u;
 
-    crc = (uint16_t)(start ^ (uint16_t)angular ^ (uint16_t)speed);
+    if (s_hcan == 0)
+    {
+        s_ok = 0u;
+        return;
+    }
 
-    /* 小端：先低字节。与厂商的混控帧逐字节一致。 */
-    mix[0] = (uint8_t)(start & 0xFFu);
-    mix[1] = (uint8_t)((start >> 8) & 0xFFu);
-    mix[2] = (uint8_t)((uint16_t)angular & 0xFFu);
-    mix[3] = (uint8_t)(((uint16_t)angular >> 8) & 0xFFu);
-    mix[4] = (uint8_t)((uint16_t)speed & 0xFFu);
-    mix[5] = (uint8_t)(((uint16_t)speed >> 8) & 0xFFu);
-    mix[6] = (uint8_t)(crc & 0xFFu);
-    mix[7] = (uint8_t)((crc >> 8) & 0xFFu);
+    (void)CAN_Frame_BuildMix(data, angular, speed);
 
-    n = slcan_encode_ext(MOTOR_CAN_ID, mix, MOTOR_FRAME_LEN, out);
-    slcan_send(out, n);
+    tx.ExtId = MOTOR_CAN_ID;
+    tx.IDE = CAN_ID_EXT;
+    tx.RTR = CAN_RTR_DATA;
+    tx.DLC = CAN_FRAME_DLC;
+    tx.TransmitGlobalTime = DISABLE;
+
+    /* 非阻塞：邮箱满返回 HAL_BUSY，下一拍再发；不要在这里等。 */
+    s_ok = (HAL_CAN_AddTxMessage(s_hcan, &tx, data, &mailbox) == HAL_OK) ? 1u : 0u;
 }
 
 uint8_t CAN_Bus_Okay(void)
 {
     return s_ok;
+}
+
+uint8_t CAN_Bus_AckOkay(void)
+{
+    return (uint8_t)((s_ack_valid != 0u) &&
+                     ((HAL_GetTick() - s_ack_ms) < 500u));
+}
+
+/**
+ * @brief  HAL CAN RX FIFO0 回调（弱符号，全工程只允许这一份定义）
+ */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    CAN_RxHeaderTypeDef rx = {0};
+    uint8_t d[CAN_FRAME_DLC] = {0};
+    uint16_t speed_l;
+    uint16_t speed_r;
+    uint16_t voltage;
+    uint16_t crc;
+
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx, d) != HAL_OK)
+    {
+        return;
+    }
+    if (rx.DLC != CAN_FRAME_DLC)
+    {
+        return;
+    }
+
+    /* 混控帧自己发出去的不会回环进来；若控制器回显，跳过。 */
+    if ((d[0] == 0xCDu) && (d[1] == 0xABu))
+    {
+        return;
+    }
+
+    speed_l = (uint16_t)((uint16_t)d[0] | ((uint16_t)d[1] << 8));
+    speed_r = (uint16_t)((uint16_t)d[2] | ((uint16_t)d[3] << 8));
+    voltage = (uint16_t)((uint16_t)d[4] | ((uint16_t)d[5] << 8));
+    crc = (uint16_t)((uint16_t)d[6] | ((uint16_t)d[7] << 8));
+
+    if ((uint16_t)(speed_l ^ speed_r ^ voltage) != crc)
+    {
+        return;
+    }
+
+    s_ack_ms = HAL_GetTick();
+    s_ack_valid = 1u;
 }

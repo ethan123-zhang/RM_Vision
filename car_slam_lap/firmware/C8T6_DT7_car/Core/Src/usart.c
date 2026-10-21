@@ -103,7 +103,7 @@ void MX_USART3_UART_Init(void)
   /* USER CODE BEGIN USART3_Init 1 */
 
   /* USER CODE END USART3_Init 1 */
-  /* USART3 = 串口转CAN 模块（slcan 文本，115200 8N1） */
+  /* USART3 = 备用/调试口（115200 8N1）；电机走 CAN1，不走这里 */
   huart3.Instance = USART3;
   huart3.Init.BaudRate = 115200;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
@@ -205,9 +205,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    /* USART3 现在是备用口，PB11 可能悬空；上拉保持 UART 空闲高电平，
+       避免电机干扰在浮空脚上打出假起始位、白占中断。 */
     GPIO_InitStruct.Pin = GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USART3 interrupt Init */
@@ -286,12 +288,11 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 /*
  * printf 的落点。
  *
- * 三个串口现在都名花有主：USART1=X5 二进制帧、USART2=DT7 100000 8E1、
- * USART3=slcan 文本。任何一个都不允许混入调试文本，否则对方会收到垃圾：
- * 往 USART1 打日志会让 X5 的 CRC 一直错，往 USART3 打会拆坏 slcan 帧。
+ * USART1=X5 二进制帧、USART2=DT7 100000 8E1，这两个口不允许混入调试文本，
+ * 否则 X5 的 CRC 会一直错、DT7 的帧会被拆坏。USART3 现在是备用口，
+ * 真要抓日志时可以把 USB-TTL 接到 PB10/PB11 上。
  *
  * 所以这里直接丢弃，诊断统一走 10 Hz 的 status 帧（X5 侧 /car/status）。
- * 真要抓日志时，临时把一根 USB-TTL 接到 USART3 上抓 slcan 原始帧更直观。
  */
 int fputc(int ch, FILE *f)
 {

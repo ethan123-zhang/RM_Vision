@@ -1,5 +1,10 @@
 # 小车底盘控制源换成 X5 串口，并用 Odin1 做建图+走圈
 
+> [!warning] 修正 2026-10-21（来源：`CAN收发器原理图.pdf`）
+> 实物是 **SN65HVD230 裸收发器**（H1: GND/3V3/R/D，H2: CANH/CANL），不是串口转CAN
+> 模块。D1/D1b 里的「USART3 + slcan」作废，已改回片内 CAN1（PA11/PA12）+ 500K。
+> 见 `docs/decisions/2026-10-21-can-direct-sn65hvd230.md` 与 `car_slam_lap/WIRING.md`。
+
 - 日期：2026-10-20
 - 状态：X5 侧已实现并离线验证；固件 HAL 部分待接线确认
 - 相关代码：`car_slam_lap/`
