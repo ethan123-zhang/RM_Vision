@@ -36,8 +36,8 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
   ROS2 包（桥接/键盘遥控/录轨迹/纯追踪/点云导出/速度标定）、固件（USART1=X5、
   USART2=遥控器、**CAN1=SN65HVD230 500K**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
   自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 10944 / RAM 1400）。
-  **下一步**：烧写 → `probe_uart.sh` 确认 40pin 串口 → 按 `WIRING.md` 上电 →
-  `link_test` 跑 A1，再离地跑 A2。
+  **下一步**：烧写 C8T6 → 按 `WIRING.md` 上电 → `link_test` 跑 A1，再离地跑 A2。
+  X5 侧已部署（2026-10-21），`/dev/car_link -> ttyS1` 已确认。
 
 ## 下一步（按优先级）
 
@@ -54,6 +54,9 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
+- 2026-10-21：**X5 侧已部署到 172.17.90.239**（`deploy.ps1 -Install`，colcon build 通过，
+  `can_ack` 代码已在板端，`/dev/car_link -> ttyS1`）。C8T6 还需重烧
+  `MDK-ARM/C8T6_CAN_car/C8T6_CAN_car.hex`，否则板上仍跑旧的 USART3/slcan 固件。
 - 2026-10-21：**接线拓扑再修正一次：CAN 是 SN65HVD230 裸收发器，不是串口转CAN模块。**
   用户补了 `CAN收发器原理图.pdf` / `CAN收发器说明书.pdf`：板子只有 SN65HVD230 + 120Ω
   + 10K，H1 = GND/3V3/R/D，H2 = CANH/CANL，没有 MCU、没有 UART。原来的
