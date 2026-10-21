@@ -34,6 +34,14 @@ void DBUS_Decode(uint8_t *buf)
 
 void DBUS_OnByte(uint8_t byte)
 {
+    /* 帧头同步：接收机没接/PA3 悬空时会有随机字节，不校验帧头就会
+       把 18 个噪声字节当成一帧，DBUS_Alive() 误判为在线，进而用随机
+       摇杆值驱动电机。 */
+    if ((s_cnt == 0u) && (byte != DBUS_HEADER))
+    {
+        return;
+    }
+
     s_buf[s_cnt] = byte;
     s_cnt++;
     if (s_cnt < DBUS_FRAME_LEN)

@@ -13,6 +13,7 @@
 #include "stm32f1xx_hal.h"
 
 #define DBUS_FRAME_LEN   18u   /* DBUS 固定 18 字节一帧 */
+#define DBUS_HEADER      0xA9u /* 帧头；不校验的话 PA3 悬空噪声会被当成一帧 */
 #define DBUS_TIMEOUT_MS  100u  /* 超过 100 ms 没整帧 = 遥控器失联 */
 #define DBUS_ESTOP_S2    3u    /* s2 拨到底 = 硬急停（压过串口） */
 

@@ -256,7 +256,7 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 代码已改完，并且**已用 Keil AC5 实编译通过**：
 
 ```
-Program Size: Code=10952 RO-data=312 RW-data=72 ZI-data=1328
+Program Size: Code=10964 RO-data=312 RW-data=72 ZI-data=1328
 "C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
 ```
 
@@ -276,6 +276,9 @@ Program Size: Code=10952 RO-data=312 RW-data=72 ZI-data=1328
       （X5 立刻知道 C8T6 活了，便于区分“串口没通”和“CAN 初始化失败”）；10 ms 调度 + 仲裁
       （s2 急停 > 串口 > 遥控 > 停），删掉了原来**永远不成立**的 `rc_tick` 超时判断。
 - [x] `C8T6_DT7_car.uvprojx`：`can_frame.c` 挂进 Hardware；`slcan.c` 移除。
+- [x] `DBUS.c/h`：帧头 `0xA9` 同步；`usart.c` 的 PA3(USART2_RX) 改上拉。
+      接收机没接时 PA3 悬空，原来会把 18 个噪声字节当成一帧、`DBUS_Alive()` 误判在线，
+      用随机摇杆值驱动电机；现在帧头不对直接丢。
 - [x] `stm32f1xx_it.c`：`USART2/3_IRQHandler` + `USB_LP_CAN1_RX0_IRQHandler`。
       startup 里这些是 `[WEAK]` 的空实现（函数体只有 `B .`），开了 NVIC 却忘了 handler，
       编译链接下载全成功，**第一个中断进来就整机卡死**，且没有任何报错。
