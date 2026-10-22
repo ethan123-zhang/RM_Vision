@@ -4,9 +4,11 @@
 #
 # 四组：
 #   1. C 单元测试：protocol.c（70 项）+ can_frame.c（混控帧黄金向量）
+#      + DBUS.c（18 字节无帧头分帧，39 项）
 #   2. 固件模块语法/类型检查：用 tests\hal_stub 的 HAL 替身跑 gcc -fsyntax-only
 #   3. Python 单元测试：协议黄金向量 + 轨迹文件往返
 #   4. Keil 工程一致性：文件在磁盘上有、在 uvprojx 里挂着、include 路径和 .ioc 参数对
+#   5. Keil 实编译
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -34,6 +36,15 @@ foreach ($t in $cTests) {
     & $exe | Select-Object -Last 2
     if ($LASTEXITCODE -ne 0) { $fail = 1 }
 }
+
+# DBUS 分帧靠 HAL_GetTick 造帧间空闲，需要 hal_stub + 自定义时钟
+$dbusInc = Join-Path $root 'tests\hal_stub'
+$exe = Join-Path $bld 'dbus_frame_test.exe'
+gcc -std=gnu99 -Wall -Wextra -Werror -O1 -I "$fw\Hardware\UART" -I $dbusInc `
+    (Join-Path $root 'tests\dbus_frame_test.c') "$fw\Hardware\UART\DBUS.c" -o $exe
+if ($LASTEXITCODE -ne 0) { throw 'dbus_frame_test 编译失败' }
+& $exe | Select-Object -Last 2
+if ($LASTEXITCODE -ne 0) { $fail = 1 }
 
 # ---------------------------------------------------------------- 2. 固件语法检查
 Write-Host "`n=== [2/5] 固件模块语法/类型检查（HAL 替身）===" -ForegroundColor Cyan

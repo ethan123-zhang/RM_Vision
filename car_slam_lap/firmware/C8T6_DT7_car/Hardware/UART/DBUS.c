@@ -2,17 +2,62 @@
  ******************************************************************************
  * @file    DBUS.c
  * @brief   DT7 接收机解码 —— USART2，100000 8E1
+ *
+ * 分帧方式见 DBUS.h 的文件头说明：靠帧间空闲（>2 ms）定界，不再要求 0xA9。
  ******************************************************************************
  */
 #include "DBUS.h"
 
 RC_TypeDef rc;
 
-static uint8_t s_buf[DBUS_FRAME_LEN];
+static uint8_t s_buf[DBUS_BUF_LEN];
 static uint8_t s_cnt;
+static uint32_t s_last_byte_ms;
 static volatile uint32_t s_last_ms;
 static volatile uint32_t s_frames;
 static volatile uint8_t s_any_byte;
+
+/**
+ * @brief  把缓冲里攒的这一段当成一帧处理；不合规就丢掉
+ *
+ * 兼容两种长度：
+ *   18 字节 —— 本接收机实测格式，直接解；
+ *   19 字节且首字节 0xA9 —— 标准 DR16 变体，剥掉帧头再解。
+ */
+static void dbus_finish_frame(void)
+{
+    uint8_t n = s_cnt;
+    uint8_t i;
+    uint8_t *p = s_buf;
+
+    s_cnt = 0u;
+
+    if ((n == (uint8_t)(DBUS_FRAME_LEN + 1u)) && (p[0] == DBUS_HEADER))
+    {
+        p++;
+        n = DBUS_FRAME_LEN;
+    }
+    if (n != DBUS_FRAME_LEN)
+    {
+        return; /* 半帧/多字节：等下一个空闲重新定界 */
+    }
+
+    /* 实测帧的字节 6..16 恒为 0。没有帧头可校验时，这是区分"真帧"和
+       "PA3 噪声凑出来的 18 字节"最便宜的办法（随机字节同时为 0 的概率≈0）。
+       注意：s1/s2 可能是 0（这台遥控器的 OFF 档就编码成 0），不能拿它当合法性
+       判据——2026-10-22 就是这么把 OFF 档的整帧误杀掉的。 */
+    for (i = 6u; i <= 16u; i++)
+    {
+        if (p[i] != 0u)
+        {
+            return;
+        }
+    }
+
+    DBUS_Decode(p);
+    s_last_ms = HAL_GetTick();
+    s_frames++;
+}
 
 void DBUS_Init(void)
 {
@@ -20,6 +65,7 @@ void DBUS_Init(void)
     s_frames = 0u;
     s_any_byte = 0u;
     s_last_ms = HAL_GetTick();
+    s_last_byte_ms = s_last_ms;
 }
 
 void DBUS_Decode(uint8_t *buf)
@@ -36,27 +82,28 @@ void DBUS_Decode(uint8_t *buf)
 
 void DBUS_OnByte(uint8_t byte)
 {
+    uint32_t now = HAL_GetTick();
+
     s_any_byte = 1u;
 
-    /* 帧头同步：接收机没接/PA3 悬空时会有随机字节，不校验帧头就会
-       把 18 个噪声字节当成一帧，DBUS_Alive() 误判为在线，进而用随机
-       摇杆值驱动电机。 */
-    if ((s_cnt == 0u) && (byte != DBUS_HEADER))
+    /* 帧内字节间隔 0.1 ms，帧间空闲 ≈12 ms：>2 ms 一定是新帧的第一字节，
+       先把上一段收尾，再从这个字节开始攒下一帧。 */
+    if ((s_cnt > 0u) && ((uint32_t)(now - s_last_byte_ms) > DBUS_GAP_MS))
     {
-        return;
+        dbus_finish_frame();
     }
+    s_last_byte_ms = now;
 
-    s_buf[s_cnt] = byte;
-    s_cnt++;
-    if (s_cnt < DBUS_FRAME_LEN)
+    if (s_cnt < DBUS_BUF_LEN)
     {
-        return;
+        s_buf[s_cnt] = byte;
+        s_cnt++;
     }
-
-    s_cnt = 0u;
-    DBUS_Decode(s_buf);
-    s_last_ms = HAL_GetTick();
-    s_frames++;
+    else
+    {
+        /* 异常长的突发：不是本协议，丢掉，等下一个空闲间隔重新定界 */
+        s_cnt = 0u;
+    }
 }
 
 uint8_t DBUS_Alive(void)
@@ -82,5 +129,11 @@ uint32_t DBUS_Frames(void)
 
 uint8_t DBUS_AnyByte(void)
 {
-    return s_any_byte;
+    /* 实时位：500 ms 内有字节才算 1。
+       以前是"上电以来收到过就永远为 1"，接收机中途停了也看不出来。 */
+    if (s_any_byte == 0u)
+    {
+        return 0u;
+    }
+    return (uint8_t)((HAL_GetTick() - s_last_byte_ms) < DBUS_ANY_TIMEOUT_MS);
 }

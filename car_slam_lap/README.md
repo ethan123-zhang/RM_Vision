@@ -40,6 +40,10 @@ DT7 ──USART2 (PA3, 100000 8E1)────────────► C8T6
 | CAN1 | PA12 / PA11 | **250 kbit/s（实测）** | SN65HVD230 → XHSMCUW50 |
 | USART3 | PB10 / PB11 | 115200 8N1 | **备用/调试，不接电机** |
 
+> 遥控器帧格式（2026-10-22 实测）：**18 字节通道数据 + 约 12 ms 空闲，帧首没有
+> `0xA9`**。固件按帧间空闲（>2 ms）定界；若换成带 `0xA9` 帧头的标准 DR16
+> （19 字节），同一套代码会剥掉首字节，不用改。
+
 > `printf` 已经改成丢弃：两个在用串口都不允许混入调试文本。诊断走 10 Hz 的
 > status 帧（X5 侧 `/car/status`）。
 
@@ -60,6 +64,7 @@ car_slam_lap/
 ├─ tests/
 │   ├─ protocol_test.c                  70 项：CRC/布局/重同步/坏帧/黄金向量
 │   ├─ can_frame_test.c                 12 项：混控帧黄金向量
+│   ├─ dbus_frame_test.c                42 项：18 字节无帧头分帧/解码
 │   ├─ hal_stub/                        PC 上的极简 HAL 替身（只做语法/类型检查）
 │   ├─ check_keil_project.py            工程一致性：文件挂没挂、include、.ioc 参数
 │   └─ run_tests.ps1                    一键跑全部离线检查
@@ -126,7 +131,7 @@ car_slam_lap/
 - `speed > 0` 前进，`angular > 0` 右转
 - `status`：b0 CAN 帧进邮箱（**只代表 HAL 接受，不代表控制器收到**）/
   b1 串口在线 / b2 遥控在线 / b3 急停 / **b4 收到控制器 ACK（真实总线证据）**
-  / b5 `uart2_rx`（调试：USART2 收到过任意字节）/ b6 `dbus_frame`（调试：收到过完整 18 字节帧）
+  / b5 `uart2_rx`（调试：**最近 500 ms** 收到过任意字节，实时位）/ b6 `dbus_frame`（调试：上电以来收到过完整帧，锁存位）
 - `src`：0 无 / 1 串口 / 2 遥控
 - **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 及其后 `LEN` 字节
 - 外部校验：`crc8("123456789") == 0xF4`
@@ -250,6 +255,17 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 急停生效时 `status` 的 b3 置位，`bridge_node` 会打一次 `底盘报 ESTOP` 的红字。
 **注意**：急停只在遥控器数据新鲜时生效——接收机拔掉不会误锁死（见 `DBUS_Estop()`）。
 
+S2 三档（2026-10-22 按本遥控器实测编码）：
+
+| S2 位置 | 解码值 | 行为 |
+| :--- | ---: | :--- |
+| GPS（上） | 1 | 全速 |
+| 中间 ATTI | 3 | 三分之一速（`gain=3`） |
+| 下面 ATTI | 2 | **硬急停** |
+
+`rc.s1`（OFF/CL/HL）不参与控制。若换遥控器/接收机导致档位顺序不同，只改
+`DBUS.h` 的 `DBUS_ESTOP_S2` 和 `main.c` 里 `gain` 的那个三元表达式。
+
 ---
 
 ## 9. 固件状态与烧写
@@ -257,7 +273,7 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 代码已改完，并且**已用 Keil AC5 实编译通过**：
 
 ```
-Program Size: Code=11024 RO-data=312 RW-data=72 ZI-data=1328
+Program Size: Code=11152 RO-data=312 RW-data=76 ZI-data=1332
 "C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
 ```
 
@@ -340,7 +356,7 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 | 现象 | 先查什么 |
 | :--- | :--- |
 | `link_test` 一帧上行都没有 | **BOOT0 忘了拨回 0**（串口 ISP 和 ST-Link 烧完都要断电重上；BOOT0=1 会跑系统 bootloader）；**PA9/PA10 插错**（X5 8→PA10、10→PA9，接成直的就没数据）；GND 是否共地；`probe_uart.sh` 回环 |
-| `rc_ok` 一直没有 | ① 接收机 LED 是否常亮（对频）；② 信号是否接 **PA3**；③ 输出是 **DBUS** 还是 SBUS（SBUS 反相，USART2 解不了）；④ `uart2_rx` 有但 `dbus_frame` 无 → 波特率/帧头/反相。详见 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
+| `rc_ok` 一直没有 | ① 接收机 LED 是否常亮（对频）；② 信号是否接 **PA3**；③ 输出是 **DBUS** 还是 SBUS（SBUS 反相，USART2 解不了）；④ `uart2_rx`（500 ms 实时位）有但 `rc_ok` 无 → 有字节、帧没凑成：本款接收机是 **18 字节数据、帧首没有 `0xA9`**，固件已按帧间空闲（>2 ms）定界；⑤ `uart2_rx` 也没有 → 一个字节都没进来：接收机供电/信号线、发射机电量，或 **USB-TTL 的 TX 还并在 PA3 上把线拉住了**；⑥ 换过接收机仍不行，查校验位（8E1 vs 8N1）。详见 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
 | 串口 ISP 烧写时 | 先把 RDK 那两根线从 PA9/PA10 拔掉，否则 USB-TTL 和 RDK 抢同一对脚 |
 | 有上行但 `crc_err` 一直涨 | 线太长/接触不良；两边波特率不一致；getty 在抢 ttyS1 |
 | `bridge_node` 报 `打开 /dev/ttyS1 失败` | 节点名不对（跑 `probe_uart.sh`）、权限不够（`sudo udevadm trigger`） |
@@ -382,7 +398,7 @@ pwsh -File car_slam_lap\tests\run_tests.ps1
 
 五组：
 
-1. **C 单元测试**：`protocol.c` 70 项 + `can_frame.c` 12 项，逐字节断言
+1. **C 单元测试**：`protocol.c` 70 项 + `can_frame.c` 12 项 + `DBUS.c` 42 项，逐字节/逐状态断言
 2. **固件语法/类型检查**：用 `tests/hal_stub` 的 HAL 替身对 8 个固件模块（含
    `main.c`、`stm32f1xx_it.c`）跑 `gcc -Wall -Wextra -Werror -fsyntax-only`
 3. **Python 单元测试**：协议黄金向量 11 项 + 轨迹文件往返 8 项

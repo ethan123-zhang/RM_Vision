@@ -1,7 +1,7 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-10-21
+> 最后更新：2026-10-22
 
 ## 一句话状态
 
@@ -12,7 +12,9 @@ person AP 0.7178（640 为 0.7244）。切尾巴、量化、板端测速全部�
 X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（0 error / 0 warning，Code 10.9 KB）**。
 2026-10-21 按实物原理图修正：CAN 是 SN65HVD230 裸收发器（不是串口转CAN模块），
 电机链路已改回片内 CAN1 + 250K（实测）；**X5 键盘控制 + CAN 已通**。
-遥控器 DBUS 还没解出来（`uart2_rx` 有、`dbus_frame` 无），下一步先解决它，再标定建图。
+2026-10-22 遥控器链路已打通并实车验证：本款接收机是 **18 字节通道数据、帧首没有 `0xA9`**
+（原来死等帧头，字节全被丢）。固件改成按帧间空闲定界，三档映射实测定稿
+（GPS=全速 / 中间=1/3 速 / 下面=急停），`rc_ok` 稳定、遥控能开车。下一步用遥控器给全屋建图。
 
 ## 里程碑
 
@@ -26,7 +28,7 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 | 6 | X5 板端 512 输入达 100+ FPS | ✅ 完成 | 2026-10-18，C++ 后处理 135.3 FPS |
 | 7 | 576 输入定稿（精度/速度折中） | ✅ 完成 | 2026-10-18，104.1 FPS、AP 0.7178 |
 | 8 | 坏卡重灌 + Odin1 数据链路恢复 | ✅ 完成 | 2026-10-20，镜像校验一致、30 min 重建、端口转发验证 |
-| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 250K 与 X5 键盘控制已通（`can_ok`/`can_ack`/`src=serial`）；**遥控器 DBUS 未解**（`uart2_rx` 有、`dbus_frame` 无）；待标定 + A2，见 `car_slam_lap/WIRING.md` 与 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
+| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 250K 与 X5 键盘控制已通（`can_ok`/`can_ack`/`src=serial`）；**遥控器已通并实车验证**（18 字节无 `0xA9` 帧、空闲定界、三档映射 GPS=全速/中=1/3/下=急停，`rc_ok` 稳定）；下一步：遥控器建图 → 重定位 → 走圈，见 `car_slam_lap/WIRING.md` 与 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
 
 ## 正在做
 
@@ -36,9 +38,16 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 - `car_slam_lap/`：三条链路都写完了 —— 协议（C+Python 同源，70+12 项断言）、`car_bridge`
   ROS2 包（桥接/键盘遥控/录轨迹/纯追踪/点云导出/速度标定）、固件（USART1=X5、
   USART2=遥控器、**CAN1=SN65HVD230 250K（实测）**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
-  自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 11024 / RAM 1400）。
-  **下一步**：先解决遥控器 DBUS（见 issue），再离地验四向 → `calibrate_speed` 标定 →
-  建图 → 重定位走圈。X5 侧已部署，`/dev/car_link -> ttyS1` 已确认；键盘 `teleop_keys` 已能驱动轮子。
+  自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 11152 / RAM 1408）。
+  **下一步（下个对话从这里开始）**：用遥控器给全屋建图。
+  1. `bash ~/car_slam_lap/x5/scripts/start_mapping.sh lab1`
+  2. **起完先 `pkill -f bridge_node`** —— 它 50 Hz 发零帧，串口优先级压过遥控；
+     Odin1 / `record_path` / `map_from_cloud` 都不依赖它，只是这段时间没有 `/car/status`。
+  3. 遥控器 S2 放 GPS（全速）或中间（1/3 速），把房间走一圈；
+     起点贴标记，走圈要回到同一位置/朝向（重定位要求 1 m / ±10° 内）。
+  4. `bash .../save_map.sh` → `bash .../stop_mapping.sh`。
+  长期解：给 `bridge_node` 加 `passive:=true`（只收 status、不发帧），建图时遥控和状态可共存。
+  X5 侧已部署，`/dev/car_link -> ttyS1` 已确认；键盘 `teleop_keys` 也能开车。
 
 ## 下一步（按优先级）
 
@@ -55,13 +64,20 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
-- 2026-10-22：**遥控器 DBUS 还没解出来**。接收机 LED 常亮、信号接 PA3、共地已修，
-  但 `/car/status` 一直无 `rc_ok`。调试固件显示 `uart2_rx` 有、`dbus_frame` 无
-  （status 51），说明字节到了但没凑成 18 字节 `A9` 帧。USB-TTL（CH340 COM15，
-  100000 8E1）抓到 18 字节周期 `00 04 20 00 01 78 ...`，**没有 A9/0F**。
-  怀疑 CH340 在 100000 下不准、信号反相（SBUS）或接收机不是标准 DBUS。
-  下一步：换 CH343/CP2102 再抓；量接收机信号脚（不是 PA3）空闲电压；确认接收机型号；
-  若是 SBUS 需反相器 + 8E2/25 字节解码。详见 `docs/issues/2026-10-22-rc-dbus-not-decoded.md`。
+- 2026-10-22：**遥控器 DBUS 定位并修好（待烧写验证）**。现象是 `/car/status`
+  `status=51`（`can_ok|link_ok|can_ack|uart2_rx`）、无 `rc_ok`/`dbus_frame`。
+  抓包 `_extract/ttl.bin`（1026 B / 100000 8E1）周期严格 18 字节、`A9` 出现 **0 次**，
+  按位布局解出来是 `ch=0,0,0,0, s1=1, s2=3`（摇杆居中、s2 急停档）——数据本身没问题，
+  是**这一款接收机的帧首没有 `0xA9`**，而固件死等帧头，每个字节都被丢。
+  修复：`DBUS.c` 改成按帧间空闲（>2 ms）定界，兼容 18 字节无帧头 / 19 字节带帧头；
+  加保留字节校验防噪声假帧；新增 `tests/dbus_frame_test.c`（46 项），
+  `run_tests.ps1` 五组全绿，Keil 实编译 0 Error / 0 Warning（Code 11152）。
+  补记：第一版还要求 s1/s2 必须为 1/2/3，但这台遥控器 OFF 档编码就是 0，
+  切到 OFF 后合法帧被误杀（status 127→115、`rc_ok` 消失）；已允许 s1/s2=0。
+  另把 `uart2_rx` 从锁存位改成 **500 ms 实时位**，接收机中途停发时不再被旧帧掩盖。
+  S2 映射按用户要求改为 **GPS(1)=全速 / 中间(3)=三分之一速 / 下面(2)=急停**
+  （`DBUS_ESTOP_S2=2`，`gain` 判 3）。
+  详见 `docs/issues/2026-10-22-rc-dbus-not-decoded.md`。
 - 2026-10-21：**CAN 也通了（实测 250K）**：`/car/status` → `status=19`、
   `flags=["can_ok","link_ok","can_ack"]`、`src="serial"`、`crc_errors=0`；复位后轮子能转。
   踩坑：① PA9/PA10 插错 + 烧完没断电复位 → `/dev/ttyS1` 0 字节；

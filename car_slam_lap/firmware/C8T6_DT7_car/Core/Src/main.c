@@ -88,7 +88,7 @@ static int16_t rc_to_units(int16_t channel)
 /**
  * @brief  10 ms 一次的仲裁 + 下发
  *
- *   s2 打到 3（硬急停）  >  串口（X5 300 ms 内有有效帧）  >  遥控器  >  停
+ *   s2 打到 2（最下面，硬急停）  >  串口（X5 300 ms 内有有效帧）  >  遥控器  >  停
  *
  * 串口优先而不是遥控器优先：跑建图/走圈时人是松手的，遥控器摇杆回中会一直
  * 抢控制权，反而更危险。急停留了物理开关，不依赖优先级。
@@ -110,7 +110,7 @@ static void car_control_tick(void)
     }
     else if (DBUS_Alive() != 0u)
     {
-        int16_t gain = (rc.s2 == 2u) ? 2 : 1;   /* s2=1 全速，s2=2 半速 */
+        int16_t gain = (rc.s2 == 3u) ? 3 : 1;   /* s2=1 全速(GPS)，s2=3 三分之一速(中间) */
 
         speed = (int16_t)(rc_to_units(rc.ch3) / gain);
         angular = (int16_t)(rc_to_units(rc.ch0) / gain);
