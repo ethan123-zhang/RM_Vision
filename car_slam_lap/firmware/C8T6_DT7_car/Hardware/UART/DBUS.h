@@ -47,4 +47,7 @@ uint8_t DBUS_Estop(void);
 /** 累计收到的整帧数 */
 uint32_t DBUS_Frames(void);
 
+/** 是否收到过任意字节（调试：区分线没通和帧头不对） */
+uint8_t DBUS_AnyByte(void);
+
 #endif /* __DBUS_H */

@@ -12,11 +12,13 @@ static uint8_t s_buf[DBUS_FRAME_LEN];
 static uint8_t s_cnt;
 static volatile uint32_t s_last_ms;
 static volatile uint32_t s_frames;
+static volatile uint8_t s_any_byte;
 
 void DBUS_Init(void)
 {
     s_cnt = 0u;
     s_frames = 0u;
+    s_any_byte = 0u;
     s_last_ms = HAL_GetTick();
 }
 
@@ -34,6 +36,8 @@ void DBUS_Decode(uint8_t *buf)
 
 void DBUS_OnByte(uint8_t byte)
 {
+    s_any_byte = 1u;
+
     /* 帧头同步：接收机没接/PA3 悬空时会有随机字节，不校验帧头就会
        把 18 个噪声字节当成一帧，DBUS_Alive() 误判为在线，进而用随机
        摇杆值驱动电机。 */
@@ -74,4 +78,9 @@ uint8_t DBUS_Estop(void)
 uint32_t DBUS_Frames(void)
 {
     return s_frames;
+}
+
+uint8_t DBUS_AnyByte(void)
+{
+    return s_any_byte;
 }

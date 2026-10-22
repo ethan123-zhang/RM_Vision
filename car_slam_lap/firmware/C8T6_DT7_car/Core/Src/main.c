@@ -157,6 +157,15 @@ static void car_status_tick(void)
     {
         status |= PROTO_ST_RC_OK;
     }
+    /* 调试位：先看有没有字节，再看有没有整帧，定位接收机/线/波特率 */
+    if (DBUS_AnyByte() != 0u)
+    {
+        status |= PROTO_ST_UART2_RX;
+    }
+    if (DBUS_Frames() > 0u)
+    {
+        status |= PROTO_ST_DBUS_FRAME;
+    }
     if (DBUS_Estop() != 0u)
     {
         status |= PROTO_ST_ESTOP;

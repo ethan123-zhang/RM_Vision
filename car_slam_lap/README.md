@@ -126,6 +126,7 @@ car_slam_lap/
 - `speed > 0` 前进，`angular > 0` 右转
 - `status`：b0 CAN 帧进邮箱（**只代表 HAL 接受，不代表控制器收到**）/
   b1 串口在线 / b2 遥控在线 / b3 急停 / **b4 收到控制器 ACK（真实总线证据）**
+  / b5 `uart2_rx`（调试：USART2 收到过任意字节）/ b6 `dbus_frame`（调试：收到过完整 18 字节帧）
 - `src`：0 无 / 1 串口 / 2 遥控
 - **CRC8 = poly 0x07 / init 0x00 / 不反转**（CRC-8/ATM），覆盖 `LEN` 及其后 `LEN` 字节
 - 外部校验：`crc8("123456789") == 0xF4`
@@ -256,7 +257,7 @@ TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲�
 代码已改完，并且**已用 Keil AC5 实编译通过**：
 
 ```
-Program Size: Code=10964 RO-data=312 RW-data=72 ZI-data=1328
+Program Size: Code=11024 RO-data=312 RW-data=72 ZI-data=1328
 "C8T6_CAN_car\C8T6_CAN_car.axf" - 0 Error(s), 0 Warning(s).
 ```
 
@@ -339,6 +340,7 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 | 现象 | 先查什么 |
 | :--- | :--- |
 | `link_test` 一帧上行都没有 | **BOOT0 忘了拨回 0**（串口 ISP 和 ST-Link 烧完都要断电重上；BOOT0=1 会跑系统 bootloader）；**PA9/PA10 插错**（X5 8→PA10、10→PA9，接成直的就没数据）；GND 是否共地；`probe_uart.sh` 回环 |
+| `rc_ok` 一直没有 | ① 接收机 LED 是否常亮（对频）；② 信号是否接 **PA3**；③ 输出是 **DBUS** 还是 SBUS（SBUS 反相，USART2 解不了）；④ `uart2_rx` 有但 `dbus_frame` 无 → 波特率/帧头/反相。详见 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
 | 串口 ISP 烧写时 | 先把 RDK 那两根线从 PA9/PA10 拔掉，否则 USB-TTL 和 RDK 抢同一对脚 |
 | 有上行但 `crc_err` 一直涨 | 线太长/接触不良；两边波特率不一致；getty 在抢 ttyS1 |
 | `bridge_node` 报 `打开 /dev/ttyS1 失败` | 节点名不对（跑 `probe_uart.sh`）、权限不够（`sudo udevadm trigger`） |

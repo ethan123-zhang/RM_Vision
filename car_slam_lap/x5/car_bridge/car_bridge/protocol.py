@@ -42,6 +42,8 @@ ST_LINK_OK = 0x02
 ST_RC_OK = 0x04
 ST_ESTOP = 0x08
 ST_CAN_ACK = 0x10
+ST_UART2_RX = 0x20
+ST_DBUS_FRAME = 0x40
 
 #: 控制源
 SRC_NONE = 0
@@ -123,6 +125,10 @@ def status_text(status: int) -> List[str]:
         out.append("estop")
     if status & ST_CAN_ACK:
         out.append("can_ack")
+    if status & ST_UART2_RX:
+        out.append("uart2_rx")
+    if status & ST_DBUS_FRAME:
+        out.append("dbus_frame")
     return out
 
 

@@ -64,6 +64,9 @@
 #define PROTO_ST_RC_OK       0x04u
 #define PROTO_ST_ESTOP       0x08u
 #define PROTO_ST_CAN_ACK     0x10u
+/* 调试用：区分“接收机没输出”和“帧头/波特率不对” */
+#define PROTO_ST_UART2_RX    0x20u   /* USART2 收到过任意字节 */
+#define PROTO_ST_DBUS_FRAME  0x40u   /* 收到过完整 18 字节 DBUS 帧 */
 
 /* ---- 控制源（status.src） ---- */
 #define PROTO_SRC_NONE       0u
