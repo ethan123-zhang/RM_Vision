@@ -1,0 +1,17 @@
+# Keil 编译产物
+MDK-ARM/chassis_task/
+MDK-ARM/Objects/
+MDK-ARM/Listings/
+MDK-ARM/RTE/
+MDK-ARM/*.lst
+MDK-ARM/*.log
+*.axf
+*.hex
+*.htm
+*.dep
+*.crf
+*.o
+*.d
+
+# 主机侧测试产物
+tests/build/
