@@ -62,6 +62,14 @@ function Find-Cube {
 $uv4     = Find-Uv4  -Hint $Uv4
 $cubeCli = Find-Cube -Hint $CubeCli
 
+# ST-Link 是否插在电脑上（VID_0483&PID_3748 = ST-Link 调试接口）
+function Test-StLinkConnected {
+    try {
+        $out = (pnputil /enum-devices /connected 2>&1) -join "`n"
+        return ($out -match 'VID_0483&PID_3748')
+    } catch { return $true }   # 查不了就别拦着
+}
+
 # F4 器件包（决定 keil 那条路能不能用）
 $f4Pack = $null
 if ($uv4) {
@@ -166,22 +174,40 @@ switch ($Tool) {
             Write-Host '改用 -Tool dfu。' -ForegroundColor Yellow
             exit 1
         }
-        $logFlash = Join-Path $root 'MDK-ARM\flash.log'
-        if (Test-Path -LiteralPath $logFlash) { Remove-Item -LiteralPath $logFlash -Force }
-
-        $uv4Args = '-f "{0}" -j0 -t "{1}" -o "{2}"' -f $prj, $target, $logFlash
-        $p = Start-Process -FilePath $uv4 -ArgumentList $uv4Args -Wait -PassThru
-
-        $logSize = 0
-        if (Test-Path -LiteralPath $logFlash) { $logSize = (Get-Item -LiteralPath $logFlash).Length }
-        if ($logSize -gt 0) {
-            Get-Content -LiteralPath $logFlash | ForEach-Object { '  ' + $_.TrimEnd() }
-        } else {
-            Write-Host '  没有下载日志 —— µVision 没走到烧写这一步。' -ForegroundColor Yellow
+        if (-not (Test-StLinkConnected)) {
+            Write-Host '电脑上没检测到 ST-Link（VID_0483&PID_3748）。' -ForegroundColor Red
+            Write-Host '插上 ST-Link，确认它接到 C 板的 SWD，板子已上电，再重跑。' -ForegroundColor Yellow
             exit 1
         }
-        if ($p.ExitCode -ne 0) { Write-Host "烧写失败（exit=$($p.ExitCode)）" -ForegroundColor Red; exit 1 }
-        Write-Host '烧写完成。' -ForegroundColor Green
+        $logFlash = Join-Path $root 'MDK-ARM\flash.log'
+        $outFlash = Join-Path $root 'MDK-ARM\flash.out.txt'
+        if (Test-Path -LiteralPath $logFlash) { Remove-Item -LiteralPath $logFlash -Force }
+        if (Test-Path -LiteralPath $outFlash) { Remove-Item -LiteralPath $outFlash -Force }
+
+        # -o 抓不到烧写阶段的输出（那是 µVision 打到控制台的），必须重定向 stdout
+        $uv4Args = '-f "{0}" -j0 -t "{1}" -o "{2}"' -f $prj, $target, $logFlash
+        $p = Start-Process -FilePath $uv4 -ArgumentList $uv4Args -Wait -PassThru `
+             -RedirectStandardOutput $outFlash -RedirectStandardError "$outFlash.err"
+
+        $text = ''
+        foreach ($f in @($outFlash, $logFlash, "$outFlash.err")) {
+            if ((Test-Path -LiteralPath $f) -and (Get-Item -LiteralPath $f).Length -gt 0) {
+                $text += (Get-Content -LiteralPath $f -Raw)
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            Write-Host '  没有任何烧写输出 —— µVision 没走到烧写这一步。' -ForegroundColor Yellow
+            Write-Host '  确认：F4 器件包已装、ST-Link 已接、C 板已上电。' -ForegroundColor Yellow
+            exit 1
+        }
+        $text -split "`r?`n" | Where-Object { $_.Trim() } | ForEach-Object { '  ' + $_.TrimEnd() }
+
+        if ($text -notmatch 'Verify OK|Programming Done') {
+            Write-Host '  没有看到 Programming Done / Verify OK，烧写可能没成功。' -ForegroundColor Yellow
+            exit 1
+        }
+        Write-Host '烧写完成（Programming Done / Verify OK）。' -ForegroundColor Green
         exit 0
     }
 
