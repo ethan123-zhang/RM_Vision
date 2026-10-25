@@ -1,23 +1,27 @@
 <#
-  flash.ps1 —— 命令行编译 + SWD 下载（不用打开 Keil 的窗口）
+  flash.ps1 —— 命令行编译 + 烧写（不用打开 Keil 的界面，也不依赖 Keil 器件包）
 
   用法：
-    pwsh -File cboard_chassis\tools\flash.ps1              # 编译 + 下载
-    pwsh -File cboard_chassis\tools\flash.ps1 -BuildOnly   # 只编译
-    pwsh -File cboard_chassis\tools\flash.ps1 -FlashOnly   # 只下载（用上次产物）
-    pwsh -File cboard_chassis\tools\flash.ps1 -Probe       # 只探测 SWD 能不能认到芯片
-    pwsh -File cboard_chassis\tools\flash.ps1 -Tool keil   # 强制用 Keil 下载
-    pwsh -File cboard_chassis\tools\flash.ps1 -Tool cube   # 强制用 CubeProgrammer
+    pwsh -File cboard_chassis\tools\flash.ps1                # 编译 + 烧写（自动选路）
+    pwsh -File cboard_chassis\tools\flash.ps1 -BuildOnly     # 只编译
+    pwsh -File cboard_chassis\tools\flash.ps1 -FlashOnly     # 只烧写（用上次产物）
+    pwsh -File cboard_chassis\tools\flash.ps1 -Tool dfu      # 强制 USB DFU
+    pwsh -File cboard_chassis\tools\flash.ps1 -Tool keil     # 强制 UV4 -f（要 F4 器件包）
+    pwsh -File cboard_chassis\tools\flash.ps1 -Probe         # 看 ST-Link 能不能认到芯片
 
-  下载工具二选一（auto 时优先用找得到的 CubeProgrammer）：
-    cube  STM32CubeProgrammer CLI —— 不依赖 Keil 器件包，推荐
-    keil  UV4 -f —— 需要装 Keil.STM32F4xx_DFP（本机目前没装，见 README §7）
+  三条烧写路径：
+    dfu   STM32CubeProgrammer 走 USB DFU —— 只用板子的 micro USB 口，
+          **不需要 SWD、不需要 ST-Link、不需要 Keil 器件包**，推荐
+    keil  UV4 -f —— 需要装了 Keil.STM32F4xx_DFP（本机没有，`-f` 会静默不动）
+    cube  STM32CubeProgrammer 走 ST-Link/SWD —— 本机实测连不上，仅留作备选
+
+  auto 规则：没有 F4 器件包 → 用 dfu；装了 → 用 keil。
 #>
 param(
     [switch]$BuildOnly,
     [switch]$FlashOnly,
     [switch]$Probe,
-    [ValidateSet('auto', 'cube', 'keil')]
+    [ValidateSet('auto', 'dfu', 'keil', 'cube')]
     [string]$Tool = 'auto',
     [string]$Uv4 = $env:KEIL_UV4,
     [string]$CubeCli = $env:STM32_PROGRAMMER_CLI
@@ -27,8 +31,8 @@ $ErrorActionPreference = 'Stop'
 
 $root  = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $prj   = Join-Path $root 'MDK-ARM\chassis_task.uvprojx'
+$target = 'chassis_task'
 $hex   = Join-Path $root 'MDK-ARM\chassis_task\chassis_task.hex'
-$axf   = Join-Path $root 'MDK-ARM\chassis_task\chassis_task.axf'
 $logBuild = Join-Path $root 'MDK-ARM\build.log'
 
 function Find-Uv4 {
@@ -58,34 +62,27 @@ function Find-Cube {
 $uv4     = Find-Uv4  -Hint $Uv4
 $cubeCli = Find-Cube -Hint $CubeCli
 
-# ---------------------------------------------------------------- 探测
-function Invoke-Probe {
-    param($Cli)
-    if (-not $Cli) { return $false }
-    Write-Host "`n--- SWD 探测 ---" -ForegroundColor Cyan
-    Write-Host "  $Cli"
-    Push-Location (Split-Path -Parent $Cli)
-    try {
-        # 注意：这里必须 Write-Host，不能让输出进管道，否则会污染函数返回值
-        & $Cli -c port=SWD 2>&1 | ForEach-Object { Write-Host ('  ' + $_) }
-        $code = $LASTEXITCODE
-    } finally { Pop-Location }
-
-    if ($code -eq 0) {
-        Write-Host 'SWD 正常：能认出芯片。' -ForegroundColor Green
-        return $true
-    }
-    Write-Host 'SWD 失败：ST-Link 认到了，但芯片没应答。按顺序查：' -ForegroundColor Red
-    Write-Host '  1. SWDIO / SWCLK 有没有接反（不能交叉），GND 是否共地；' -ForegroundColor Yellow
-    Write-Host '  2. C 板是否上电（3.3V 灯亮），排线插的是 SWD 口不是串口口；' -ForegroundColor Yellow
-    Write-Host '  3. 芯片跑飞了：按住 BOOT0 再点一下复位，让它停在 ROM 引导再重试；' -ForegroundColor Yellow
-    Write-Host '  4. ST-Link 固件太旧：用 ST-LinkUpgrade 升级。' -ForegroundColor Yellow
-    return $false
+# F4 器件包（决定 keil 那条路能不能用）
+$f4Pack = $null
+if ($uv4) {
+    $keilRoot = Split-Path -Parent (Split-Path -Parent $uv4)   # ...\Keil5
+    $f4Pack = Join-Path $keilRoot 'ARM\PACK\Keil\STM32F4xx_DFP'
 }
+$hasF4Pack = ($f4Pack -and (Test-Path -LiteralPath $f4Pack))
 
+# ---------------------------------------------------------------- 探测
 if ($Probe) {
     if (-not $cubeCli) { Write-Host '没找到 STM32_Programmer_CLI.exe。' -ForegroundColor Red; exit 1 }
-    if (Invoke-Probe -Cli $cubeCli) { exit 0 } else { exit 1 }
+    Write-Host "`n--- ST-Link / SWD 探测 ---" -ForegroundColor Cyan
+    Push-Location (Split-Path -Parent $cubeCli)
+    try {
+        & $cubeCli -c port=SWD 2>&1 | ForEach-Object { Write-Host ('  ' + $_) }
+        $code = $LASTEXITCODE
+    } finally { Pop-Location }
+    if ($code -eq 0) { Write-Host 'SWD 正常。' -ForegroundColor Green; exit 0 }
+    Write-Host 'SWD 不通。注意：本机的 CubeProgrammer 对 ST-Link 有兼容问题，' -ForegroundColor Yellow
+    Write-Host '即使 Keil 能烧，这里也可能报错。烧写请直接用 -Tool dfu。' -ForegroundColor Yellow
+    exit 1
 }
 
 # ---------------------------------------------------------------- 编译
@@ -98,7 +95,7 @@ if (-not $FlashOnly) {
     Write-Host "--- 编译 ---" -ForegroundColor Cyan
     Write-Host "  UV4: $uv4"
 
-    $uv4Args = '-b "{0}" -j0 -o "{1}"' -f $prj, $logBuild
+    $uv4Args = '-b "{0}" -j0 -t "{1}" -o "{2}"' -f $prj, $target, $logBuild
     $p = Start-Process -FilePath $uv4 -ArgumentList $uv4Args -Wait -PassThru
 
     if (Test-Path -LiteralPath $logBuild) {
@@ -118,62 +115,88 @@ if ($BuildOnly) {
     exit 0
 }
 
-# ---------------------------------------------------------------- 下载
+# ---------------------------------------------------------------- 烧写
 if (-not (Test-Path -LiteralPath $hex)) {
     Write-Host '没有 .hex，先编译一次（去掉 -FlashOnly）。' -ForegroundColor Red
     exit 1
 }
 
-$useCube = $false
-if ($Tool -eq 'cube') { $useCube = $true }
-elseif ($Tool -eq 'keil') { $useCube = $false }
-else { $useCube = [bool]$cubeCli }
-
-if ($useCube -and -not $cubeCli) {
-    Write-Host '没找到 STM32_Programmer_CLI.exe，改用 Keil 下载。' -ForegroundColor Yellow
-    $useCube = $false
-}
-
-if ($useCube) {
-    Write-Host "`n--- 下载（STM32CubeProgrammer / SWD）---" -ForegroundColor Cyan
-    Write-Host "  $cubeCli"
-    # CubeProgrammer 必须在自己的 bin 目录下运行，否则找不到 Data_Base
-    Push-Location (Split-Path -Parent $cubeCli)
-    try {
-        & $cubeCli -c port=SWD -w $hex -v -rst 2>&1 | ForEach-Object { '  ' + $_ }
-        $code = $LASTEXITCODE
-    } finally { Pop-Location }
-
-    if ($code -ne 0) {
-        Write-Host "下载失败（exit=$code）。先跑 -Probe 看 SWD 通不通。" -ForegroundColor Red
+# auto：优先 keil（如果装了 F4 包），否则 dfu
+if ($Tool -eq 'auto') {
+    if ($hasF4Pack) { $Tool = 'keil' }
+    elseif ($cubeCli) { $Tool = 'dfu' }
+    else {
+        Write-Host '既没有 F4 器件包、也没有 CubeProgrammer，烧不了。' -ForegroundColor Red
         exit 1
     }
-    Write-Host '下载 + 校验完成，芯片已复位运行。' -ForegroundColor Green
-    exit 0
 }
 
-# ---------------- Keil 下载（UV4 -f）----------------
-if (-not $uv4) { Write-Host '找不到 UV4.exe。' -ForegroundColor Red; exit 1 }
-$logFlash = Join-Path $root 'MDK-ARM\flash.log'
-if (Test-Path -LiteralPath $logFlash) { Remove-Item -LiteralPath $logFlash -Force }
+Write-Host "`n--- 烧写（$Tool）---" -ForegroundColor Cyan
 
-Write-Host "`n--- 下载（UV4 -f / ST-Link）---" -ForegroundColor Cyan
-$uv4Args = '-f "{0}" -j0 -o "{1}"' -f $prj, $logFlash
-$p = Start-Process -FilePath $uv4 -ArgumentList $uv4Args -Wait -PassThru
+switch ($Tool) {
 
-$logSize = 0
-if (Test-Path -LiteralPath $logFlash) { $logSize = (Get-Item -LiteralPath $logFlash).Length }
+    'dfu' {
+        if (-not $cubeCli) { Write-Host '没找到 STM32_Programmer_CLI.exe。' -ForegroundColor Red; exit 1 }
+        Write-Host "  $cubeCli"
+        Write-Host '  要求：BOOT0 接 3V3、按过复位、micro USB 是数据线。' -ForegroundColor DarkGray
 
-if ($logSize -eq 0) {
-    # 没有日志 = µVision 根本没走到下载这一步，通常是缺 STM32F4xx 器件包（没有 Flash 算法）
-    Write-Host '  没有任何下载日志 —— 大概率是没装 Keil.STM32F4xx_DFP（没有 F4 的 Flash 算法）。' -ForegroundColor Yellow
-    Write-Host '  改用 -Tool cube，或在 Pack Installer 里装 Keil::STM32F4xx_DFP。' -ForegroundColor Yellow
-    exit 1
+        Push-Location (Split-Path -Parent $cubeCli)
+        try {
+            & $cubeCli -c port=USB1 -w $hex -v 2>&1 | ForEach-Object { '  ' + $_ }
+            $code = $LASTEXITCODE
+        } finally { Pop-Location }
+
+        if ($code -ne 0) {
+            Write-Host 'DFU 失败。逐条查：' -ForegroundColor Red
+            Write-Host '  1. BOOT0 是否真的接到 3V3（量一下是 3.3V）；' -ForegroundColor Yellow
+            Write-Host '  2. 接完 BOOT0 有没有按复位；' -ForegroundColor Yellow
+            Write-Host '  3. micro USB 是不是数据线（充电线不枚举）；' -ForegroundColor Yellow
+            Write-Host '  4. 跑一次 STM32_Programmer_CLI -l，看 DFU Interface 下有没有设备。' -ForegroundColor Yellow
+            exit 1
+        }
+        Write-Host '烧写 + 校验完成。' -ForegroundColor Green
+        Write-Host '把 BOOT0 接回 GND，再按复位，程序才会运行。' -ForegroundColor Yellow
+        exit 0
+    }
+
+    'keil' {
+        if (-not $uv4) { Write-Host '找不到 UV4.exe。' -ForegroundColor Red; exit 1 }
+        if (-not $hasF4Pack) {
+            Write-Host '没装 Keil.STM32F4xx_DFP，UV4 -f 对 F4 是静默不动的（缺 Flash 算法）。' -ForegroundColor Red
+            Write-Host '改用 -Tool dfu。' -ForegroundColor Yellow
+            exit 1
+        }
+        $logFlash = Join-Path $root 'MDK-ARM\flash.log'
+        if (Test-Path -LiteralPath $logFlash) { Remove-Item -LiteralPath $logFlash -Force }
+
+        $uv4Args = '-f "{0}" -j0 -t "{1}" -o "{2}"' -f $prj, $target, $logFlash
+        $p = Start-Process -FilePath $uv4 -ArgumentList $uv4Args -Wait -PassThru
+
+        $logSize = 0
+        if (Test-Path -LiteralPath $logFlash) { $logSize = (Get-Item -LiteralPath $logFlash).Length }
+        if ($logSize -gt 0) {
+            Get-Content -LiteralPath $logFlash | ForEach-Object { '  ' + $_.TrimEnd() }
+        } else {
+            Write-Host '  没有下载日志 —— µVision 没走到烧写这一步。' -ForegroundColor Yellow
+            exit 1
+        }
+        if ($p.ExitCode -ne 0) { Write-Host "烧写失败（exit=$($p.ExitCode)）" -ForegroundColor Red; exit 1 }
+        Write-Host '烧写完成。' -ForegroundColor Green
+        exit 0
+    }
+
+    'cube' {
+        if (-not $cubeCli) { Write-Host '没找到 STM32_Programmer_CLI.exe。' -ForegroundColor Red; exit 1 }
+        Push-Location (Split-Path -Parent $cubeCli)
+        try {
+            & $cubeCli -c port=SWD -w $hex -v -rst 2>&1 | ForEach-Object { '  ' + $_ }
+            $code = $LASTEXITCODE
+        } finally { Pop-Location }
+        if ($code -ne 0) {
+            Write-Host 'CubeProgrammer 连不上 ST-Link（本机已知问题）。请改用 -Tool dfu。' -ForegroundColor Red
+            exit 1
+        }
+        Write-Host '烧写完成。' -ForegroundColor Green
+        exit 0
+    }
 }
-
-Get-Content -LiteralPath $logFlash | ForEach-Object { '  ' + $_.TrimEnd() }
-if ($p.ExitCode -ne 0) {
-    Write-Host "下载失败（exit=$($p.ExitCode)）" -ForegroundColor Red
-    exit 1
-}
-Write-Host '下载完成。' -ForegroundColor Green

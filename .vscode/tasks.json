@@ -1,12 +1,16 @@
 {
-  // VS Code 里编译/下载 C 板底盘工程（不用打开 Keil 界面）
+  // VS Code 里编译/烧写 C 板底盘工程（不用打开 Keil 界面）
   // Ctrl+Shift+B = 默认任务（编译）
   // 命令面板 -> Tasks: Run Task -> 选其余任务
+  //
+  // 烧写默认走 USB DFU（不需要 SWD、不需要 ST-Link、不需要 Keil 器件包）：
+  //   BOOT0 接 3V3 -> 按复位 -> micro USB 数据线插电脑
+  //   烧完把 BOOT0 接回 GND 再复位
   "version": "2.0.0",
   "tasks": [
     {
       "label": "底盘: 编译",
-      "detail": "UV4 -b，等价于 Keil 里按 F7",
+      "detail": "UV4 -b，等价 Keil 按 F7",
       "type": "shell",
       "command": "pwsh",
       "args": [
@@ -19,8 +23,8 @@
       "problemMatcher": []
     },
     {
-      "label": "底盘: 编译并下载 (SWD)",
-      "detail": "编译后用 STM32CubeProgrammer CLI 烧到 C 板；找不到它时回退 Keil",
+      "label": "底盘: 编译并烧写 (DFU)",
+      "detail": "编译后用 USB DFU 烧到 C 板（BOOT0=3V3 + 复位 + 数据线）",
       "type": "shell",
       "command": "pwsh",
       "args": [
@@ -32,7 +36,7 @@
       "problemMatcher": []
     },
     {
-      "label": "底盘: 只下载 (SWD)",
+      "label": "底盘: 只烧写 (DFU)",
       "detail": "不编译，直接烧上一次的 .hex",
       "type": "shell",
       "command": "pwsh",
@@ -45,14 +49,15 @@
       "problemMatcher": []
     },
     {
-      "label": "底盘: 探测 SWD",
-      "detail": "只连一下 ST-Link 看能否认到芯片（连不上时先跑这个）",
+      "label": "底盘: 用 Keil 烧写 (需要 F4 器件包)",
+      "detail": "UV4 -f，装了 Keil.STM32F4xx_DFP 才有效",
       "type": "shell",
       "command": "pwsh",
       "args": [
         "-NoProfile", "-File",
         "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
-        "-Probe"
+        "-FlashOnly",
+        "-Tool", "keil"
       ],
       "presentation": { "reveal": "always", "panel": "shared", "clear": true },
       "problemMatcher": []
