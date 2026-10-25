@@ -33,7 +33,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-.vscode/
+# .vscode 整体忽略，但保留团队共用的任务配置（编译/下载）
+.vscode/*
+!.vscode/tasks.json
 .idea/
 Thumbs.db
 .DS_Store

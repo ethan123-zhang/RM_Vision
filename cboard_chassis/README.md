@@ -273,17 +273,60 @@ S1（左开关）在官方代码里的含义：
 
 ---
 
-## 7. 编译 / 烧写
+## 7. 编译 / 下载
 
-- Keil MDK 5 + **AC5**（官方工程就是 AC5，AC6 没试过）。
-- 打开 `cboard_chassis/MDK-ARM/chassis_task.uvprojx` → Build → Download。
-- 命令行编译（本机 Keil 在 `D:\Keil5`）：
+### 7.1 在 VS Code 里（推荐）
+
+工作区根目录的 `.vscode/tasks.json` 里有四个任务（`Ctrl+Shift+B` 是默认的"编译"）：
+
+| 任务 | 做什么 |
+| :--- | :--- |
+| 底盘: 编译 | `UV4 -b`，等价 Keil 按 F7 |
+| 底盘: 编译并下载 (SWD) | 编译 + 烧写，一条命令出车 |
+| 底盘: 只下载 (SWD) | 不编译，烧上次的 `.hex`（只改了标定表时省时间） |
+| 底盘: 探测 SWD | 只连 ST-Link 看能不能认到芯片（连不上时先跑这个） |
+
+命令行等价：
 
 ```powershell
-Start-Process 'D:\Keil5\UV4\UV4.exe' -ArgumentList '-b','E:\RM\cboard_chassis\MDK-ARM\chassis_task.uvprojx','-j0','-o','build.log' -Wait
+pwsh -File E:\RM\cboard_chassis\tools\flash.ps1            # 编译 + 下载
+pwsh -File E:\RM\cboard_chassis\tools\flash.ps1 -BuildOnly # 只编译
+pwsh -File E:\RM\cboard_chassis\tools\flash.ps1 -Probe     # 只探测
 ```
 
 当前基线：**0 Error / 0 Warning，Code 64.4 KB**（官方原版 63.2 KB）。
+
+### 7.2 下载走哪条路
+
+| 工具 | 前提 | 说明 |
+| :--- | :--- | :--- |
+| **STM32CubeProgrammer CLI**（默认） | 装了 CubeProgrammer | 不依赖 Keil 器件包，本机在 `D:\STM32软件\STM32CubeProgrammer\bin\` |
+| Keil `UV4 -f` | **必须装了 `Keil.STM32F4xx_DFP`** | 没装时它会"静默不动"：退出码 0、日志 0 字节 |
+
+CubeProgrammer 的命令（脚本里已经封好）：
+
+```powershell
+# 必须在它自己的 bin 目录下运行，否则报 "Unable to list supported devices"
+cd 'D:\STM32软件\STM32CubeProgrammer\bin'
+.\STM32_Programmer_CLI.exe -c port=SWD -w <工程>\MDK-ARM\chassis_task\chassis_task.hex -v -rst
+```
+
+> **本机踩过的坑**：这台机器只装了 `Keil.STM32F1xx_DFP`（C8T6 用的），
+> **没有 `Keil.STM32F4xx_DFP`**。没有 F4 的 Flash 算法，Keil 的 F8 / `UV4 -f`
+> 对 C 板就是"什么都不做"——不是接线问题，是缺器件包。
+> 要恢复 Keil 下载：Pack Installer → `Keil::STM32F4xx_DFP` → Install。
+> 不想装包就用 CubeProgrammer，效果一样。
+
+### 7.3 SWD 连不上时
+
+`-Probe` 的输出如果只有 `ST-LINK SN / FW / Voltage`、没有 `Device ID`，说明
+**ST-Link 认到了，芯片没应答**。按顺序查：
+
+1. **SWDIO / SWCLK 不能交叉**（ST-Link 的 SWDIO ↔ 板子 SWDIO），GND 必须共地，3V3 不用接也能烧（板子自己供电）。
+2. 排线插的是 C 板的 **SWD 口**，不是串口口。
+3. C 板是否上电（3.3V 灯亮）。
+4. 芯片跑飞 / 关掉了调试口：**按住 BOOT0 → 点一下复位 → 松开**，让它停在 ROM 引导，再 `-Probe`。
+5. 换个 ST-Link 或换根排线（克隆 ST-Link 的 SWD 电平有时不稳）。
 
 纯逻辑自测（改标定表后建议跑一遍）：
 

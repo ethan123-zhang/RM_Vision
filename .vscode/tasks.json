@@ -1,0 +1,61 @@
+{
+  // VS Code 里编译/下载 C 板底盘工程（不用打开 Keil 界面）
+  // Ctrl+Shift+B = 默认任务（编译）
+  // 命令面板 -> Tasks: Run Task -> 选其余任务
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "底盘: 编译",
+      "detail": "UV4 -b，等价于 Keil 里按 F7",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile", "-File",
+        "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
+        "-BuildOnly"
+      ],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "底盘: 编译并下载 (SWD)",
+      "detail": "编译后用 STM32CubeProgrammer CLI 烧到 C 板；找不到它时回退 Keil",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile", "-File",
+        "${workspaceFolder}/cboard_chassis/tools/flash.ps1"
+      ],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "底盘: 只下载 (SWD)",
+      "detail": "不编译，直接烧上一次的 .hex",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile", "-File",
+        "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
+        "-FlashOnly"
+      ],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "底盘: 探测 SWD",
+      "detail": "只连一下 ST-Link 看能否认到芯片（连不上时先跑这个）",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile", "-File",
+        "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
+        "-Probe"
+      ],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}
