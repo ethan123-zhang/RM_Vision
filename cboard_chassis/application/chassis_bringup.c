@@ -122,6 +122,129 @@ void chassis_bringup_wait_ready(void) {
   }
 }
 
+/* 按键模式下的"已按次数"，供 0x1F1 调试帧上报。
+   只在按键模式编进来，否则非按键模式下"只写不读"会吃一个编译告警。 */
+#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
+static uint8_t s_key_count;
+#endif
+
+/* ==========================================================================
+ *  按键验 ID（阶段 0）
+ * ========================================================================== */
+
+static void chassis_bringup_key_gpio_init(void) {
+  GPIO_InitTypeDef gpio;
+
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  gpio.Pin = CHASSIS_KEY_PIN;
+  gpio.Mode = GPIO_MODE_INPUT;
+  gpio.Pull = GPIO_PULLUP;
+  gpio.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(CHASSIS_KEY_PORT, &gpio);
+}
+
+typedef struct {
+  uint8_t raw_last;
+  uint8_t stable;
+  uint32_t change_ms;
+} chassis_key_gpio_t;
+
+/* 返回 1 = 去抖之后检测到一次"按下"（下降沿） */
+static uint8_t chassis_bringup_key_edge(chassis_key_gpio_t *g,
+                                        uint32_t now_ms) {
+  /* 0 = 按下（内部上拉，按键接地） */
+  uint8_t raw = (HAL_GPIO_ReadPin(CHASSIS_KEY_PORT, CHASSIS_KEY_PIN) ==
+                 GPIO_PIN_RESET)
+                    ? 0u
+                    : 1u;
+
+  if (raw != g->raw_last) {
+    /* 电平还在跳，重新计时 */
+    g->raw_last = raw;
+    g->change_ms = now_ms;
+    return 0;
+  }
+
+  if (g->stable != raw &&
+      (uint32_t)(now_ms - g->change_ms) >= (uint32_t)CHASSIS_KEY_DEBOUNCE_MS) {
+    g->stable = raw;
+    if (g->stable == 0u) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+void chassis_bringup_key_id_loop(chassis_move_t *chassis) {
+  chassis_key_state_t st;
+  chassis_key_gpio_t gpio;
+  TickType_t start;
+  uint32_t beep_until_ms = 0;
+  uint8_t id;
+  int16_t cur;
+  int16_t can_current[CHASSIS_WHEEL_NUM];
+  uint8_t i;
+
+  chassis_bringup_key_gpio_init();
+
+  gpio.raw_last = 1;
+  gpio.stable = 1;
+  gpio.change_ms = 0;
+
+  chassis_key_reset(&st);
+#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
+  s_key_count = 0;
+#endif
+
+  CAN_cmd_chassis(0, 0, 0, 0);
+
+  start = xTaskGetTickCount();
+
+  for (;;) {
+    uint32_t now = chassis_bringup_ms_since(start);
+    uint8_t press_rc;
+
+    if (chassis_bringup_key_edge(&gpio, now)) {
+      press_rc = chassis_key_press(&st, now);
+      if (press_rc != 0u) {
+        /* 响一下表示"这一下设备收到了"，不用盯着分析仪也能数 */
+        buzzer_on(CHASSIS_BEEP_PSC, CHASSIS_BEEP_PWM);
+        beep_until_ms =
+            now + ((press_rc == 2u) ? CHASSIS_KEY_BEEP_ERROR_MS
+                                    : CHASSIS_KEY_BEEP_MS);
+        if (beep_until_ms == 0u) {
+          beep_until_ms = 1u;
+        }
+      }
+    }
+
+    if (beep_until_ms != 0u && now >= beep_until_ms) {
+      buzzer_off();
+      beep_until_ms = 0;
+    }
+
+    chassis_key_tick(&st, now, &id, &cur);
+#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
+    s_key_count = st.count;
+#endif
+
+    for (i = 0; i < CHASSIS_WHEEL_NUM; i++) {
+      can_current[i] = 0;
+    }
+    if (id >= 1 && id <= CHASSIS_WHEEL_NUM) {
+      can_current[id - 1] = cur;
+    }
+
+    CAN_cmd_chassis(can_current[0], can_current[1], can_current[2],
+                    can_current[3]);
+    chassis_bringup_status_update(chassis);
+
+    vTaskDelay(pdMS_TO_TICKS(CHASSIS_CONTROL_TIME_MS));
+  }
+}
+
 void chassis_bringup_sweep_loop(chassis_move_t *chassis) {
   TickType_t start;
   chassis_sweep_step_t step;
@@ -195,7 +318,13 @@ void chassis_bringup_status_update(const chassis_move_t *chassis) {
     data[4] = 0;
     data[5] = chassis_map_valid() ? (uint8_t)CHASSIS_BRINGUP_MODE : 0xFFu;
     data[6] = toe_is_error(DBUS_TOE) ? 0 : 1;
+#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
+    /* 按键模式：这一字节用来在分析仪上看"设备数到的按键次数"，
+       比听蜂鸣器可靠；0 表示计数已兑现或还没按 */
+    data[7] = s_key_count;
+#else
     data[7] = (uint8_t)chassis->chassis_mode;
+#endif
 
     if (rc != 0) {
       data[1] = (uint8_t)((rc->rc.s[0] & 0x03u) | ((rc->rc.s[1] & 0x03u) << 2));

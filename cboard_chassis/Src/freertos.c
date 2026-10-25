@@ -32,6 +32,7 @@
 #include "detect_task.h"
 #include "INS_task.h"
 #include "led_flow_task.h"
+#include "chassis_bringup.h" /* [BRINGUP] 调车模式下静音 test_task */
 
 /* USER CODE END Includes */
 
@@ -132,8 +133,13 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of test */
+  // [BRINGUP] 调车模式（扫描/按键）下不启动 test_task：
+  // 这个工程没有云台电机，yaw/pitch/trigger 永远掉线，它会一直报警，
+  // 把按键反馈的蜂鸣器盖掉。正常模式下保持官方行为。
+#if !CHASSIS_BRINGUP_MUTE_TEST_TASK
   osThreadDef(test, test_task, osPriorityNormal, 0, 128);
   testHandle = osThreadCreate(osThread(test), NULL);
+#endif
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

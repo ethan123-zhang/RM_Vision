@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file       chassis_bringup_map.h
-  * @brief      底盘调车用的纯逻辑部分：轮位映射表 + 单电机扫描时序。
+  * @brief      底盘调车用的纯逻辑部分：轮位映射表、单电机扫描时序、按键验 ID 状态机。
   *             这个文件不依赖 HAL / FreeRTOS，主机上可以直接跑测试
   *             （cboard_chassis/tests），上板时由 chassis_bringup.c 调用。
   *
@@ -130,5 +130,41 @@ uint8_t chassis_map_online_mask(uint8_t can_id_mask);
  * @param  step       输出
  */
 void chassis_sweep_eval(uint32_t elapsed_ms, chassis_sweep_step_t *step);
+
+/* ==========================================================================
+ *  按键验 ID 状态机（阶段 0）
+ *
+ *  规则（用户定义）：按 N 次，最后一次之后 3 s 内没有再按，就驱动 N 号电调。
+ *  按满 4 次以后再按第 5 次视为超界：计数清零，什么都不驱动。
+ *
+ *  时序：静默 3000 ms -> 立刻输出 {id=N, 电流=CHASSIS_KEY_SPIN_CURRENT} 1500 ms
+ * ========================================================================== */
+#define CHASSIS_KEY_MAX_ID 4        /* 只支持 1..4（0x200 一帧） */
+#define CHASSIS_KEY_QUIET_MS 3000   /* 最后一次按键后的静默判定时间 */
+#define CHASSIS_KEY_SPIN_MS 1500    /* 单次转动时长 */
+#define CHASSIS_KEY_SPIN_CURRENT 2500 /* 空载约 3 A，看得清是哪一路 */
+
+typedef struct {
+  uint8_t count;          /* 已按次数，0 = 空闲 */
+  uint32_t last_press_ms; /* 最后一次按键的时刻 */
+  uint8_t spin_id;        /* 正在驱动的 ID，0 = 没在转 */
+  uint32_t spin_start_ms;
+} chassis_key_state_t;
+
+void chassis_key_reset(chassis_key_state_t *st);
+
+/**
+ * @brief  记录一次按键（去抖后的下降沿调用）
+ * @retval 1 = 已计数；2 = 超界，计数已清零；0 = 参数为空
+ */
+uint8_t chassis_key_press(chassis_key_state_t *st, uint32_t now_ms);
+
+/**
+ * @brief  每个控制周期调一次，算出这一刻该驱动哪个 ID、多大电流
+ * @param  id_out  0 = 四路全零；1..4 = 只驱动这一路
+ * @param  cur_out 对应的电流值
+ */
+void chassis_key_tick(chassis_key_state_t *st, uint32_t now_ms, uint8_t *id_out,
+                      int16_t *cur_out);
 
 #endif

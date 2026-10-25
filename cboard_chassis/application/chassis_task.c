@@ -141,10 +141,13 @@ void chassis_task(void const *pvParameters)
     //chassis init
     //底盘初始化
     chassis_init(&chassis_move);
-    // [BRINGUP] 阶段 1：单电机扫描。只验"哪个 ID 是哪个轮子、往哪边转"，
-    // 不依赖遥控器和陀螺仪，所以第一次上电就能用。标定完后把
-    // CHASSIS_BRINGUP_MODE 改成 0 就不再走这里。
-#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SWEEP
+    // [BRINGUP] 阶段 0/1 的入口（编译期二选一）：
+    //   阶段 0 按键验 ID：按 KEY N 次，停手 3 s 后驱动 N 号电调
+    //   阶段 1 单电机扫描：按 ID 1..4 依次正反转
+    // 两个阶段都不依赖遥控器和陀螺仪；标定完后改成 NORMAL 就不再走这里。
+#if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
+    chassis_bringup_key_id_loop(&chassis_move);
+#elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SWEEP
     chassis_bringup_sweep_loop(&chassis_move);
 #endif
 

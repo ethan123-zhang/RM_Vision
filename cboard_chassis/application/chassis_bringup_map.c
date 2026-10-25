@@ -156,3 +156,73 @@ void chassis_sweep_eval(uint32_t elapsed_ms, chassis_sweep_step_t *step) {
 
   /* 尾停段：保持 0 */
 }
+
+void chassis_key_reset(chassis_key_state_t *st) {
+  if (st == 0) {
+    return;
+  }
+  st->count = 0;
+  st->last_press_ms = 0;
+  st->spin_id = 0;
+  st->spin_start_ms = 0;
+}
+
+uint8_t chassis_key_press(chassis_key_state_t *st, uint32_t now_ms) {
+  if (st == 0) {
+    return 0;
+  }
+
+  if (st->count >= CHASSIS_KEY_MAX_ID) {
+    /* 按超了：清零。宁可这一轮什么都不驱动，也不要驱动一个错的 ID */
+    st->count = 0;
+    st->last_press_ms = now_ms;
+    return 2;
+  }
+
+  st->count++;
+  st->last_press_ms = now_ms;
+  return 1;
+}
+
+void chassis_key_tick(chassis_key_state_t *st, uint32_t now_ms, uint8_t *id_out,
+                      int16_t *cur_out) {
+  if (id_out != 0) {
+    *id_out = 0;
+  }
+  if (cur_out != 0) {
+    *cur_out = 0;
+  }
+  if (st == 0) {
+    return;
+  }
+
+  /* 正在转：到点就停，中途按键不打断这一次 */
+  if (st->spin_id != 0) {
+    if ((uint32_t)(now_ms - st->spin_start_ms) >= CHASSIS_KEY_SPIN_MS) {
+      st->spin_id = 0;
+    } else {
+      if (id_out != 0) {
+        *id_out = st->spin_id;
+      }
+      if (cur_out != 0) {
+        *cur_out = (int16_t)CHASSIS_KEY_SPIN_CURRENT;
+      }
+      return;
+    }
+  }
+
+  /* 最后一次按键之后静默满 3 s：把计数兑现成一次转动 */
+  if (st->count > 0 &&
+      (uint32_t)(now_ms - st->last_press_ms) >= CHASSIS_KEY_QUIET_MS) {
+    st->spin_id = st->count;
+    st->spin_start_ms = now_ms;
+    st->count = 0;
+
+    if (id_out != 0) {
+      *id_out = st->spin_id;
+    }
+    if (cur_out != 0) {
+      *cur_out = (int16_t)CHASSIS_KEY_SPIN_CURRENT;
+    }
+  }
+}

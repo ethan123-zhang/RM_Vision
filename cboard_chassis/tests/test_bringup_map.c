@@ -193,6 +193,90 @@ static void test_online_mask(void) {
 #endif
 }
 
+/* ---------- 按键验 ID 状态机 ---------- */
+
+static void expect_key(chassis_key_state_t *st, uint32_t t, uint8_t id,
+                       int16_t cur, const char *why) {
+  uint8_t got_id = 0xEE;
+  int16_t got_cur = 0x7EEE;
+
+  chassis_key_tick(st, t, &got_id, &got_cur);
+  g_checks++;
+  if (got_id != id || got_cur != cur) {
+    g_fails++;
+    printf("  FAIL  t=%5u (%s): 期望 id=%u cur=%d，实际 id=%u cur=%d\n", t, why,
+           (unsigned)id, (int)cur, (unsigned)got_id, (int)got_cur);
+  }
+}
+
+static void test_key_quiet_rule(void) {
+  chassis_key_state_t st;
+
+  chassis_key_reset(&st);
+  CHECK(st.count == 0 && st.spin_id == 0, "reset 后应清零");
+
+  /* 按一次，2.999 s 还不该动，3.000 s 才动 */
+  CHECK(chassis_key_press(&st, 1000) == 1, "第 1 次按键应被计数");
+  CHECK(st.count == 1, "计数应为 1");
+  expect_key(&st, 1000, 0, 0, "刚按完");
+  expect_key(&st, 3999, 0, 0, "静默 2999 ms，还不到点");
+  expect_key(&st, 4000, 1, CHASSIS_KEY_SPIN_CURRENT, "静默满 3000 ms，转 1 号");
+
+  /* 转动 1.5 s：开始时刻 4000，5499 还在转，5500 停 */
+  expect_key(&st, 5499, 1, CHASSIS_KEY_SPIN_CURRENT, "转动中");
+  expect_key(&st, 5500, 0, 0, "转满 1500 ms，停");
+  expect_key(&st, 9000, 0, 0, "停完不应自己再转");
+}
+
+static void test_key_press_resets_timer(void) {
+  chassis_key_state_t st;
+
+  chassis_key_reset(&st);
+  chassis_key_press(&st, 0);
+  chassis_key_press(&st, 2900); /* 差 100 ms 就满 3 s，应该把计时重置 */
+  expect_key(&st, 5899, 0, 0, "从最后一次按键算 2999 ms，不动");
+  expect_key(&st, 5900, 2, CHASSIS_KEY_SPIN_CURRENT, "从最后一次按键算满 3 s，转 2 号");
+}
+
+static void test_key_triple_and_overflow(void) {
+  chassis_key_state_t st;
+  uint8_t rc;
+  int i;
+
+  chassis_key_reset(&st);
+  chassis_key_press(&st, 0);
+  chassis_key_press(&st, 100);
+  chassis_key_press(&st, 200);
+  CHECK(st.count == 3, "连按 3 次，计数 3");
+  expect_key(&st, 3200, 3, CHASSIS_KEY_SPIN_CURRENT, "转 3 号");
+
+  /* 满 4 次以后再按一次 = 超界，计数清零，不驱动 */
+  chassis_key_reset(&st);
+  for (i = 0; i < CHASSIS_KEY_MAX_ID; i++) {
+    chassis_key_press(&st, (uint32_t)i * 100);
+  }
+  CHECK(st.count == CHASSIS_KEY_MAX_ID, "按满 4 次，计数 4");
+  rc = chassis_key_press(&st, 500);
+  CHECK(rc == 2, "第 5 次按键应报超界");
+  CHECK(st.count == 0, "超界后计数清零");
+  expect_key(&st, 9999, 0, 0, "超界后静默再久也不驱动");
+}
+
+static void test_key_press_during_spin(void) {
+  chassis_key_state_t st;
+
+  chassis_key_reset(&st);
+  chassis_key_press(&st, 0);
+  expect_key(&st, 3000, 1, CHASSIS_KEY_SPIN_CURRENT, "转 1 号");
+
+  /* 转动中途按键：先记下，等这次转完再按 3 s 规则出下一次 */
+  CHECK(chassis_key_press(&st, 3500) == 1, "转动中按键也要计数");
+  expect_key(&st, 4400, 1, CHASSIS_KEY_SPIN_CURRENT, "原转动不受影响");
+  expect_key(&st, 4500, 0, 0, "原转动到点结束");
+  expect_key(&st, 6499, 0, 0, "距中途那次按键 2999 ms");
+  expect_key(&st, 6500, 1, CHASSIS_KEY_SPIN_CURRENT, "距中途那次按键满 3 s，转 1 号");
+}
+
 int main(void) {
   printf("=== test_bringup_map ===\n");
   test_timing_constant();
@@ -201,6 +285,10 @@ int main(void) {
   test_valid_flag();
   test_wheel_to_can();
   test_online_mask();
+  test_key_quiet_rule();
+  test_key_press_resets_timer();
+  test_key_triple_and_overflow();
+  test_key_press_during_spin();
 
   printf("  %d checks, %d failed\n", g_checks, g_fails);
   if (g_fails != 0) {
