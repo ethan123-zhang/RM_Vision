@@ -236,8 +236,22 @@ bash ~/car_slam_lap/x5/scripts/drive_lap.sh lab1       # 纯追踪跑一圈
 TF 树里）。成功后 `follow_path` 每 50 ms 查位姿、算前视点与曲率、发 `/cmd_vel`；
 到终点做一次原地朝向修正，打印横向误差 max/rms，并把实际轨迹写到 `lap_actual.yaml`。
 
+> **两个 2026-10-26 实跑确认的前提**
+>
+> 1. **Odin1 的配置不是用 `-p config_file` 传的。** 驱动源码里写死读
+>    `~/odin_ws/src/odin_ros_driver/config/control_command.yaml`（没有
+>    `declare_parameter("config_file")`），所以脚本会把建图/重定位配置**直接写进这个文件**
+>    （`env.sh` 的 `odin_use_config`，厂商默认备份成 `.vendor`）。日志里
+>    `Custom map mode` 不是 1/2，就说明这个环节没生效。
+> 2. `path.yaml` 是 **`odom` 系**：走圈前车必须摆回**建图起点**（<0.2 m、朝向 <10°），
+>    再起重定位；摆错位置整条路线会整体平移。
+>
+> venue2 首次回放：路径 15.66 m，回放 249 点 / 14.19 m / 167.6 s，
+> **横向误差 rms 0.103 m、max 0.423 m**（max 在远端 180° 掉头切角处），终点位置差
+> 0.48 m / 朝向 3.0°。详见 `docs/issues/2026-10-26-odin-config-and-follow-path.md`。
+
 **第一次一定先用 `VMAX=0.15 bash drive_lap.sh lab1` 慢速试**，
-`v_max` 别超过标定出来的 `mps_at_max`。
+`v_max` 别超过标定出来的 `mps_at_max`；掉头/急弯段用 `VMAX=0.10`。
 
 ---
 
@@ -343,10 +357,10 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 | # | 项目 | 判据 | 状态 |
 | :--- | :--- | :--- | :--- |
 | A1 | 链路 | `link_test` 500+ 帧、`crc_err=0`、status ≈10 Hz、停发后 `LINK_OK` 掉落 | ✅ 2026-10-20：300 帧发 / 70 帧收、**10.00 Hz**、最大间隔 101 ms、crc_err 0、停发后 LINK_OK 掉落、`src=serial` |
-| A2 | 键盘遥控 | 四向正确，松键 ≤300 ms 停，拔线 0.3 s 内停 | ⬜ 待烧写 |
-| A3 | 建图 | 产出 `.bin` + `path.yaml` + `map.pcd`；`map_bev.png` 与房间形状吻合 | ⬜ |
-| A4 | 重定位 | `tf2_echo map imu` 有输出 | ⬜ |
-| A5 | 走圈 | 跑完一圈无碰撞，横向误差 rms < 0.15 m，终点 < 0.3 m / 15° | ⬜ |
+| A2 | 键盘遥控 | 四向正确，松键 ≤300 ms 停，拔线 0.3 s 内停 | ✅ 2026-10-22：遥控器实车验证（s2 三档映射） |
+| A3 | 建图 | 产出 `.bin` + `path.yaml` + `map.pcd`；`map_bev.png` 与房间形状吻合 | ✅ 2026-10-26：venue1/venue2 各一趟，产物齐全（venue2：330 点 / 15.66 m / `.bin` 147 MB） |
+| A4 | 重定位 | `tf2_echo map imu` 有输出 | ✅ 2026-10-26：`map←imu` 与录制轨迹末点相差 **3 cm / 0.6°** |
+| A5 | 走圈 | 跑完一圈无碰撞，横向误差 rms < 0.15 m，终点 < 0.3 m / 15° | ✅ 2026-10-26：跑完无碰撞、rms **0.103 m**；终点位置差 0.48 m 略超判据（掉头切角，待调） |
 | A6 | 可复现 | 新人照 README 能走完 | ⬜ |
 
 ---
@@ -363,6 +377,11 @@ include 路径有 `../Hardware/LINK`、`.ioc` 的串口/CAN 参数正确、
 | `/car/status` 里 `estop:true` | 遥控器 s2 打在急停档 |
 | `/car/status` 里 `src:"rc"` | 串口帧没被认，固件走了遥控分支 |
 | 车往反方向走 | `bridge_node -p invert_speed:=true`（或 `invert_angular`） |
+| `start_relocal.sh` 等 90 s 没有 `map` 帧 | 驱动没用上重定位配置：它**不读** `-p config_file`，只读 `~/odin_ws/src/odin_ros_driver/config/control_command.yaml`。看 `odin_reloc.log` 里的 `Custom map mode` 必须是 **2**；脚本已用 `odin_use_config` 自动写入 |
+| `follow_path` 刚启动就退出「没收到 `/car/status`」 | 旧版启动竞态（2026-10-26 已修）：状态联锁在 `start_delay` 之前执行，DDS 还没发现就判死。确认板端 `follow_path.py` 是新版 |
+| `follow_path` 退出时 `TypeError: 'str' object is not callable` | 旧版 `save_actual` 参数遮蔽了同名方法（2026-10-26 已修） |
+| `save_map.sh` 报「目录是空的」但日志有 `Map transfer completed` | 图存到了 `~/car_ws/src/odin_ros_driver/map`（`COLCON_PREFIX_PATH` 顺序所致）；新脚本从日志读真实路径 |
+| 回放掉头处误差大 / 切角 | 纯追踪在 180° 掉头会切角（venue2 实测 max 0.423 m）：降 `VMAX`、调 `lookahead_min`，或掉头段单独降速 |
 | **`can_ok` 有、`can_ack` 没有** | ① CANH/CANL 接反；② 波特率（实测 250K；PDF 写 500K 不 ACK）；③ 120 Ω 终端；④ 控制器没按 PowerKey 开机；⑤ 控制器不是 MIX 模式 |
 | **一帧 ACK 都没有、`can_ok` 也没有** | PA11/PA12 与 H1-3/4 接反；H1 没有 3.3V；CAN 没 Start；固件没烧进去。示波器看 PA12 有没有 10 ms 一帧的波形 |
 | 电机转但方向/速度不对 | 混控帧的 `angular/speed` 次序与符号约定；先单独发 `speed` 再发 `angular` 试 |

@@ -41,6 +41,10 @@ else
   echo "  驱动未运行"
 fi
 
+# 建图配置是直接写进驱动配置文件里的（驱动不读 -p config_file），收尾时还原厂商默认，
+# 免得之后跑 x5_odin 的 run_odin.sh / 网页预览时还是"建图模式 + RGB 全关"。
+odin_restore_vendor_config
+
 if [ -n "$MAP_DIR" ] && [ -d "$MAP_DIR" ]; then
   echo
   echo "== 产物"

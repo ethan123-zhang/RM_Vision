@@ -1,9 +1,10 @@
 # =============================================================================
 # Odin1 配置 —— 建图（custom_map_mode: 1）
 #
-# 用法：由 x5/scripts/start_mapping.sh 通过 -p config_file:=... 传给驱动，
-#       **不覆盖** ~/odin_ws/src/odin_ros_driver/config/control_command.yaml，
-#       所以随时能把原来那份配置跑回来。
+# 用法：x5/scripts/start_mapping.sh 会调用 env.sh 的 odin_use_config，把本文件**覆盖**到
+#       ~/odin_ws/src/odin_ros_driver/config/control_command.yaml —— 这是驱动唯一会读的
+#       配置（它不读 ros2 的 -p config_file 参数，源码里写死读那个路径）。
+#       厂商默认第一次会被备份成 control_command.yaml.vendor，stop_mapping.sh 收尾时还原。
 #
 # 和出厂配置相比只改了 4 类：
 #   1. 关掉所有"主机侧后处理"（cloud_render / depth / reprojection / overlay / RGB）

@@ -1,9 +1,12 @@
 # =============================================================================
 # Odin1 配置 —— 重定位（custom_map_mode: 2）
 #
-# 用法：x5/scripts/start_relocal.sh <map.bin>
-#       脚本把下面的 __MAP_ABS_PATH__ 替换成真实路径，生成一份临时配置再启动驱动。
-#       驱动重定位成功后才会发布 map -> odom 这个 TF，follow_path 就靠它定位。
+# 用法：x5/scripts/start_relocal.sh <地图目录|map.bin>
+#       脚本把下面的 __MAP_ABS_PATH__ 替换成真实路径，生成
+#       ~/car_ws/config/generated/control_command.relocal.yaml，再由 env.sh 的
+#       odin_use_config **覆盖**到 ~/odin_ws/src/odin_ros_driver/config/control_command.yaml
+#       ——那是驱动唯一会读的配置（它不读 ros2 的 -p config_file 参数）。
+#       驱动重定位成功后才会发布 map <-> odom 的 TF，follow_path 就靠它定位。
 #
 # 重定位成功率的关键：车要停在**建图那趟的起点附近**（1 m 内、朝向差 <10°）。
 # custom_init_pos 保持单位阵，表示"我猜自己就在地图原点"。

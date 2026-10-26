@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import signal
 import time
 from typing import List, Optional, Tuple
 
@@ -85,7 +86,7 @@ class FollowPath(Node):
         self.status_timeout: float = float(self.get_parameter("status_timeout_s").value)
         self.require_status: bool = bool(self.get_parameter("require_status").value)
         self.max_time: float = float(self.get_parameter("max_time_s").value)
-        self.save_actual: str = self.get_parameter("save_actual").value
+        self._save_actual_path: str = self.get_parameter("save_actual").value
 
         self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer, self)
@@ -172,6 +173,13 @@ class FollowPath(Node):
         if self._done:
             return
 
+        # 启动宽限期：只发 0，不做任何"没数据就退出"的判定。
+        # DDS 发现 + tf2 缓冲填充通常需要 100~500 ms；原来在 start_delay 之前就判
+        # "/car/status 没收到"，导致 follow_path 刚启动就退出（2026-10-26 实车踩到）。
+        if now < self._start:
+            self._publish(0.0, 0.0)
+            return
+
         # ---- 安全联锁 ----
         if self.require_status:
             if self._status is None or now - self._status_stamp > self.status_timeout:
@@ -193,9 +201,6 @@ class FollowPath(Node):
             return
         self._tf_fail_since = None
 
-        if now < self._start:
-            self._publish(0.0, 0.0)
-            return
         if self._t0 is None:
             self._t0 = now
             self.get_logger().info("开始跟随")
@@ -280,31 +285,49 @@ class FollowPath(Node):
         )
 
     def save_actual(self) -> None:
-        if not self.save_actual or not self._actual:
+        # 注意：参数值存在 _save_actual_path 里，不能叫 self.save_actual ——
+        # 同名会把下面的方法整个遮住，退出时 node.save_actual() 会变成"调用字符串"
+        # （TypeError: 'str' object is not callable，2026-10-26 实车踩到）。
+        if not self._save_actual_path or not self._actual:
             return
-        os.makedirs(os.path.dirname(os.path.abspath(self.save_actual)), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.abspath(self._save_actual_path)), exist_ok=True)
         lines = ["# 实际走过的轨迹（follow_path.py 生成）",
                  f"frame_id: {self.frame}", "points:"]
         for x, y, yaw, t in self._actual:
             lines.append(f"  - {{x: {x:.4f}, y: {y:.4f}, yaw: {yaw:.4f}, t: {t:.3f}}}")
-        with open(self.save_actual, "w", encoding="utf-8") as fh:
+        with open(self._save_actual_path, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")
-        self.get_logger().info(f"实际轨迹写到 {self.save_actual}")
+        self.get_logger().info(f"实际轨迹写到 {self._save_actual_path}")
 
 
 def main(args=None) -> None:
     rclpy.init(args=args)
     node = FollowPath()
+
+    # 自己接管 SIGINT：rclpy 默认收到 SIGINT 会直接把 context 关掉，Humble 上随后
+    # spin_once 抛的是 RuntimeError（"Unable to convert call argument to Python object"）
+    # 而不是 ExternalShutdownException——看起来像崩溃（2026-10-26 实车踩到）。
+    # 这里改成：置标志 → 正常发 0 → 存实际轨迹 → 退出。
+    interrupted = {"flag": False}
+
+    def _on_sigint(signum, frame):  # noqa: ARG001
+        interrupted["flag"] = True
+
+    signal.signal(signal.SIGINT, _on_sigint)
+
     try:
-        while rclpy.ok() and not node._done:
+        while not node._done:
+            if interrupted["flag"]:
+                node._stop("手动 Ctrl-C")
+                break
+            if not rclpy.ok():
+                break
             rclpy.spin_once(node, timeout_sec=0.05)
-    except (KeyboardInterrupt, ExternalShutdownException):  # SIGINT 时 spin() 抛的是后者
-        node._stop("手动 Ctrl-C")
     finally:
         print(node.summary())
         node.save_actual()
         node.destroy_node()
-        if rclpy.ok():  # SIGINT 时 rclpy 已自行关闭，重复调用会抛 RCLError
+        if rclpy.ok():  # 正常退出时 context 还活着，需要自己关
             rclpy.shutdown()
 if __name__ == "__main__":
     main()

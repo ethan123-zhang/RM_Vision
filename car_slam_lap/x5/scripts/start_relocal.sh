@@ -56,8 +56,11 @@ if pgrep -x host_sdk_sample >/dev/null; then
 fi
 
 echo "== 启动 Odin1（重定位模式）..."
+# 关键：驱动不读 -p config_file，只读 $ODIN_DRIVER_CFG（源码里 get_package_source_directory
+# + "/config/control_command.yaml"）。不把生成的配置装进去，驱动会按文件里的旧模式跑，
+# 表现为"等 90 s 也没有 map 帧"——2026-10-26 就是这么踩的。
+odin_use_config "$CFG"
 setsid nohup ros2 run odin_ros_driver host_sdk_sample \
-    --ros-args -p config_file:="$CFG" \
     > "$MAP_DIR/odin_reloc.log" 2>&1 < /dev/null &
 
 echo "== 等重定位（最多 90 s）..."

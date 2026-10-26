@@ -17,12 +17,13 @@ echo "== 建图目录: $MAP_DIR"
 
 # ---------------------------------------------------------------- 1) Odin1
 if pgrep -x host_sdk_sample >/dev/null; then
-  echo "!! Odin1 驱动已在运行（pid $(pgrep -x host_sdk_sample | head -1)），沿用当前配置。"
-  echo "   如果它跑的是出厂 control_command.yaml，先 stop_mapping.sh 再重跑本脚本。"
+  echo "!! Odin1 驱动已在运行（pid $(pgrep -x host_sdk_sample | head -1)），沿用它的配置。"
+  echo "   要保证是建图模式（custom_map_mode: 1）：先 stop_mapping.sh 再重跑本脚本。"
 else
   echo "== 启动 Odin1（建图模式）..."
+  # 驱动不读 -p config_file，只读 $ODIN_DRIVER_CFG，所以这里直接把建图配置装进去
+  odin_use_config "$CAR_CONFIG/control_command.mapping.yaml"
   setsid nohup ros2 run odin_ros_driver host_sdk_sample \
-      --ros-args -p config_file:="$CAR_CONFIG/control_command.mapping.yaml" \
       > "$MAP_DIR/odin.log" 2>&1 < /dev/null &
 fi
 
