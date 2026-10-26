@@ -19,9 +19,9 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 **2026-10-23 起换 C 板做底盘**：`cboard_chassis/`（官方 `17.chassis_task` 原样 + 调车层）。
 本赛季底盘是 **4 轮全向（45° X 型），不是麦轮**——解算符号与麦轮相同、只差 1/√2，
 官方公式可直接用。C620 的 CAN ID 仍是 1/2/3/4，但**哪个 ID 装在哪个角、正反如何，尚未标定**。
-2026-10-25 底盘已架起、四个电调重新编号，现在按 **阶段 0（按键验 ID）** 核对编号：
-按 C 板 KEY N 次、停手 3 s，驱动 N 号电调 1.5 s。已编译通过（0 Error / 0 Warning，Code 64.4 KB），
-**尚未上电验证**。
+2026-10-26 **固件已烧进 C 板**（Keil F8，`Verify OK / Application running`），
+现在进入 **阶段 0（按键验 ID）**：按 C 板 KEY N 次、停手 3 s，驱动 N 号电调 1.5 s。
+下一步就是上电按 KEY 核对四个电调的编号。
 
 ## 里程碑
 
@@ -36,18 +36,21 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 | 7 | 576 输入定稿（精度/速度折中） | ✅ 完成 | 2026-10-18，104.1 FPS、AP 0.7178 |
 | 8 | 坏卡重灌 + Odin1 数据链路恢复 | ✅ 完成 | 2026-10-20，镜像校验一致、30 min 重建、端口转发验证 |
 | 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 250K 与 X5 键盘控制已通（`can_ok`/`can_ack`/`src=serial`）；**遥控器已通并实车验证**（18 字节无 `0xA9` 帧、空闲定界、三档映射 GPS=全速/中=1/3/下=急停，`rc_ok` 稳定）；下一步：遥控器建图 → 重定位 → 走圈，见 `car_slam_lap/WIRING.md` 与 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
-| 10 | C 板底盘（全向轮）首次上电与标定 | 🔶 进行中 | `cboard_chassis/`：官方 `17.chassis_task` 原样 + 调车层（key/map/scan/debug）。编译 0/0、Code 64.4 KB；纯逻辑 263 断言通过；**已架起车、电调重编号，当前阶段 0 按键验 ID** → 阶段 1 扫描填 `CHASSIS_WHEEL_CAN_ID_*` / `CHASSIS_WHEEL_DIR_*` → 阶段 2 遥控通道 → 阶段 3 整车 |
+| 10 | C 板底盘（全向轮）首次上电与标定 | 🔶 进行中 | `cboard_chassis/`：官方 `17.chassis_task` 原样 + 调车层（key/map/scan/debug）。编译 0/0、Code 64.4 KB；纯逻辑 263 断言通过；**2026-10-26 已烧进 C 板**（Keil F8 `Verify OK`）。**当前阶段 0 按键验 ID** → 阶段 1 扫描填 `CHASSIS_WHEEL_CAN_ID_*` / `CHASSIS_WHEEL_DIR_*` → 阶段 2 遥控通道 → 阶段 3 整车 |
 
 ## 正在做
 
-- **C 板底盘（当前主线）**：`cboard_chassis/`，车已架起、电调已重编号，正在核对编号。按 `README.md` 四阶段走：
-  1. **阶段 0（默认）**：按 C 板 KEY N 次、停手 3 s → N 号电调转 1.5 s。核对"按 1 次转的是不是 1 号"，
-     蜂鸣器每按一次响一下，`0x1F1[7]` 显示计数。
-  2. **阶段 1**：改 `CHASSIS_BRINGUP_MODE = SWEEP`，看 ID 1~4 依次正反转，
-     记下"哪个 ID 转哪个角、正转是往前还是往后"，填 `chassis_bringup_map.h` 两张表。
-  3. **阶段 2**：改 `NORMAL` 重烧，S1 拨下（不动），用 `0x1F1` 确认四个在线 + 遥控通道。
-  4. **阶段 3**：S1 拨中整车。
-  判据与故障对照全在 `cboard_chassis/README.md` §2/§6。
+- **C 板底盘（当前主线）**：`cboard_chassis/`，**固件已烧进板子**，车已架起、电调已重编号。
+  下一步（下个对话从这里开始）：**上电按 KEY 核对编号**。
+  1. **阶段 0（默认模式）**：车轮离地，上电 → RGB 灯流动。
+     按 KEY 1 次、停手 3 s → 应只有 **1 号电调**转 1.5 s；按 2 次 → 2 号，依此类推。
+     蜂鸣器每按一次"嘀"一声；USB-CAN 分析仪看 `0x1F1[7]` = 当前计数、`0x1F1[5]` 应为 2。
+  2. 记下"按 1/2/3/4 次分别转的是哪个角、正转时轮子顶部往车头还是车尾走"，
+     填 `chassis_bringup_map.h` 的两张表（`CHASSIS_WHEEL_CAN_ID_*` / `CHASSIS_WHEEL_DIR_*`）。
+  3. **阶段 1**：改 `CHASSIS_BRINGUP_MODE = SWEEP` 重烧（Keil F8），看 ID 1~4 依次正反转复核。
+  4. **阶段 2**：改 `NORMAL` 重烧，S1 拨下（不动），用 `0x1F1` 确认四个在线 + 遥控通道。
+  5. **阶段 3**：S1 拨中整车。
+  判据、故障对照、烧写方式全在 `cboard_chassis/README.md` §2/§6/§7。
 - 576 定稿；接入 USB 摄像头做端到端实测（720p60 / 480p120），之后换正式相机。
 - Odin1 链路 2026-10-20 已恢复：板端起驱动 + 网页预览，PC 经 `plink -L 8080` 端口转发查看
   （`x5_odin/`，启动/打包/校验脚本齐全）。
@@ -74,6 +77,13 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 阻塞 / 风险
 
+- **烧写只能用 Keil 界面按 F8**：`UV4 -f` 命令行在这台破解版 Keil 上必崩（`0xC0000409`），
+  VS Code 只负责编译（已封成任务）。换电脑/重装 Keil 后需重新确认。
+- **STM32CubeProgrammer 禁用**（2026-10-26 决定）：它与这颗 ST-Link 建立不了 SWD，
+  但会报出 SN/FW/电压，看起来像"芯片没应答"，已把排查带偏一整轮。不要再用它烧录，
+  也不要用它的输出判断硬件好坏。详见 `docs/issues/2026-10-26-cboard-flash-toolchain.md`。
+- Keil 的 `Debug` 选项卡必须是 **ST-Link Debugger**（不是 ULINK2/ME），否则 F8 报
+  `No ULINK2/ME Device found`；配置存在 `MDK-ARM/chassis_task.uvoptx`（用户级，换机要重设）。
 - C 板底盘：**编号核对中**，C620 的 ID→轮位、轮子正反仍是未知数，默认表（1/2/3/4 + 全 +1）
   大概率需要改；改之前整车不会按预期方向走。
 - 按键验 ID 只覆盖 1~4 号（`0x200` 一帧）；若实际编号是 5~8，需要再补 `0x1FF` 那条发送路径。
@@ -85,6 +95,16 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
+- 2026-10-26：**C 板固件烧进去了**（Keil F8，`Erase Done / Programming Done / Verify OK / Application running`）。
+  烧写这条路上踩了三个独立的坑，全部记进 `docs/issues/2026-10-26-cboard-flash-toolchain.md`：
+  ① 缺 `Keil.STM32F4xx_DFP` → `UV4 -f` 静默无动作；
+  ② `Debug` 选项卡选成了 `ULINK2/ME` → F8 报 `No ULINK2/ME Device found`（Utilities 显示
+  `-- Use Debug Driver --` 时烧写跟随 Debug 页）；
+  ③ **STM32CubeProgrammer 在这台机器上连不上 ST-Link**，却照样报出 SN/FW/电压，
+  看起来像芯片没应答，把排查方向带偏了一整轮 —— **以后禁用**。
+  另外破解版 Keil 的 `UV4 -f` 批处理必崩（`0xC0000409`），所以最终定下：
+  **VS Code 编译（`Ctrl+Shift+B`）+ Keil 界面 F8 烧写**，任务已封装好。
+  下一步：上电按 KEY 核对四个电调的编号。
 - 2026-10-25：**新增阶段 0「按键验 ID」**（当前默认模式）。底盘已架起、四个电调重新编号，
   需要核对"电调里设的编号"和"实际是哪一路"。做法：按 C 板 KEY（PA0，内部上拉、按下为低）
   N 次，**最后一次之后静默 3 s** 就驱动 N 号电调 1.5 s（+2500）；按超 4 次清零不驱动；

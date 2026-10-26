@@ -1,11 +1,11 @@
 {
-  // VS Code 里编译/烧写 C 板底盘工程（不用打开 Keil 界面）
+  // VS Code 里编译 C 板底盘工程；烧写在 Keil 界面按 F8（本机唯一可靠路径）
   // Ctrl+Shift+B = 默认任务（编译）
   // 命令面板 -> Tasks: Run Task -> 选其余任务
   //
-  // 烧写默认走 USB DFU（不需要 SWD、不需要 ST-Link、不需要 Keil 器件包）：
-  //   BOOT0 接 3V3 -> 按复位 -> micro USB 数据线插电脑
-  //   烧完把 BOOT0 接回 GND 再复位
+  // 为什么不在 VS Code 里直接烧：
+  //   本机 Keil 是破解版，UV4 -f 批处理必崩（0xC0000409）；
+  //   STM32CubeProgrammer 在本机与 ST-Link 不兼容 —— 两者都别用。
   "version": "2.0.0",
   "tasks": [
     {
@@ -23,8 +23,8 @@
       "problemMatcher": []
     },
     {
-      "label": "底盘: 编译并烧写 (DFU)",
-      "detail": "编译后用 USB DFU 烧到 C 板（BOOT0=3V3 + 复位 + 数据线）",
+      "label": "底盘: 编译并打开 Keil 烧写",
+      "detail": "编译后打开 Keil 工程，按 F8 烧写",
       "type": "shell",
       "command": "pwsh",
       "args": [
@@ -36,28 +36,14 @@
       "problemMatcher": []
     },
     {
-      "label": "底盘: 只烧写 (DFU)",
-      "detail": "不编译，直接烧上一次的 .hex",
+      "label": "底盘: 只打开 Keil 工程",
+      "detail": "不编译，直接打开 Keil 按 F8",
       "type": "shell",
       "command": "pwsh",
       "args": [
         "-NoProfile", "-File",
         "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
-        "-FlashOnly"
-      ],
-      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
-      "problemMatcher": []
-    },
-    {
-      "label": "底盘: 用 Keil 烧写 (需要 F4 器件包)",
-      "detail": "UV4 -f，装了 Keil.STM32F4xx_DFP 才有效",
-      "type": "shell",
-      "command": "pwsh",
-      "args": [
-        "-NoProfile", "-File",
-        "${workspaceFolder}/cboard_chassis/tools/flash.ps1",
-        "-FlashOnly",
-        "-Tool", "keil"
+        "-OpenOnly"
       ],
       "presentation": { "reveal": "always", "panel": "shared", "clear": true },
       "problemMatcher": []

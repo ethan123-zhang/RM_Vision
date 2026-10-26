@@ -275,73 +275,71 @@ S1（左开关）在官方代码里的含义：
 
 ## 7. 编译 / 烧写
 
-### 7.1 在 VS Code 里（推荐）
+> **烧写只用 Keil 界面按 F8。**
+> 不要用 STM32CubeProgrammer（本机与 ST-Link 不兼容），也不要用 `UV4 -f` 命令行（破解版必崩）。
+
+### 7.1 VS Code 里能做什么
 
 工作区根目录的 `.vscode/tasks.json`（`Ctrl+Shift+B` 是默认的"编译"）：
 
 | 任务 | 做什么 |
 | :--- | :--- |
 | 底盘: 编译 | `UV4 -b`，等价 Keil 按 F7 |
-| 底盘: 编译并烧写 (DFU) | 编译 + USB DFU 烧写，一条命令出车 |
-| 底盘: 只烧写 (DFU) | 不编译，烧上次的 `.hex` |
-| 底盘: 用 Keil 烧写 | 装了 F4 器件包才有效 |
+| 底盘: 编译并打开 Keil 烧写 | 编译后自动打开 Keil 工程，按 F8 即可 |
+| 底盘: 只打开 Keil 工程 | 不编译，直接 F8 |
 
 命令行等价：
 
 ```powershell
-pwsh -File E:\RM\cboard_chassis\tools\flash.ps1            # 编译 + 烧写
+pwsh -File E:\RM\cboard_chassis\tools\flash.ps1            # 编译 + 打开 Keil
 pwsh -File E:\RM\cboard_chassis\tools\flash.ps1 -BuildOnly # 只编译
-pwsh -File E:\RM\cboard_chassis\tools\flash.ps1 -Tool dfu  # 强制 DFU
-pwsh -File E:\RM\cboard_chassis\tools\flash.ps1 -Probe     # 看 ST-Link 认不认芯片
 ```
 
 当前基线：**0 Error / 0 Warning，Code 64.4 KB**（官方原版 63.2 KB）。
 
-### 7.2 烧写为什么走 DFU
+### 7.2 烧写：Keil 按 F8（2026-10-26 实测）
 
-本机实测过的三条路：
+正常状态：`Options for Target → Debug → Use: **ST-Link Debugger**`，
+`Utilities → Use Target Driver for Flash Programming = -- Use Debug Driver --`，
+Flash Download 里有 `STM32F4xx 1xx Flash` 算法、勾了 Verify + Reset and Run。
+
+按 F8，看到这四行就是成功：
+
+```
+Erase Done.
+Programming Done.
+Verify OK.
+Application running ...
+```
+
+### 7.3 三条路都试过，只有 F8 能用
 
 | 路径 | 结果 | 原因 |
 | :--- | :--- | :--- |
-| **USB DFU**（默认） | 可用 | 只用板子的 micro USB，不碰 SWD / ST-Link / Keil 器件包 |
-| Keil `UV4 -f` | **对 F4 无效** | 没装 `Keil.STM32F4xx_DFP`，没有 Flash 算法 → 退出码 0、日志 0 字节、什么都不做 |
-| CubeProgrammer 走 ST-Link | **本机连不上** | 同一个 ST-Link，Keil 能烧、CubeProgrammer 报"无 Device ID"，是工具兼容问题，不是接线 |
+| **Keil 界面 F8** | ✅ 可用 | 唯一可靠路径 |
+| Keil `UV4 -f`（命令行） | ❌ 必崩 | 破解版批处理模式，`exit=0xC0000409`，无日志 |
+| **STM32CubeProgrammer** | ❌ **禁用** | 同一 ST-Link，Keil 能连、它连不上（`No Device ID`）；DFU 模式也放弃 |
 
-> **关键证据**：用 Keil 烧 C8T6（F1，器件包是装了的）能出
-> `Erase Done / Programming Done / Verify OK / Application running`，
-> 而同一时刻 CubeProgrammer 对同一个 ST-Link 仍然认不到芯片。
-> 所以**凡是"认不到芯片"的排查，先怀疑工具，再怀疑接线**。
+`UV4 -b`（命令行编译）**可以用**，但有个坑：在 Keil 里按过一次 F8 之后，
+`MDK-ARM/DebugConfig/` 会让 `UV4 -b` 也崩（同样 `0xC0000409`）。
+`tools/flash.ps1` 每次编译前会自动删掉这个目录，手动跑命令时要注意。
 
-DFU 的操作步骤：
+**踩过的顺序坑**（都是真实发生过的，按发生顺序记）：
 
-1. **BOOT0 接 3V3**（C 板那个没线帽的 BOOT 排针），按一下复位；
-2. **micro USB 数据线**（能传文件的那种，充电线不枚举）插到电脑；
-3. 跑任务"底盘: 编译并烧写 (DFU)"，或手动：
+1. **缺 `Keil.STM32F4xx_DFP`** → `UV4 -f` 静默不动（退出码 0、日志 0 字节）。
+   装包后才有 F4 的 Flash 算法。
+2. **Debug 选项卡选成 `ULINK2/ME`** → F8 报 `No ULINK2/ME Device found`。
+2. 改成 **`ST-Link Debugger`** 才通。
+3. **CubeProgrammer 全程在骗人**：它连 ST-Link 都连不上，但会报出 SN/FW/电压，
+   看起来像"芯片没应答"，把排查方向带偏了整整一轮。
+   **结论：这台机器上不要再用它烧录，也不要用它的 `-l`/`-c` 输出判断硬件好坏。**
 
-```powershell
-cd 'D:\STM32软件\STM32CubeProgrammer\bin'
-.\STM32_Programmer_CLI.exe -c port=USB1 -w E:\RM\cboard_chassis\MDK-ARM\chassis_task\chassis_task.hex -v
-```
+### 7.4 SWD 接线备忘（以后用到再看）
 
-4. **烧完把 BOOT0 接回 GND，再按复位**，程序才会从 Flash 运行。
-
-判断 DFU 通没通：`STM32_Programmer_CLI -l` 的 `DFU Interface` 下应该出现设备；
-如果一直 `No STM32 device in DFU mode connected`，先换 USB 线。
-
-### 7.3 想恢复 Keil 烧写
-
-Pack Installer → `Keil::STM32F4xx_DFP` → Install（需要联网，盗版 Keil 可能下不了）。
-装好后 `flash.ps1` 的 auto 规则会自动切回 `UV4 -f`，命令里已经带了 `-t chassis_task`。
-
-### 7.4 SWD 排查（仅供以后参考）
-
-`-Probe` 只有 `ST-LINK SN / FW / Voltage`、没有 `Device ID` 时：
-
-1. 先排除工具问题（见 7.2，CubeProgrammer 在本机不可信）；
-2. SWDIO / SWCLK 不能交叉，GND 必须共地；
-3. ST-Link 的 2×5 排针是**奇偶两排交错**的：SWCLK=②、SWDIO=④、GND=⑤/⑥、3.3V=⑦/⑧；
-   板子那边的丝印顺序通常不同，**不要用 4 针连体插头横插**，一根一根按名字接；
-4. 芯片跑飞：BOOT0 接 3V3 + 复位，让它停在 ROM 引导再试。
+- ST-Link 的 2×5 排针是**奇偶两排交错**的：SWCLK=②、SWDIO=④、GND=⑤/⑥、3.3V=⑦/⑧；
+- 板子那边丝印顺序通常不同，**不要用 4 针连体插头横插**，一根一根按名字接；
+- ST-Link 的 3.3V 可以不接（板子自己供电），少一根线少一个坑；
+- Keil `Debug → Settings` 的 **SW Device** 里能看到 `IDCODE 0x...` 才算真连上。
 
 纯逻辑自测（改标定表后建议跑一遍）：
 

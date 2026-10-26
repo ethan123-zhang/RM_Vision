@@ -5,6 +5,8 @@ MDK-ARM/Listings/
 MDK-ARM/RTE/
 MDK-ARM/*.lst
 MDK-ARM/*.log
+MDK-ARM/*.out.txt
+MDK-ARM/*.out.txt.err
 *.axf
 *.hex
 *.htm
@@ -12,6 +14,15 @@ MDK-ARM/*.log
 *.crf
 *.o
 *.d
+
+# Keil 用户级文件（换机要重设；DebugConfig 还会让 UV4 -b 崩，不要入库）
+MDK-ARM/DebugConfig/
+MDK-ARM/*.uvoptx
+MDK-ARM/*.uvguix.*
+MDK-ARM/.vscode/
+
+# VS Code 目录级设置
+/.vscode/
 
 # 主机侧测试产物
 tests/build/

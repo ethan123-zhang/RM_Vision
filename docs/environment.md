@@ -48,6 +48,24 @@ Get-FileHash "RDK_X5镜像/rdk-x5-ubuntu22-preinstalled-desktop-3.5.0-arm64.img"
 | X5 模型转换 | hb_mapper 1.24.3（`pip install rdkx5-yolo-mapper`）+ hbdk 3.49.15 | 生成 Bayes-e `.bin` |
 | 交叉编译工具链 | 待补充 | |
 
+### 3.1 C 板（STM32F407）编译与烧写
+
+| 项 | 值 | 备注 |
+| :--- | :--- | :--- |
+| 编译 | Keil MDK 5.38（**AC5**，ARMCC V5.06 u5）+ `Keil.STM32F4xx_DFP 2.17.1` | 完整路径 `D:\Keil5`；AC5 必须装 |
+| 命令行编译 | `UV4 -b <prj> -j0 -t chassis_task -o build.log` | 可用，**VS Code 任务已封装** |
+| **烧写** | **Keil 界面按 F8** | 唯一可靠路径 |
+| 烧写配置 | `Options → Debug → Use: ST-Link Debugger` + Flash Download 有 `STM32F4xx 1xx Flash` | 存在 `MDK-ARM/chassis_task.uvoptx`（用户级） |
+| ST-Link | V2 克隆，FW V2J37S7 | SWD 四线，GND 必接，3.3V 可不接 |
+
+**禁用的烧写方式**（2026-10-26 实测，详见 `docs/issues/2026-10-26-cboard-flash-toolchain.md`）：
+
+| 方式 | 现象 | 结论 |
+| :--- | :--- | :--- |
+| **STM32CubeProgrammer**（含 DFU） | 能报 SN/FW/电压，但建立不了 SWD（`No Device ID`）；同一时刻 Keil 却能烧 | **禁用**：不要用它烧录，也不要用它的输出判断硬件好坏 |
+| `UV4 -f` 命令行 | 破解版必崩 `0xC0000409`，或 `Internal DLL Error` | 不可用 |
+| Keil `Debug` 选成 ULINK2/ME | F8 报 `No ULINK2/ME Device found` | 必须选 ST-Link Debugger |
+
 ## 4. 官方资料
 
 三份 RM2027 V1.0.0（20261015）文档。`相关文件/` 保留加密原件，`相关文件/未加密可AI访问/` 保留解密版（供 AI 读取与文本提取）。两版对应同一文档，字节数与哈希不同是加密容器差异。
