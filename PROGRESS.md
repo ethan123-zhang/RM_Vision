@@ -1,7 +1,7 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-10-23
+> 最后更新：2026-10-26
 
 ## 一句话状态
 
@@ -15,6 +15,13 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 2026-10-22 遥控器链路已打通并实车验证：本款接收机是 **18 字节通道数据、帧首没有 `0xA9`**
 （原来死等帧头，字节全被丢）。固件改成按帧间空闲定界，三档映射实测定稿
 （GPS=全速 / 中间=1/3 速 / 下面=急停），`rc_ok` 稳定、遥控能开车。下一步用遥控器给全屋建图。
+
+2026-10-26 **`car_slam_lap` 端到端跑通**：遥控示教建图（venue2，330 点 / 15.66 m）→ 重定位
+（`map←imu` 与录制末点差 **3 cm / 0.6°**）→ 纯追踪自动回放（249 点 / 14.19 m，横向误差
+**rms 0.103 m**、无碰撞）。同日修掉三个“伪装成硬件问题”的软件 bug：Odin1 驱动**不读**
+`-p config_file`（重定位配置从未生效）、`save_map.sh` 找错存图目录且不等传输完成、
+`follow_path` 启动竞态 / 名称遮蔽 / SIGINT 处理。详见
+`docs/issues/2026-10-26-odin-config-and-follow-path.md`。
 
 **2026-10-23 起换 C 板做底盘**：`cboard_chassis/`（官方 `17.chassis_task` 原样 + 调车层）。
 本赛季底盘是 **4 轮全向（45° X 型），不是麦轮**——解算符号与麦轮相同、只差 1/√2，
@@ -35,7 +42,7 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 | 6 | X5 板端 512 输入达 100+ FPS | ✅ 完成 | 2026-10-18，C++ 后处理 135.3 FPS |
 | 7 | 576 输入定稿（精度/速度折中） | ✅ 完成 | 2026-10-18，104.1 FPS、AP 0.7178 |
 | 8 | 坏卡重灌 + Odin1 数据链路恢复 | ✅ 完成 | 2026-10-20，镜像校验一致、30 min 重建、端口转发验证 |
-| 9 | 小车底盘串口化 + 建图走圈（练习） | 🔶 进行中 | 协议/固件/X5 侧完成，Keil AC5 编译 0 error/0 warning；CAN 250K 与 X5 键盘控制已通（`can_ok`/`can_ack`/`src=serial`）；**遥控器已通并实车验证**（18 字节无 `0xA9` 帧、空闲定界、三档映射 GPS=全速/中=1/3/下=急停，`rc_ok` 稳定）；下一步：遥控器建图 → 重定位 → 走圈，见 `car_slam_lap/WIRING.md` 与 `docs/issues/2026-10-22-rc-dbus-not-decoded.md` |
+| 9 | 小车底盘串口化 + 建图走圈（练习） | ✅ 完成 | 2026-10-26 端到端跑通：遥控示教建图（venue2：330 点 / 15.66 m）→ 重定位（`map←imu` 与录制末点差 3 cm / 0.6°）→ 纯追踪自动回放（249 点 / 14.19 m，横向误差 rms 0.103 m、无碰撞）。修掉 Odin1 `config_file` 不生效 / `save_map.sh` 找错目录且不等传输 / `follow_path` 三处 bug，详见 `docs/issues/2026-10-26-odin-config-and-follow-path.md` |
 | 10 | C 板底盘（全向轮）首次上电与标定 | 🔶 进行中 | `cboard_chassis/`：官方 `17.chassis_task` 原样 + 调车层（key/map/scan/debug）。编译 0/0、Code 64.4 KB；纯逻辑 263 断言通过；**2026-10-26 已烧进 C 板**（Keil F8 `Verify OK`）。**当前阶段 0 按键验 ID** → 阶段 1 扫描填 `CHASSIS_WHEEL_CAN_ID_*` / `CHASSIS_WHEEL_DIR_*` → 阶段 2 遥控通道 → 阶段 3 整车 |
 
 ## 正在做
@@ -58,14 +65,10 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
   ROS2 包（桥接/键盘遥控/录轨迹/纯追踪/点云导出/速度标定）、固件（USART1=X5、
   USART2=遥控器、**CAN1=SN65HVD230 250K（实测）**、10 ms 仲裁、看门狗）、板端脚本与 Odin1 两份配置。
   自检五组全绿，其中第 5 组直接调 `UV4.exe` 真编译（Code 11152 / RAM 1408）。
-  **下一步（下个对话从这里开始）**：用遥控器给全屋建图。
-  1. `bash ~/car_slam_lap/x5/scripts/start_mapping.sh lab1`
-  2. **起完先 `pkill -f bridge_node`** —— 它 50 Hz 发零帧，串口优先级压过遥控；
-     Odin1 / `record_path` / `map_from_cloud` 都不依赖它，只是这段时间没有 `/car/status`。
-  3. 遥控器 S2 放 GPS（全速）或中间（1/3 速），把房间走一圈；
-     起点贴标记，走圈要回到同一位置/朝向（重定位要求 1 m / ±10° 内）。
-  4. `bash .../save_map.sh` → `bash .../stop_mapping.sh`。
-  长期解：给 `bridge_node` 加 `passive:=true`（只收 status、不发帧），建图时遥控和状态可共存。
+  **2026-10-26 已端到端跑通**（建图 venue2 → 重定位 → 自动回放，rms 0.103 m）。接下来可选：
+  - 掉头切角调参：max 误差 0.423 m 出现在远端 180° 掉头（纯追踪切角），降 `VMAX` / `lookahead_min`；
+  - 用这套流程给**正式场地**建图：走完整环线、回到起点（<0.5 m）、**最后再** `save_map`；
+  - 长期解：给 `bridge_node` 加 `passive:=true`（只收 status、不发帧），建图时遥控和状态可共存。
   X5 侧已部署，`/dev/car_link -> ttyS1` 已确认；键盘 `teleop_keys` 也能开车。
 
 ## 下一步（按优先级）
@@ -95,6 +98,20 @@ X5 侧、链路协议、固件改造都已完成，**Keil AC5 实编译通过（
 
 ## 最近变更
 
+- 2026-10-26：**`car_slam_lap` 端到端跑通（建图 → 重定位 → 自动回放）**。venue2 实测：
+  路径 330 点 / 15.66 m；重定位 `map←imu` 与录制末点差 **3 cm / 0.6°**；回放 249 点 /
+  14.19 m / 167.6 s，横向误差 **rms 0.103 m**、无碰撞。修掉三处软件 bug：
+  ① Odin1 驱动**不读** `-p config_file`（源码写死读
+  `~/odin_ws/src/odin_ros_driver/config/control_command.yaml`），此前重定位从未真正进入
+  mode 2；② `save_map.sh` 只看 `~/odin_ws` 且等 8 s 就拷（实际图存到 `~/car_ws/src/...`，
+  传输是异步的）；③ `follow_path` 启动竞态、`save_actual` 名称遮蔽、SIGINT 抛
+  `RuntimeError`。修复与验证见 `docs/issues/2026-10-26-odin-config-and-follow-path.md`。
+  待改进：远端 180° 掉头切角（max 0.423 m），终点位置差 0.48 m 略超 A5 判据。
+- 2026-10-26：**验 ID 的轮速调慢**（实测 +2500 空载约 3 A，轮子转太快、看不清是哪个角）。
+  `CHASSIS_KEY_SPIN_CURRENT` 2500 → **900**（约 1.1 A），时长仍 1.5 s；
+  阶段 1 的 `CHASSIS_SWEEP_CURRENT` 3000 → **1000**。两处都只改电流值，时序、状态机、
+  263 项断言不变。转速基本正比于电流，**低于 ~500 会顶不过静摩擦**（只嗡嗡响不转，
+  不是电机坏了）；调法写进 `cboard_chassis/README.md` §2「转得太快 / 想再慢一点」。
 - 2026-10-26：**C 板固件烧进去了**（Keil F8，`Erase Done / Programming Done / Verify OK / Application running`）。
   烧写这条路上踩了三个独立的坑，全部记进 `docs/issues/2026-10-26-cboard-flash-toolchain.md`：
   ① 缺 `Keil.STM32F4xx_DFP` → `UV4 -f` 静默无动作；
