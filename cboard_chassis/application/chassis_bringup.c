@@ -19,6 +19,7 @@
 #include "remote_control.h"
 
 #include "bsp_buzzer.h"
+#include "chassis_speed_test.h"
 
 /* 标定表非法时提醒用，参数抄官方 test_task.c */
 #define CHASSIS_BEEP_PSC 1
@@ -241,6 +242,93 @@ void chassis_bringup_key_id_loop(chassis_move_t *chassis) {
                     can_current[3]);
     chassis_bringup_status_update(chassis);
 
+    vTaskDelay(pdMS_TO_TICKS(CHASSIS_CONTROL_TIME_MS));
+  }
+}
+
+/* 架空单轮速度测试：裸 CAN ID，不依赖尚未标定的整车方向表。
+ * 任意按键取消；掉线取消且恢复后不会自行重启。 */
+void chassis_bringup_speed_loop(chassis_move_t *chassis) {
+  chassis_key_state_t selection;
+  chassis_key_gpio_t gpio = {1, 1, 0};
+  chassis_speed_test_t speed;
+  TickType_t start = xTaskGetTickCount();
+  uint32_t run_start = 0, last_debug = 0;
+  uint8_t active = 0, fault = 0;
+  chassis_bringup_key_gpio_init();
+  chassis_key_reset(&selection);
+  chassis_speed_reset(&speed);
+  CAN_cmd_chassis(0, 0, 0, 0);
+  for (;;) {
+    uint32_t now = chassis_bringup_ms_since(start);
+    int16_t currents[4] = {0, 0, 0, 0};
+    int16_t target = 0, measured = 0, current = 0, unused_current;
+    uint8_t requested = 0;
+    if (chassis_bringup_key_edge(&gpio, now)) {
+      if (active) {
+        active = 0;
+        chassis_key_reset(&selection);
+        chassis_speed_reset(&speed);
+      } else {
+        fault = 0;
+        (void)chassis_key_press(&selection, now);
+      }
+    }
+    if (!active) {
+      chassis_key_tick(&selection, now, &requested, &unused_current);
+      if (requested >= 1 && requested <= 4) {
+        /* 即使未上线，也消费这次请求，避免随后上电时突然启动。 */
+        chassis_key_reset(&selection);
+        if (!toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + requested - 1))) {
+          active = requested;
+          run_start = now;
+          chassis_speed_reset(&speed);
+        } else {
+          fault = 2;
+        }
+      }
+    }
+    if (active) {
+      uint32_t elapsed = now - run_start;
+      if (elapsed >= CHASSIS_SPEED_DURATION_MS ||
+          toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + active - 1))) {
+        if (elapsed < CHASSIS_SPEED_DURATION_MS) fault = 2;
+        active = 0;
+        chassis_speed_reset(&speed);
+      } else {
+        measured = get_chassis_motor_measure_point(active - 1)->speed_rpm;
+        target = chassis_speed_target(elapsed);
+        if (measured > 1500 || measured < -1500) {
+          fault = 3;
+          active = 0;
+          target = 0;
+          chassis_speed_reset(&speed);
+        } else {
+          current = chassis_speed_step(&speed, target, measured, 1);
+          currents[active - 1] = current;
+        }
+      }
+    }
+    CAN_cmd_chassis(currents[0], currents[1], currents[2], currents[3]);
+#if CHASSIS_DEBUG_CAN
+    if ((uint32_t)(now - last_debug) >= 25u) {
+      /* 0x1F2: ID, 状态(0空闲/1运行), 目标rpm, 实际rpm, 输出电流；均大端。 */
+      uint8_t data[8];
+      last_debug = now;
+      data[0] = active;
+      data[1] = active ? 1u : fault;
+      data[2] = (uint8_t)((uint16_t)target >> 8);
+      data[3] = (uint8_t)target;
+      data[4] = (uint8_t)((uint16_t)measured >> 8);
+      data[5] = (uint8_t)measured;
+      data[6] = (uint8_t)((uint16_t)current >> 8);
+      data[7] = (uint8_t)current;
+      chassis_bringup_can_send(0x1F2, data);
+    }
+#else
+    (void)last_debug;
+#endif
+    chassis_bringup_status_update(chassis);
     vTaskDelay(pdMS_TO_TICKS(CHASSIS_CONTROL_TIME_MS));
   }
 }

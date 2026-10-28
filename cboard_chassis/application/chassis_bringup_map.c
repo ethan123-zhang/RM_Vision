@@ -7,6 +7,7 @@
   */
 
 #include "chassis_bringup_map.h"
+#include "chassis_speed_test.h"
 
 /* 把宏表落成数组；下标 = 官方解算的轮位索引 0..3 */
 static const uint8_t chassis_wheel_can_id[CHASSIS_WHEEL_NUM] = {
@@ -225,4 +226,33 @@ void chassis_key_tick(chassis_key_state_t *st, uint32_t now_ms, uint8_t *id_out,
       *cur_out = (int16_t)CHASSIS_KEY_SPIN_CURRENT;
     }
   }
+}
+void chassis_speed_reset(chassis_speed_test_t *s) { s->integral = 0.0f; }
+
+int16_t chassis_speed_step(chassis_speed_test_t *s, int16_t target,
+                          int16_t measured, uint8_t enabled) {
+  float error, candidate, output;
+  if (!enabled) { chassis_speed_reset(s); return 0; }
+  error = (float)target - (float)measured;
+  candidate = s->integral + CHASSIS_SPEED_KI * error;
+  if (candidate > CHASSIS_SPEED_INTEGRAL_LIMIT)
+    candidate = CHASSIS_SPEED_INTEGRAL_LIMIT;
+  if (candidate < -CHASSIS_SPEED_INTEGRAL_LIMIT)
+    candidate = -CHASSIS_SPEED_INTEGRAL_LIMIT;
+  output = CHASSIS_SPEED_KP * error + candidate;
+  /* 饱和且误差继续推向饱和方向时，不再积累积分；反向误差允许退饱和。 */
+  if (!((output > CHASSIS_SPEED_CURRENT_LIMIT && error > 0) ||
+        (output < -CHASSIS_SPEED_CURRENT_LIMIT && error < 0)))
+    s->integral = candidate;
+  output = CHASSIS_SPEED_KP * error + s->integral;
+  if (output > CHASSIS_SPEED_CURRENT_LIMIT) output = CHASSIS_SPEED_CURRENT_LIMIT;
+  if (output < -CHASSIS_SPEED_CURRENT_LIMIT) output = -CHASSIS_SPEED_CURRENT_LIMIT;
+  return (int16_t)output;
+}
+
+int16_t chassis_speed_target(uint32_t elapsed_ms) {
+  if (elapsed_ms < 2000u) return CHASSIS_SPEED_RPM;
+  if (elapsed_ms < 3000u) return 0;
+  if (elapsed_ms < 5000u) return -CHASSIS_SPEED_RPM;
+  return 0;
 }

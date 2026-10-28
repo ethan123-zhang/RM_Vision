@@ -149,6 +149,8 @@ void chassis_task(void const *pvParameters)
     chassis_bringup_key_id_loop(&chassis_move);
 #elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SWEEP
     chassis_bringup_sweep_loop(&chassis_move);
+#elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SPEED_TEST
+    chassis_bringup_speed_loop(&chassis_move);
 #endif
 
     // [BRINGUP] 官方这里是死等"4 个电机 + 遥控器全部在线"，任何一个没通就

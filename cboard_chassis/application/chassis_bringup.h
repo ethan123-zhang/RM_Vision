@@ -8,7 +8,8 @@
   *               - chassis_bringup.c      上板侧：发 CAN、收反馈、打调试帧
   *
   *             调车顺序见 cboard_chassis/README.md：
-  *               阶段 0  CHASSIS_BRINGUP_MODE = 2  按 KEY 验电调编号（当前阶段）
+ *               当前  CHASSIS_BRINGUP_MODE = 3  单轮速度闭环（架空）
+ *               阶段 0  CHASSIS_BRINGUP_MODE = 2  按 KEY 验电调编号
   *               阶段 1  CHASSIS_BRINGUP_MODE = 1  逐个 ID 自动扫描，填两张表
   *               阶段 2  遥控通道确认（看 0x1F1 帧）
   *               阶段 3  CHASSIS_BRINGUP_MODE = 0  整车闭环
@@ -28,13 +29,15 @@
  *    0 = 正常跑车（官方逻辑，速度和电流都过标定表）
  *    1 = 单电机扫描（不依赖遥控器/陀螺仪，按裸 ID 1..4 依次正反转）
  *    2 = 按键验 ID（按 KEY N 次，停 3 s 后驱动 N 号电调）
+ *    3 = 单轮速度闭环（KEY 选 ID，6 秒正/零/反/零，再按取消）
  * ========================================================================== */
 #define CHASSIS_BRINGUP_MODE_NORMAL 0
 #define CHASSIS_BRINGUP_MODE_SWEEP 1
 #define CHASSIS_BRINGUP_MODE_KEY_ID 2
+#define CHASSIS_BRINGUP_MODE_SPEED_TEST 3
 
 #ifndef CHASSIS_BRINGUP_MODE
-#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_KEY_ID
+#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_SPEED_TEST
 #endif
 
 /* C 板 KEY 按键：PA0，按下为低（官方 6.key_exit 例程同款） */
@@ -70,7 +73,7 @@
 
 /* ==========================================================================
  *  调试 CAN 帧（挂到 USB-CAN 分析仪上看）
- *    0x1F0  25 ms 一次：4 个轮位的实际转速 rpm（int16 little endian）
+ *    0x1F0  25 ms 一次：4 个轮位的实际转速 rpm（int16 big endian）
  *    0x1F1  100 ms 一次：[0] 在线掩码 [1] S1|S2<<2 [2..4] 摇杆 [5] 模式
  *                        [6] 遥控在线 [7] 底盘状态机；**按键模式下 [7] = 当前按键计数**
  *  不需要时把 CHASSIS_DEBUG_CAN 置 0，总线上就只剩电机的帧。
@@ -108,6 +111,7 @@ void chassis_bringup_sweep_loop(chassis_move_t *chassis);
  * @param  chassis 只用来打调试帧
  */
 void chassis_bringup_key_id_loop(chassis_move_t *chassis);
+void chassis_bringup_speed_loop(chassis_move_t *chassis);
 
 /**
  * @brief  轮位电流 -> CAN 电流（内部就是 chassis_map_wheel_to_can，失败时全 0）
