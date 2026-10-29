@@ -1,0 +1,274 @@
+{
+  "duration_s": 89.994,
+  "counts": {
+    "0x204": 90338,
+    "0x200": 45002,
+    "0x201": 90233,
+    "0x202": 90085,
+    "0x203": 90192,
+    "0x1f0": 3462,
+    "0x1f2": 3462,
+    "0x1f1": 830
+  },
+  "complete_ids": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "excluded_partial_runs": [
+    {
+      "id": 1,
+      "start": 0.003,
+      "targets": [
+        0
+      ],
+      "duration": 0.598
+    }
+  ],
+  "segments": [
+    {
+      "id": 1,
+      "target": 600,
+      "start_s": 55.628,
+      "last_half_s_mean_rpm": 558.6,
+      "mean_error_rpm": -41.4,
+      "last_half_s_sd_rpm": 25.9,
+      "last_half_s_peak_abs_rpm": 598,
+      "sampled_peak_abs_rpm": 598,
+      "sampled_peak_current_command": 1056,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 1,
+      "target": 0,
+      "start_s": 57.63,
+      "last_half_s_mean_rpm": -0.1,
+      "mean_error_rpm": -0.1,
+      "last_half_s_sd_rpm": 0.7,
+      "last_half_s_peak_abs_rpm": 3,
+      "sampled_peak_abs_rpm": 414,
+      "sampled_peak_current_command": 678,
+      "sampled_saturation_count": 0,
+      "samples": 38
+    },
+    {
+      "id": 1,
+      "target": -600,
+      "start_s": 58.618,
+      "last_half_s_mean_rpm": -527.1,
+      "mean_error_rpm": 72.9,
+      "last_half_s_sd_rpm": 25.3,
+      "last_half_s_peak_abs_rpm": 574,
+      "sampled_peak_abs_rpm": 574,
+      "sampled_peak_current_command": 994,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 1,
+      "target": 0,
+      "start_s": 60.62,
+      "last_half_s_mean_rpm": -0.1,
+      "mean_error_rpm": -0.1,
+      "last_half_s_sd_rpm": 0.7,
+      "last_half_s_peak_abs_rpm": 3,
+      "sampled_peak_abs_rpm": 455,
+      "sampled_peak_current_command": 808,
+      "sampled_saturation_count": 0,
+      "samples": 39
+    },
+    {
+      "id": 2,
+      "target": 600,
+      "start_s": 6.396,
+      "last_half_s_mean_rpm": 556.0,
+      "mean_error_rpm": -44.0,
+      "last_half_s_sd_rpm": 31.2,
+      "last_half_s_peak_abs_rpm": 623,
+      "sampled_peak_abs_rpm": 623,
+      "sampled_peak_current_command": 939,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 2,
+      "target": 0,
+      "start_s": 8.397,
+      "last_half_s_mean_rpm": -0.1,
+      "mean_error_rpm": -0.1,
+      "last_half_s_sd_rpm": 0.7,
+      "last_half_s_peak_abs_rpm": 3,
+      "sampled_peak_abs_rpm": 405,
+      "sampled_peak_current_command": 677,
+      "sampled_saturation_count": 0,
+      "samples": 38
+    },
+    {
+      "id": 2,
+      "target": -600,
+      "start_s": 9.385,
+      "last_half_s_mean_rpm": -520.5,
+      "mean_error_rpm": 79.5,
+      "last_half_s_sd_rpm": 42.8,
+      "last_half_s_peak_abs_rpm": 603,
+      "sampled_peak_abs_rpm": 603,
+      "sampled_peak_current_command": 975,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 2,
+      "target": 0,
+      "start_s": 11.386,
+      "last_half_s_mean_rpm": 0,
+      "mean_error_rpm": 0,
+      "last_half_s_sd_rpm": 0.0,
+      "last_half_s_peak_abs_rpm": 0,
+      "sampled_peak_abs_rpm": 417,
+      "sampled_peak_current_command": 736,
+      "sampled_saturation_count": 0,
+      "samples": 38
+    },
+    {
+      "id": 3,
+      "target": 600,
+      "start_s": 16.532,
+      "last_half_s_mean_rpm": 543.1,
+      "mean_error_rpm": -56.9,
+      "last_half_s_sd_rpm": 26.3,
+      "last_half_s_peak_abs_rpm": 581,
+      "sampled_peak_abs_rpm": 581,
+      "sampled_peak_current_command": 1086,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 3,
+      "target": 0,
+      "start_s": 18.533,
+      "last_half_s_mean_rpm": 0,
+      "mean_error_rpm": 0,
+      "last_half_s_sd_rpm": 0.0,
+      "last_half_s_peak_abs_rpm": 0,
+      "sampled_peak_abs_rpm": 433,
+      "sampled_peak_current_command": 669,
+      "sampled_saturation_count": 0,
+      "samples": 38
+    },
+    {
+      "id": 3,
+      "target": -600,
+      "start_s": 19.521,
+      "last_half_s_mean_rpm": -502.4,
+      "mean_error_rpm": 97.6,
+      "last_half_s_sd_rpm": 21.4,
+      "last_half_s_peak_abs_rpm": 547,
+      "sampled_peak_abs_rpm": 547,
+      "sampled_peak_current_command": 1019,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 3,
+      "target": 0,
+      "start_s": 21.522,
+      "last_half_s_mean_rpm": -0.1,
+      "mean_error_rpm": -0.1,
+      "last_half_s_sd_rpm": 0.7,
+      "last_half_s_peak_abs_rpm": 3,
+      "sampled_peak_abs_rpm": 480,
+      "sampled_peak_current_command": 825,
+      "sampled_saturation_count": 0,
+      "samples": 39
+    },
+    {
+      "id": 4,
+      "target": 600,
+      "start_s": 26.928,
+      "last_half_s_mean_rpm": 521.8,
+      "mean_error_rpm": -78.2,
+      "last_half_s_sd_rpm": 51.4,
+      "last_half_s_peak_abs_rpm": 617,
+      "sampled_peak_abs_rpm": 623,
+      "sampled_peak_current_command": 1202,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 4,
+      "target": 0,
+      "start_s": 28.929,
+      "last_half_s_mean_rpm": 0,
+      "mean_error_rpm": 0,
+      "last_half_s_sd_rpm": 0.0,
+      "last_half_s_peak_abs_rpm": 0,
+      "sampled_peak_abs_rpm": 600,
+      "sampled_peak_current_command": 1037,
+      "sampled_saturation_count": 0,
+      "samples": 39
+    },
+    {
+      "id": 4,
+      "target": -600,
+      "start_s": 29.943,
+      "last_half_s_mean_rpm": -540.1,
+      "mean_error_rpm": 59.9,
+      "last_half_s_sd_rpm": 21.5,
+      "last_half_s_peak_abs_rpm": 576,
+      "sampled_peak_abs_rpm": 586,
+      "sampled_peak_current_command": 900,
+      "sampled_saturation_count": 0,
+      "samples": 77
+    },
+    {
+      "id": 4,
+      "target": 0,
+      "start_s": 31.944,
+      "last_half_s_mean_rpm": -0.3,
+      "mean_error_rpm": -0.3,
+      "last_half_s_sd_rpm": 0.9,
+      "last_half_s_peak_abs_rpm": 3,
+      "sampled_peak_abs_rpm": 360,
+      "sampled_peak_current_command": 633,
+      "sampled_saturation_count": 0,
+      "samples": 38
+    }
+  ],
+  "fault_samples": 0,
+  "motor_stats": {
+    "1": {
+      "sample_count": 90233,
+      "peak_abs_rotor_rpm": 613,
+      "temperature_range": [
+        21,
+        21
+      ]
+    },
+    "2": {
+      "sample_count": 90085,
+      "peak_abs_rotor_rpm": 644,
+      "temperature_range": [
+        21,
+        21
+      ]
+    },
+    "3": {
+      "sample_count": 90192,
+      "peak_abs_rotor_rpm": 600,
+      "temperature_range": [
+        21,
+        22
+      ]
+    },
+    "4": {
+      "sample_count": 90338,
+      "peak_abs_rotor_rpm": 634,
+      "temperature_range": [
+        21,
+        21
+      ]
+    }
+  }
+}
