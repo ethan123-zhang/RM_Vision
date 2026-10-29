@@ -1,0 +1,86 @@
+{
+  "duration_s": 119.95814699999755,
+  "active_id": [
+    3
+  ],
+  "active_start_s": 24.254425999999512,
+  "active_end_s": 42.266986999995424,
+  "active_duration_s": 18.012560999995912,
+  "command_timing": {
+    "max_ms": 31.700999999884516,
+    "median_ms": 2.0050000021001324,
+    "gaps_over4ms": 2,
+    "largest_gap_start_s": 18.665307999996003,
+    "largest_gap_end_s": 18.697008999995887
+  },
+  "command_peak": 1210.0,
+  "other_motor_nonzero_command_frames": 0,
+  "post_exit_nonzero_command_frames": 0,
+  "saturation_frames": 0,
+  "feedback_timing": {
+    "1": {
+      "max_ms": 30.549000002793036,
+      "median_ms": 0.981999997748062,
+      "gaps_over4ms": 3,
+      "largest_gap_start_s": 18.66543599999568,
+      "largest_gap_end_s": 18.695984999998473
+    },
+    "2": {
+      "max_ms": 30.93300000182353,
+      "median_ms": 0.981999997748062,
+      "gaps_over4ms": 3,
+      "largest_gap_start_s": 18.664923999996972,
+      "largest_gap_end_s": 18.695856999998796
+    },
+    "3": {
+      "max_ms": 31.317000000854023,
+      "median_ms": 0.981999997748062,
+      "gaps_over4ms": 3,
+      "largest_gap_start_s": 18.664795999997295,
+      "largest_gap_end_s": 18.69611299999815
+    },
+    "4": {
+      "max_ms": 31.956999999238178,
+      "median_ms": 0.981999997748062,
+      "gaps_over4ms": 3,
+      "largest_gap_start_s": 18.664283999998588,
+      "largest_gap_end_s": 18.696240999997826
+    }
+  },
+  "raw_motor_peaks": {
+    "1": {
+      "peak_rpm": -9.0,
+      "at_s": 23.537083000002895,
+      "during_test_peak_abs_rpm": 7.0
+    },
+    "2": {
+      "peak_rpm": -5.0,
+      "at_s": 17.50449399999343,
+      "during_test_peak_abs_rpm": 3.0
+    },
+    "3": {
+      "peak_rpm": 669.0,
+      "at_s": 29.253131999998004,
+      "during_test_peak_abs_rpm": 669.0
+    },
+    "4": {
+      "peak_rpm": 648.0,
+      "at_s": 15.851102000000537,
+      "during_test_peak_abs_rpm": 7.0
+    }
+  },
+  "active_command_timing": {
+    "max_ms": 2.3890000011306256,
+    "median_ms": 2.0050000021001324,
+    "gaps_over4ms": 0,
+    "largest_gap_start_s": 29.29413399999612,
+    "largest_gap_end_s": 29.29652299999725
+  },
+  "active_motor3_feedback_timing": {
+    "max_ms": 1.664000010350719,
+    "median_ms": 0.981999997748062,
+    "gaps_over4ms": 0,
+    "largest_gap_start_s": 29.243147999994108,
+    "largest_gap_end_s": 29.24481200000446
+  }
+}
