@@ -1,0 +1,1445 @@
+{
+  "duration_s": 299.969,
+  "counts": {
+    "0x201": 300753,
+    "0x200": 150006,
+    "0x203": 300651,
+    "0x202": 300314,
+    "0x204": 301075,
+    "0x1f0": 11539,
+    "0x1f2": 11539,
+    "0x1f1": 2769
+  },
+  "motor_raw": {
+    "1": {
+      "n": 300753,
+      "peak_rpm": 663,
+      "temp_min": 22,
+      "temp_max": 22
+    },
+    "2": {
+      "n": 300314,
+      "peak_rpm": 692,
+      "temp_min": 22,
+      "temp_max": 22
+    },
+    "3": {
+      "n": 300651,
+      "peak_rpm": 665,
+      "temp_min": 21,
+      "temp_max": 21
+    },
+    "4": {
+      "n": 301075,
+      "peak_rpm": 696,
+      "temp_min": 21,
+      "temp_max": 21
+    }
+  },
+  "telemetry_n": 11539,
+  "fault_samples": 0,
+  "telemetry_interval_median_s": 0.025983999992604367,
+  "telemetry_interval_max_s": 0.02628200000617653,
+  "runs": [
+    {
+      "run": 1,
+      "id": 1,
+      "start_s": 33.347,
+      "complete": true,
+      "segments": [
+        {
+          "target": 600,
+          "start_s": 33.34650800000236,
+          "end_s": 41.353338000000804,
+          "duration_s": 8.007,
+          "peak_abs_current": 1109,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 600.3,
+            "error_rpm": 0.3,
+            "error_pct": 0.05,
+            "sd_rpm": 27.27,
+            "min_rpm": 544,
+            "max_rpm": 648,
+            "mean_current": 223.65
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": 594.92,
+            "error_rpm": -5.08,
+            "error_pct": 0.85,
+            "sd_rpm": 27.71,
+            "min_rpm": 544,
+            "max_rpm": 648,
+            "mean_current": 232.49
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": 494.21,
+              "error_rpm": -105.79,
+              "error_pct": 17.63,
+              "sd_rpm": 102.62,
+              "min_rpm": 48,
+              "max_rpm": 579,
+              "mean_current": 279.49
+            },
+            {
+              "n": 38,
+              "mean_rpm": 552.95,
+              "error_rpm": -47.05,
+              "error_pct": 7.84,
+              "sd_rpm": 28.49,
+              "min_rpm": 504,
+              "max_rpm": 602,
+              "mean_current": 224.24
+            },
+            {
+              "n": 39,
+              "mean_rpm": 573.38,
+              "error_rpm": -26.62,
+              "error_pct": 4.44,
+              "sd_rpm": 26.91,
+              "min_rpm": 525,
+              "max_rpm": 617,
+              "mean_current": 221.33
+            },
+            {
+              "n": 38,
+              "mean_rpm": 582.61,
+              "error_rpm": -17.39,
+              "error_pct": 2.9,
+              "sd_rpm": 26.34,
+              "min_rpm": 531,
+              "max_rpm": 636,
+              "mean_current": 224.82
+            },
+            {
+              "n": 39,
+              "mean_rpm": 588.41,
+              "error_rpm": -11.59,
+              "error_pct": 1.93,
+              "sd_rpm": 29.34,
+              "min_rpm": 533,
+              "max_rpm": 638,
+              "mean_current": 227.38
+            },
+            {
+              "n": 38,
+              "mean_rpm": 592.5,
+              "error_rpm": -7.5,
+              "error_pct": 1.25,
+              "sd_rpm": 25.28,
+              "min_rpm": 544,
+              "max_rpm": 636,
+              "mean_current": 229.24
+            },
+            {
+              "n": 39,
+              "mean_rpm": 592.67,
+              "error_rpm": -7.33,
+              "error_pct": 1.22,
+              "sd_rpm": 27.82,
+              "min_rpm": 544,
+              "max_rpm": 638,
+              "mean_current": 235.26
+            },
+            {
+              "n": 38,
+              "mean_rpm": 597.24,
+              "error_rpm": -2.76,
+              "error_pct": 0.46,
+              "sd_rpm": 27.42,
+              "min_rpm": 544,
+              "max_rpm": 648,
+              "mean_current": 229.66
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2006,
+            "mean_rpm": 596.41,
+            "sd_rpm": 27.99,
+            "min_rpm": 535,
+            "max_rpm": 663
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 41.353338000000804,
+          "end_s": 42.3408849999978,
+          "duration_s": 0.988,
+          "peak_abs_current": 640,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.4,
+            "error_rpm": -0.4,
+            "error_pct": null,
+            "sd_rpm": 1.24,
+            "min_rpm": -5,
+            "max_rpm": 0,
+            "mean_current": 196.8
+          }
+        },
+        {
+          "target": -600,
+          "start_s": 42.3408849999978,
+          "end_s": 50.349975999997696,
+          "duration_s": 8.009,
+          "peak_abs_current": 997,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -602.5,
+            "error_rpm": -2.5,
+            "error_pct": 0.42,
+            "sd_rpm": 26.24,
+            "min_rpm": -651,
+            "max_rpm": -561,
+            "mean_current": -218.9
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": -594.12,
+            "error_rpm": 5.88,
+            "error_pct": 0.98,
+            "sd_rpm": 27.13,
+            "min_rpm": -651,
+            "max_rpm": -547,
+            "mean_current": -231.09
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": -415.51,
+              "error_rpm": 184.49,
+              "error_pct": 30.75,
+              "sd_rpm": 94.25,
+              "min_rpm": -519,
+              "max_rpm": -5,
+              "mean_current": -280.54
+            },
+            {
+              "n": 38,
+              "mean_rpm": -505.13,
+              "error_rpm": 94.87,
+              "error_pct": 15.81,
+              "sd_rpm": 32.12,
+              "min_rpm": -561,
+              "max_rpm": -442,
+              "mean_current": -227.58
+            },
+            {
+              "n": 39,
+              "mean_rpm": -539.9,
+              "error_rpm": 60.1,
+              "error_pct": 10.02,
+              "sd_rpm": 28.47,
+              "min_rpm": -595,
+              "max_rpm": -480,
+              "mean_current": -234.31
+            },
+            {
+              "n": 38,
+              "mean_rpm": -561.47,
+              "error_rpm": 38.53,
+              "error_pct": 6.42,
+              "sd_rpm": 25.81,
+              "min_rpm": -614,
+              "max_rpm": -511,
+              "mean_current": -237.79
+            },
+            {
+              "n": 39,
+              "mean_rpm": -580.36,
+              "error_rpm": 19.64,
+              "error_pct": 3.27,
+              "sd_rpm": 22.06,
+              "min_rpm": -620,
+              "max_rpm": -545,
+              "mean_current": -229.21
+            },
+            {
+              "n": 38,
+              "mean_rpm": -583.79,
+              "error_rpm": 16.21,
+              "error_pct": 2.7,
+              "sd_rpm": 26.12,
+              "min_rpm": -632,
+              "max_rpm": -532,
+              "mean_current": -238.92
+            },
+            {
+              "n": 39,
+              "mean_rpm": -592.92,
+              "error_rpm": 7.08,
+              "error_pct": 1.18,
+              "sd_rpm": 27.65,
+              "min_rpm": -651,
+              "max_rpm": -549,
+              "mean_current": -229.92
+            },
+            {
+              "n": 38,
+              "mean_rpm": -595.34,
+              "error_rpm": 4.66,
+              "error_pct": 0.78,
+              "sd_rpm": 26.54,
+              "min_rpm": -651,
+              "max_rpm": -547,
+              "mean_current": -232.29
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2004,
+            "mean_rpm": -593.67,
+            "sd_rpm": 27.2,
+            "min_rpm": -662,
+            "max_rpm": -536
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 50.349975999997696,
+          "end_s": 51.33803500000795,
+          "duration_s": 0.988,
+          "peak_abs_current": 709,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 0,
+            "error_rpm": 0,
+            "error_pct": null,
+            "sd_rpm": 0.0,
+            "min_rpm": 0,
+            "max_rpm": 0,
+            "mean_current": -195
+          }
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "id": 2,
+      "start_s": 55.446,
+      "complete": true,
+      "segments": [
+        {
+          "target": 600,
+          "start_s": 55.446343999996316,
+          "end_s": 63.45210700000462,
+          "duration_s": 8.006,
+          "peak_abs_current": 1120,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 601.85,
+            "error_rpm": 1.85,
+            "error_pct": 0.31,
+            "sd_rpm": 29.2,
+            "min_rpm": 550,
+            "max_rpm": 650,
+            "mean_current": 205.45
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": 595.68,
+            "error_rpm": -4.32,
+            "error_pct": 0.72,
+            "sd_rpm": 39.4,
+            "min_rpm": 504,
+            "max_rpm": 680,
+            "mean_current": 218.74
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": 495,
+              "error_rpm": -105,
+              "error_pct": 17.5,
+              "sd_rpm": 115.81,
+              "min_rpm": 43,
+              "max_rpm": 604,
+              "mean_current": 286.23
+            },
+            {
+              "n": 38,
+              "mean_rpm": 556.68,
+              "error_rpm": -43.32,
+              "error_pct": 7.22,
+              "sd_rpm": 36.88,
+              "min_rpm": 460,
+              "max_rpm": 644,
+              "mean_current": 213.13
+            },
+            {
+              "n": 39,
+              "mean_rpm": 578.1,
+              "error_rpm": -21.9,
+              "error_pct": 3.65,
+              "sd_rpm": 44.81,
+              "min_rpm": 458,
+              "max_rpm": 661,
+              "mean_current": 211.33
+            },
+            {
+              "n": 38,
+              "mean_rpm": 575.42,
+              "error_rpm": -24.58,
+              "error_pct": 4.1,
+              "sd_rpm": 36.24,
+              "min_rpm": 498,
+              "max_rpm": 629,
+              "mean_current": 232.34
+            },
+            {
+              "n": 39,
+              "mean_rpm": 596.15,
+              "error_rpm": -3.85,
+              "error_pct": 0.64,
+              "sd_rpm": 34.33,
+              "min_rpm": 506,
+              "max_rpm": 654,
+              "mean_current": 202.51
+            },
+            {
+              "n": 38,
+              "mean_rpm": 589.68,
+              "error_rpm": -10.32,
+              "error_pct": 1.72,
+              "sd_rpm": 42.79,
+              "min_rpm": 456,
+              "max_rpm": 659,
+              "mean_current": 226.82
+            },
+            {
+              "n": 39,
+              "mean_rpm": 584.03,
+              "error_rpm": -15.97,
+              "error_pct": 2.66,
+              "sd_rpm": 41.56,
+              "min_rpm": 504,
+              "max_rpm": 659,
+              "mean_current": 238.87
+            },
+            {
+              "n": 38,
+              "mean_rpm": 607.63,
+              "error_rpm": 7.63,
+              "error_pct": 1.27,
+              "sd_rpm": 33.01,
+              "min_rpm": 544,
+              "max_rpm": 680,
+              "mean_current": 198.08
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2002,
+            "mean_rpm": 599.54,
+            "sd_rpm": 39.38,
+            "min_rpm": 449,
+            "max_rpm": 692
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 63.45210700000462,
+          "end_s": 64.44046500000695,
+          "duration_s": 0.988,
+          "peak_abs_current": 679,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 0,
+            "error_rpm": 0,
+            "error_pct": null,
+            "sd_rpm": 0.0,
+            "min_rpm": 0,
+            "max_rpm": 0,
+            "mean_current": 176
+          }
+        },
+        {
+          "target": -600,
+          "start_s": 64.44046500000695,
+          "end_s": 72.45075000000361,
+          "duration_s": 8.01,
+          "peak_abs_current": 964,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -610.2,
+            "error_rpm": -10.2,
+            "error_pct": 1.7,
+            "sd_rpm": 24.71,
+            "min_rpm": -655,
+            "max_rpm": -561,
+            "mean_current": -189.05
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": -593.66,
+            "error_rpm": 6.34,
+            "error_pct": 1.06,
+            "sd_rpm": 39.44,
+            "min_rpm": -664,
+            "max_rpm": -473,
+            "mean_current": -219.62
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": -434.15,
+              "error_rpm": 165.85,
+              "error_pct": 27.64,
+              "sd_rpm": 95.22,
+              "min_rpm": -532,
+              "max_rpm": -32,
+              "mean_current": -253.23
+            },
+            {
+              "n": 38,
+              "mean_rpm": -500.42,
+              "error_rpm": 99.58,
+              "error_pct": 16.6,
+              "sd_rpm": 45.42,
+              "min_rpm": -566,
+              "max_rpm": -369,
+              "mean_current": -233.82
+            },
+            {
+              "n": 39,
+              "mean_rpm": -552.33,
+              "error_rpm": 47.67,
+              "error_pct": 7.94,
+              "sd_rpm": 39.09,
+              "min_rpm": -618,
+              "max_rpm": -461,
+              "mean_current": -207.51
+            },
+            {
+              "n": 38,
+              "mean_rpm": -564.42,
+              "error_rpm": 35.58,
+              "error_pct": 5.93,
+              "sd_rpm": 37.83,
+              "min_rpm": -628,
+              "max_rpm": -488,
+              "mean_current": -222.74
+            },
+            {
+              "n": 39,
+              "mean_rpm": -584.15,
+              "error_rpm": 15.85,
+              "error_pct": 2.64,
+              "sd_rpm": 37.77,
+              "min_rpm": -658,
+              "max_rpm": -492,
+              "mean_current": -208.69
+            },
+            {
+              "n": 38,
+              "mean_rpm": -588.08,
+              "error_rpm": 11.92,
+              "error_pct": 1.99,
+              "sd_rpm": 34.69,
+              "min_rpm": -653,
+              "max_rpm": -490,
+              "mean_current": -220.71
+            },
+            {
+              "n": 39,
+              "mean_rpm": -583.05,
+              "error_rpm": 16.95,
+              "error_pct": 2.82,
+              "sd_rpm": 44.38,
+              "min_rpm": -647,
+              "max_rpm": -473,
+              "mean_current": -236.15
+            },
+            {
+              "n": 38,
+              "mean_rpm": -604.55,
+              "error_rpm": -4.55,
+              "error_pct": 0.76,
+              "sd_rpm": 29.94,
+              "min_rpm": -664,
+              "max_rpm": -511,
+              "mean_current": -202.66
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2001,
+            "mean_rpm": -595.46,
+            "sd_rpm": 39.46,
+            "min_rpm": -687,
+            "max_rpm": -455
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 72.45075000000361,
+          "end_s": 73.43868200000725,
+          "duration_s": 0.988,
+          "peak_abs_current": 808,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 0,
+            "error_rpm": 0,
+            "error_pct": null,
+            "sd_rpm": 0.0,
+            "min_rpm": 0,
+            "max_rpm": 0,
+            "mean_current": -175
+          }
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "id": 3,
+      "start_s": 77.832,
+      "complete": true,
+      "segments": [
+        {
+          "target": 600,
+          "start_s": 77.83182900000247,
+          "end_s": 85.83900000000722,
+          "duration_s": 8.007,
+          "peak_abs_current": 1033,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 576.2,
+            "error_rpm": -23.8,
+            "error_pct": 3.97,
+            "sd_rpm": 44.78,
+            "min_rpm": 445,
+            "max_rpm": 644,
+            "mean_current": 355.1
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": 593.52,
+            "error_rpm": -6.48,
+            "error_pct": 1.08,
+            "sd_rpm": 35.05,
+            "min_rpm": 445,
+            "max_rpm": 659,
+            "mean_current": 315.21
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": 470.74,
+              "error_rpm": -129.26,
+              "error_pct": 21.54,
+              "sd_rpm": 79.37,
+              "min_rpm": 87,
+              "max_rpm": 535,
+              "mean_current": 338.05
+            },
+            {
+              "n": 38,
+              "mean_rpm": 533.5,
+              "error_rpm": -66.5,
+              "error_pct": 11.08,
+              "sd_rpm": 30.2,
+              "min_rpm": 472,
+              "max_rpm": 583,
+              "mean_current": 304.74
+            },
+            {
+              "n": 39,
+              "mean_rpm": 550.85,
+              "error_rpm": -49.15,
+              "error_pct": 8.19,
+              "sd_rpm": 30.43,
+              "min_rpm": 437,
+              "max_rpm": 600,
+              "mean_current": 320.46
+            },
+            {
+              "n": 38,
+              "mean_rpm": 578.61,
+              "error_rpm": -21.39,
+              "error_pct": 3.57,
+              "sd_rpm": 24.78,
+              "min_rpm": 531,
+              "max_rpm": 623,
+              "mean_current": 302.08
+            },
+            {
+              "n": 39,
+              "mean_rpm": 584.54,
+              "error_rpm": -15.46,
+              "error_pct": 2.58,
+              "sd_rpm": 25.88,
+              "min_rpm": 537,
+              "max_rpm": 636,
+              "mean_current": 310.87
+            },
+            {
+              "n": 38,
+              "mean_rpm": 591,
+              "error_rpm": -9,
+              "error_pct": 1.5,
+              "sd_rpm": 24.67,
+              "min_rpm": 548,
+              "max_rpm": 652,
+              "mean_current": 308.58
+            },
+            {
+              "n": 39,
+              "mean_rpm": 599.92,
+              "error_rpm": -0.08,
+              "error_pct": 0.01,
+              "sd_rpm": 30.16,
+              "min_rpm": 537,
+              "max_rpm": 659,
+              "mean_current": 300.23
+            },
+            {
+              "n": 38,
+              "mean_rpm": 586.95,
+              "error_rpm": -13.05,
+              "error_pct": 2.18,
+              "sd_rpm": 38.35,
+              "min_rpm": 445,
+              "max_rpm": 648,
+              "mean_current": 330.58
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2006,
+            "mean_rpm": 590.34,
+            "sd_rpm": 33.25,
+            "min_rpm": 441,
+            "max_rpm": 665
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 85.83900000000722,
+          "end_s": 86.82680300000357,
+          "duration_s": 0.988,
+          "peak_abs_current": 575,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.3,
+            "error_rpm": -0.3,
+            "error_pct": null,
+            "sd_rpm": 0.9,
+            "min_rpm": -3,
+            "max_rpm": 0,
+            "mean_current": 275.6
+          }
+        },
+        {
+          "target": -600,
+          "start_s": 86.82680300000357,
+          "end_s": 94.833547000002,
+          "duration_s": 8.007,
+          "peak_abs_current": 828,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -584.4,
+            "error_rpm": 15.6,
+            "error_pct": 2.6,
+            "sd_rpm": 26.27,
+            "min_rpm": -630,
+            "max_rpm": -532,
+            "mean_current": -361.4
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": -581.62,
+            "error_rpm": 18.38,
+            "error_pct": 3.06,
+            "sd_rpm": 32.07,
+            "min_rpm": -647,
+            "max_rpm": -480,
+            "mean_current": -356.61
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": -355.9,
+              "error_rpm": 244.1,
+              "error_pct": 40.68,
+              "sd_rpm": 74.9,
+              "min_rpm": -436,
+              "max_rpm": -51,
+              "mean_current": -347.28
+            },
+            {
+              "n": 38,
+              "mean_rpm": -465.24,
+              "error_rpm": 134.76,
+              "error_pct": 22.46,
+              "sd_rpm": 29.83,
+              "min_rpm": -524,
+              "max_rpm": -404,
+              "mean_current": -308.24
+            },
+            {
+              "n": 39,
+              "mean_rpm": -514.13,
+              "error_rpm": 85.87,
+              "error_pct": 14.31,
+              "sd_rpm": 26.22,
+              "min_rpm": -566,
+              "max_rpm": -450,
+              "mean_current": -316.15
+            },
+            {
+              "n": 38,
+              "mean_rpm": -550.26,
+              "error_rpm": 49.74,
+              "error_pct": 8.29,
+              "sd_rpm": 23.89,
+              "min_rpm": -597,
+              "max_rpm": -513,
+              "mean_current": -311.82
+            },
+            {
+              "n": 39,
+              "mean_rpm": -561.85,
+              "error_rpm": 38.15,
+              "error_pct": 6.36,
+              "sd_rpm": 28.73,
+              "min_rpm": -618,
+              "max_rpm": -513,
+              "mean_current": -335.33
+            },
+            {
+              "n": 38,
+              "mean_rpm": -582.92,
+              "error_rpm": 17.08,
+              "error_pct": 2.85,
+              "sd_rpm": 24.52,
+              "min_rpm": -624,
+              "max_rpm": -545,
+              "mean_current": -323.45
+            },
+            {
+              "n": 39,
+              "mean_rpm": -579.36,
+              "error_rpm": 20.64,
+              "error_pct": 3.44,
+              "sd_rpm": 35.29,
+              "min_rpm": -641,
+              "max_rpm": -480,
+              "mean_current": -354.23
+            },
+            {
+              "n": 38,
+              "mean_rpm": -583.95,
+              "error_rpm": 16.05,
+              "error_pct": 2.68,
+              "sd_rpm": 28.19,
+              "min_rpm": -647,
+              "max_rpm": -530,
+              "mean_current": -359.05
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2004,
+            "mean_rpm": -581.09,
+            "sd_rpm": 29.12,
+            "min_rpm": -647,
+            "max_rpm": -478
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 94.833547000002,
+          "end_s": 95.82173500000499,
+          "duration_s": 0.988,
+          "peak_abs_current": 567,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.15,
+            "error_rpm": -0.15,
+            "error_pct": null,
+            "sd_rpm": 0.65,
+            "min_rpm": -3,
+            "max_rpm": 0,
+            "mean_current": -308.6
+          }
+        }
+      ]
+    },
+    {
+      "run": 4,
+      "id": 4,
+      "start_s": 100.761,
+      "complete": true,
+      "segments": [
+        {
+          "target": 600,
+          "start_s": 100.76130500000727,
+          "end_s": 108.76702600000135,
+          "duration_s": 8.006,
+          "peak_abs_current": 989,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 587.5,
+            "error_rpm": -12.5,
+            "error_pct": 2.08,
+            "sd_rpm": 63.36,
+            "min_rpm": 424,
+            "max_rpm": 686,
+            "mean_current": 240.85
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": 588.7,
+            "error_rpm": -11.3,
+            "error_pct": 1.88,
+            "sd_rpm": 48.85,
+            "min_rpm": 424,
+            "max_rpm": 686,
+            "mean_current": 240.68
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": 514.15,
+              "error_rpm": -85.85,
+              "error_pct": 14.31,
+              "sd_rpm": 85.65,
+              "min_rpm": 110,
+              "max_rpm": 598,
+              "mean_current": 234.18
+            },
+            {
+              "n": 38,
+              "mean_rpm": 535.68,
+              "error_rpm": -64.32,
+              "error_pct": 10.72,
+              "sd_rpm": 53.43,
+              "min_rpm": 408,
+              "max_rpm": 640,
+              "mean_current": 252.53
+            },
+            {
+              "n": 39,
+              "mean_rpm": 582.72,
+              "error_rpm": -17.28,
+              "error_pct": 2.88,
+              "sd_rpm": 28.08,
+              "min_rpm": 529,
+              "max_rpm": 648,
+              "mean_current": 198.54
+            },
+            {
+              "n": 38,
+              "mean_rpm": 577.58,
+              "error_rpm": -22.42,
+              "error_pct": 3.74,
+              "sd_rpm": 51.97,
+              "min_rpm": 431,
+              "max_rpm": 663,
+              "mean_current": 234.53
+            },
+            {
+              "n": 39,
+              "mean_rpm": 580.33,
+              "error_rpm": -19.67,
+              "error_pct": 3.28,
+              "sd_rpm": 46.61,
+              "min_rpm": 458,
+              "max_rpm": 659,
+              "mean_current": 237.08
+            },
+            {
+              "n": 38,
+              "mean_rpm": 611.13,
+              "error_rpm": 11.13,
+              "error_pct": 1.86,
+              "sd_rpm": 27.61,
+              "min_rpm": 525,
+              "max_rpm": 657,
+              "mean_current": 188.95
+            },
+            {
+              "n": 39,
+              "mean_rpm": 581.77,
+              "error_rpm": -18.23,
+              "error_pct": 3.04,
+              "sd_rpm": 46.0,
+              "min_rpm": 483,
+              "max_rpm": 661,
+              "mean_current": 254.69
+            },
+            {
+              "n": 38,
+              "mean_rpm": 595.82,
+              "error_rpm": -4.18,
+              "error_pct": 0.7,
+              "sd_rpm": 50.63,
+              "min_rpm": 424,
+              "max_rpm": 686,
+              "mean_current": 226.29
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2008,
+            "mean_rpm": 596.86,
+            "sd_rpm": 44.77,
+            "min_rpm": 426,
+            "max_rpm": 696
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 108.76702600000135,
+          "end_s": 109.75453000000562,
+          "duration_s": 0.988,
+          "peak_abs_current": 346,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.3,
+            "error_rpm": -0.3,
+            "error_pct": null,
+            "sd_rpm": 0.9,
+            "min_rpm": -3,
+            "max_rpm": 0,
+            "mean_current": 200.6
+          }
+        },
+        {
+          "target": -600,
+          "start_s": 109.75453000000562,
+          "end_s": 117.75918400000955,
+          "duration_s": 8.005,
+          "peak_abs_current": 847,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -616.8,
+            "error_rpm": -16.8,
+            "error_pct": 2.8,
+            "sd_rpm": 25.01,
+            "min_rpm": -674,
+            "max_rpm": -589,
+            "mean_current": -184.95
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": -597.87,
+            "error_rpm": 2.13,
+            "error_pct": 0.35,
+            "sd_rpm": 39.59,
+            "min_rpm": -674,
+            "max_rpm": -480,
+            "mean_current": -216.29
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": -410.46,
+              "error_rpm": 189.54,
+              "error_pct": 31.59,
+              "sd_rpm": 105.6,
+              "min_rpm": -528,
+              "max_rpm": -80,
+              "mean_current": -301.56
+            },
+            {
+              "n": 38,
+              "mean_rpm": -506.03,
+              "error_rpm": 93.97,
+              "error_pct": 15.66,
+              "sd_rpm": 43.07,
+              "min_rpm": -582,
+              "max_rpm": -373,
+              "mean_current": -221.18
+            },
+            {
+              "n": 39,
+              "mean_rpm": -541.82,
+              "error_rpm": 58.18,
+              "error_pct": 9.7,
+              "sd_rpm": 46.79,
+              "min_rpm": -628,
+              "max_rpm": -417,
+              "mean_current": -234.18
+            },
+            {
+              "n": 38,
+              "mean_rpm": -564.68,
+              "error_rpm": 35.32,
+              "error_pct": 5.89,
+              "sd_rpm": 47.53,
+              "min_rpm": -632,
+              "max_rpm": -444,
+              "mean_current": -224.39
+            },
+            {
+              "n": 39,
+              "mean_rpm": -591.05,
+              "error_rpm": 8.95,
+              "error_pct": 1.49,
+              "sd_rpm": 30.25,
+              "min_rpm": -645,
+              "max_rpm": -509,
+              "mean_current": -202.15
+            },
+            {
+              "n": 38,
+              "mean_rpm": -577.79,
+              "error_rpm": 22.21,
+              "error_pct": 3.7,
+              "sd_rpm": 53.46,
+              "min_rpm": -653,
+              "max_rpm": -398,
+              "mean_current": -242.68
+            },
+            {
+              "n": 39,
+              "mean_rpm": -596.56,
+              "error_rpm": 3.44,
+              "error_pct": 0.57,
+              "sd_rpm": 35.22,
+              "min_rpm": -658,
+              "max_rpm": -517,
+              "mean_current": -211.44
+            },
+            {
+              "n": 38,
+              "mean_rpm": -599.21,
+              "error_rpm": 0.79,
+              "error_pct": 0.13,
+              "sd_rpm": 43.58,
+              "min_rpm": -674,
+              "max_rpm": -480,
+              "mean_current": -221.26
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2008,
+            "mean_rpm": -595.21,
+            "sd_rpm": 42.06,
+            "min_rpm": -685,
+            "max_rpm": -442
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 117.75918400000955,
+          "end_s": 118.74685900000622,
+          "duration_s": 0.988,
+          "peak_abs_current": 771,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.15,
+            "error_rpm": -0.15,
+            "error_pct": null,
+            "sd_rpm": 0.65,
+            "min_rpm": -3,
+            "max_rpm": 0,
+            "mean_current": -182.7
+          }
+        }
+      ]
+    },
+    {
+      "run": 5,
+      "id": 1,
+      "start_s": 124.439,
+      "complete": true,
+      "segments": [
+        {
+          "target": 600,
+          "start_s": 124.43854600000486,
+          "end_s": 132.44418099999893,
+          "duration_s": 8.006,
+          "peak_abs_current": 1067,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 593.9,
+            "error_rpm": -6.1,
+            "error_pct": 1.02,
+            "sd_rpm": 30.25,
+            "min_rpm": 548,
+            "max_rpm": 644,
+            "mean_current": 233.3
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": 596.84,
+            "error_rpm": -3.16,
+            "error_pct": 0.53,
+            "sd_rpm": 28.65,
+            "min_rpm": 546,
+            "max_rpm": 648,
+            "mean_current": 225.66
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": 488.79,
+              "error_rpm": -111.21,
+              "error_pct": 18.53,
+              "sd_rpm": 92.82,
+              "min_rpm": 71,
+              "max_rpm": 569,
+              "mean_current": 294.41
+            },
+            {
+              "n": 38,
+              "mean_rpm": 554.47,
+              "error_rpm": -45.53,
+              "error_pct": 7.59,
+              "sd_rpm": 28.07,
+              "min_rpm": 498,
+              "max_rpm": 600,
+              "mean_current": 225.45
+            },
+            {
+              "n": 39,
+              "mean_rpm": 575.41,
+              "error_rpm": -24.59,
+              "error_pct": 4.1,
+              "sd_rpm": 23.74,
+              "min_rpm": 516,
+              "max_rpm": 611,
+              "mean_current": 218.54
+            },
+            {
+              "n": 38,
+              "mean_rpm": 581.5,
+              "error_rpm": -18.5,
+              "error_pct": 3.08,
+              "sd_rpm": 26.43,
+              "min_rpm": 539,
+              "max_rpm": 627,
+              "mean_current": 229.45
+            },
+            {
+              "n": 39,
+              "mean_rpm": 589.9,
+              "error_rpm": -10.1,
+              "error_pct": 1.68,
+              "sd_rpm": 27.5,
+              "min_rpm": 541,
+              "max_rpm": 636,
+              "mean_current": 226.13
+            },
+            {
+              "n": 38,
+              "mean_rpm": 593.34,
+              "error_rpm": -6.66,
+              "error_pct": 1.11,
+              "sd_rpm": 27.51,
+              "min_rpm": 544,
+              "max_rpm": 650,
+              "mean_current": 226.32
+            },
+            {
+              "n": 39,
+              "mean_rpm": 595.67,
+              "error_rpm": -4.33,
+              "error_pct": 0.72,
+              "sd_rpm": 26.49,
+              "min_rpm": 546,
+              "max_rpm": 640,
+              "mean_current": 226.82
+            },
+            {
+              "n": 38,
+              "mean_rpm": 598.05,
+              "error_rpm": -1.95,
+              "error_pct": 0.32,
+              "sd_rpm": 30.66,
+              "min_rpm": 548,
+              "max_rpm": 648,
+              "mean_current": 224.47
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2005,
+            "mean_rpm": 596.46,
+            "sd_rpm": 27.95,
+            "min_rpm": 537,
+            "max_rpm": 659
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 132.44418099999893,
+          "end_s": 133.4317710000032,
+          "duration_s": 0.988,
+          "peak_abs_current": 651,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -0.3,
+            "error_rpm": -0.3,
+            "error_pct": null,
+            "sd_rpm": 0.9,
+            "min_rpm": -3,
+            "max_rpm": 0,
+            "mean_current": 190.6
+          }
+        },
+        {
+          "target": -600,
+          "start_s": 133.4317710000032,
+          "end_s": 141.43650999999954,
+          "duration_s": 8.005,
+          "peak_abs_current": 864,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": -599.6,
+            "error_rpm": 0.4,
+            "error_pct": 0.07,
+            "sd_rpm": 30.02,
+            "min_rpm": -641,
+            "max_rpm": -553,
+            "mean_current": -218.45
+          },
+          "last_2s": {
+            "n": 77,
+            "mean_rpm": -596.25,
+            "error_rpm": 3.75,
+            "error_pct": 0.63,
+            "sd_rpm": 26.83,
+            "min_rpm": -641,
+            "max_rpm": -542,
+            "mean_current": -222.26
+          },
+          "seconds": [
+            {
+              "n": 39,
+              "mean_rpm": -417.46,
+              "error_rpm": 182.54,
+              "error_pct": 30.42,
+              "sd_rpm": 80.47,
+              "min_rpm": -499,
+              "max_rpm": -76,
+              "mean_current": -280.79
+            },
+            {
+              "n": 38,
+              "mean_rpm": -511.71,
+              "error_rpm": 88.29,
+              "error_pct": 14.71,
+              "sd_rpm": 24.98,
+              "min_rpm": -566,
+              "max_rpm": -467,
+              "mean_current": -215.97
+            },
+            {
+              "n": 39,
+              "mean_rpm": -544.56,
+              "error_rpm": 55.44,
+              "error_pct": 9.24,
+              "sd_rpm": 25.44,
+              "min_rpm": -589,
+              "max_rpm": -496,
+              "mean_current": -223.41
+            },
+            {
+              "n": 38,
+              "mean_rpm": -562.16,
+              "error_rpm": 37.84,
+              "error_pct": 6.31,
+              "sd_rpm": 26.84,
+              "min_rpm": -612,
+              "max_rpm": -517,
+              "mean_current": -234.92
+            },
+            {
+              "n": 39,
+              "mean_rpm": -575.85,
+              "error_rpm": 24.15,
+              "error_pct": 4.03,
+              "sd_rpm": 27.12,
+              "min_rpm": -639,
+              "max_rpm": -522,
+              "mean_current": -237.33
+            },
+            {
+              "n": 38,
+              "mean_rpm": -587.87,
+              "error_rpm": 12.13,
+              "error_pct": 2.02,
+              "sd_rpm": 27.78,
+              "min_rpm": -645,
+              "max_rpm": -536,
+              "mean_current": -227.42
+            },
+            {
+              "n": 39,
+              "mean_rpm": -593.23,
+              "error_rpm": 6.77,
+              "error_pct": 1.13,
+              "sd_rpm": 25.69,
+              "min_rpm": -635,
+              "max_rpm": -542,
+              "mean_current": -226.26
+            },
+            {
+              "n": 38,
+              "mean_rpm": -599.34,
+              "error_rpm": 0.66,
+              "error_pct": 0.11,
+              "sd_rpm": 27.61,
+              "min_rpm": -641,
+              "max_rpm": -551,
+              "mean_current": -218.16
+            }
+          ],
+          "settling_5pct_s": null,
+          "raw_late_2s_before_transition_margin": {
+            "n": 2006,
+            "mean_rpm": -594.45,
+            "sd_rpm": 27.32,
+            "min_rpm": -658,
+            "max_rpm": -534
+          }
+        },
+        {
+          "target": 0,
+          "start_s": 141.43650999999954,
+          "end_s": 142.4240140000038,
+          "duration_s": 0.988,
+          "peak_abs_current": 679,
+          "saturation_samples": 0,
+          "last_half_s": {
+            "n": 20,
+            "mean_rpm": 0,
+            "error_rpm": 0,
+            "error_pct": null,
+            "sd_rpm": 0.0,
+            "min_rpm": 0,
+            "max_rpm": 0,
+            "mean_current": -188
+          }
+        }
+      ]
+    }
+  ]
+}
