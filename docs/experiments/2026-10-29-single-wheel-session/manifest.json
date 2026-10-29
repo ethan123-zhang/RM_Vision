@@ -1,0 +1,257 @@
+{
+  "session_date": "2026-10-29",
+  "raw_archive_policy": "原始压缩包保留本地_probe，不提交Git；清单、报告与分析脚本提交Git",
+  "archives": [
+    {
+      "archive": "_probe/archives/2026-10-29-single-wheel/can_capture.zip",
+      "archive_bytes": 2863534,
+      "archive_sha256": "10442365c8179c7b413a9e83814999f8359357f1a5d9e363bc54ee89f7a4fb53",
+      "verified_members": [
+        {
+          "source": "_probe/can_capture/capture.csv",
+          "member": "can_capture/capture.csv",
+          "bytes": 18782210,
+          "sha256": "cd86f6ee6ae7616580ce33629827ef4e8d4e9caa5e9bc853b183f4f6c8533504"
+        },
+        {
+          "source": "_probe/can_capture/capture.json",
+          "member": "can_capture/capture.json",
+          "bytes": 1479,
+          "sha256": "fc86227a1f30e08d3caac215e639c909d8f71b8ebace17a52a75ea5ae11faf59"
+        },
+        {
+          "source": "_probe/can_capture/capture.py",
+          "member": "can_capture/capture.py",
+          "bytes": 2003,
+          "sha256": "65374eb59b681a1e38966c09563573a3da055c4b358cb2f199ac4b5cfc6b7885"
+        },
+        {
+          "source": "_probe/can_capture/analyze.py",
+          "member": "can_capture/analyze.py",
+          "bytes": 2475,
+          "sha256": "ac9d8705517d86386b7d62bca5756b9998fe99d773f6f04806b83902919ce706"
+        },
+        {
+          "source": "_probe/can_capture/export_analysis.py",
+          "member": "can_capture/export_analysis.py",
+          "bytes": 2520,
+          "sha256": "161d05f7e17a444937e4b5bc9d0ed50e972e901979e02d701673894bc8f1d60e"
+        },
+        {
+          "source": "_probe/can_capture/analysis.json",
+          "member": "can_capture/analysis.json",
+          "bytes": 7289,
+          "sha256": "7ea35ee182f5e5b94cc81cb09f7ebd0a400aa944f07a4274436c8ae41e9393cd"
+        }
+      ],
+      "report": "docs/experiments/2026-10-29-single-wheel/README.md",
+      "frames": 410146,
+      "telemetry_frames": 3431
+    },
+    {
+      "archive": "_probe/archives/2026-10-29-single-wheel/can_capture_run2.zip",
+      "archive_bytes": 2889276,
+      "archive_sha256": "8c9acfcff0d5016ff875020244682a4cf861bcc940a7ec293f0bfa41d4dd737b",
+      "verified_members": [
+        {
+          "source": "_probe/can_capture_run2/capture.csv",
+          "member": "can_capture_run2/capture.csv",
+          "bytes": 18940930,
+          "sha256": "bfc65ad184addea9dfaa5d730e391d908e8fd203d469e6bde61995a321f3a911"
+        },
+        {
+          "source": "_probe/can_capture_run2/capture.json",
+          "member": "can_capture_run2/capture.json",
+          "bytes": 1539,
+          "sha256": "069c19347a4878cf3025f1ed877c118044eb917d238d21c857341f01bd3781a8"
+        },
+        {
+          "source": "_probe/can_capture_run2/capture.py",
+          "member": "can_capture_run2/capture.py",
+          "bytes": 2008,
+          "sha256": "e8b36b49518cb6fc865be31b09bcd2fbe340d4fbc4df9b82ac8c08cf83af66a2"
+        },
+        {
+          "source": "_probe/can_capture_run2/analyze.py",
+          "member": "can_capture_run2/analyze.py",
+          "bytes": 2485,
+          "sha256": "3f4b2e17fe7c46e1a1ac944a17795fd980dde4ceadefab5d1d089544c9d79730"
+        },
+        {
+          "source": "_probe/can_capture_run2/analyze_complete.py",
+          "member": "can_capture_run2/analyze_complete.py",
+          "bytes": 2557,
+          "sha256": "46b66e5e05b1eb836eff83b9a5c82ade8cc0a809bf7296319e4d9557febb0fb2"
+        },
+        {
+          "source": "_probe/can_capture_run2/export.py",
+          "member": "can_capture_run2/export.py",
+          "bytes": 2404,
+          "sha256": "e6b07332954de405b555b8c85ed13805f9f356bc0af8e504cdd8bc9b781ad838"
+        },
+        {
+          "source": "_probe/can_capture_run2/summary.json",
+          "member": "can_capture_run2/summary.json",
+          "bytes": 6825,
+          "sha256": "5223c99f65831da5504f4b570cac2a038e4e5bd501f9263c07b21291afb048fd"
+        }
+      ],
+      "report": "docs/experiments/2026-10-29-single-wheel-run2/README.md",
+      "frames": 413604,
+      "telemetry_frames": 3462
+    },
+    {
+      "archive": "_probe/archives/2026-10-29-single-wheel/can_capture_long8s.zip",
+      "archive_bytes": 9908622,
+      "archive_sha256": "b400ba31ca8d8dd78402917b451bfc822e9e249d2bcf309c5a61f72df55b8ea9",
+      "verified_members": [
+        {
+          "source": "_probe/can_capture_long8s/capture.csv",
+          "member": "can_capture_long8s/capture.csv",
+          "bytes": 64076169,
+          "sha256": "f1f844903bc0abcc7c3d18896c4d2a13eb88a5cf3b51f0b5bd1e86195a8d0a70"
+        },
+        {
+          "source": "_probe/can_capture_long8s/capture.json",
+          "member": "can_capture_long8s/capture.json",
+          "bytes": 1802,
+          "sha256": "f1f18fb71fa031b61b368ad6000b9cbd5dca208549ce61435ab6f0ee8340c63a"
+        },
+        {
+          "source": "_probe/can_capture_long8s/capture.py",
+          "member": "can_capture_long8s/capture.py",
+          "bytes": 509,
+          "sha256": "ff571ef73ba5eb3fe9e5090f4906c0d88a05680addad78d9fb98399bb8e9c75d"
+        },
+        {
+          "source": "_probe/can_capture_long8s/analyze.py",
+          "member": "can_capture_long8s/analyze.py",
+          "bytes": 6929,
+          "sha256": "86cc3f62668448dd0f4c99fa92ac5ebef311ffbda4aea4680a77fd0ff1c67b59"
+        }
+      ],
+      "report": "docs/experiments/2026-10-29-single-wheel-long8s/README.md",
+      "frames": 1378646,
+      "telemetry_frames": 11539
+    },
+    {
+      "archive": "_probe/archives/2026-10-29-single-wheel/can_capture_ki004.zip",
+      "archive_bytes": 9867433,
+      "archive_sha256": "c6029fa4caeb268d3154064300fa50a059ded9e3aafec6426c265117c8262be4",
+      "verified_members": [
+        {
+          "source": "_probe/can_capture_ki004/capture.csv",
+          "member": "can_capture_ki004/capture.csv",
+          "bytes": 63591078,
+          "sha256": "77f5a94b5dc862299066c75606d5d0c7bc457e962913b43cbf0f471665196c6a"
+        },
+        {
+          "source": "_probe/can_capture_ki004/capture.json",
+          "member": "can_capture_ki004/capture.json",
+          "bytes": 3261,
+          "sha256": "aeb399b0238f5f6a633031f6a925153d03b22d6496aba4cced7425b7e72a1077"
+        },
+        {
+          "source": "_probe/can_capture_ki004/capture.py",
+          "member": "can_capture_ki004/capture.py",
+          "bytes": 507,
+          "sha256": "071014dde4a5999628ade18ab65251ddd7c0c6dc5d8b6ca7670b91e7ccb3698d"
+        }
+      ],
+      "report": "docs/experiments/2026-10-29-single-wheel-ki004/README.md",
+      "frames": 1366467,
+      "telemetry_frames": 11507
+    },
+    {
+      "archive": "_probe/archives/2026-10-29-single-wheel/can_capture_ki004_motor3.zip",
+      "archive_bytes": 3920637,
+      "archive_sha256": "36df3657ac1ed903f8c804cf682e5ce2bb8a29ae9429474f28222972aca9067f",
+      "verified_members": [
+        {
+          "source": "_probe/can_capture_ki004_motor3/capture.csv",
+          "member": "can_capture_ki004_motor3/capture.csv",
+          "bytes": 25318278,
+          "sha256": "0367e2c97d173d0d4e2a189706871a7adabd5cdc216b223fb8f1da4602107462"
+        },
+        {
+          "source": "_probe/can_capture_ki004_motor3/capture.json",
+          "member": "can_capture_ki004_motor3/capture.json",
+          "bytes": 591,
+          "sha256": "9ab49551be4410aae2cddb4cfd2dff1c1f7c931e5aeeb29d34251d84f8bb62f9"
+        },
+        {
+          "source": "_probe/can_capture_ki004_motor3/capture.py",
+          "member": "can_capture_ki004_motor3/capture.py",
+          "bytes": 424,
+          "sha256": "780c9c2c8391dc6498c155e3fef75fbe6c3bc7f25fd306ebedd245c05e3cb898"
+        }
+      ],
+      "report": "docs/experiments/2026-10-29-single-wheel-ki004-motor3/README.md",
+      "frames": 551270,
+      "telemetry_frames": 4614
+    }
+  ],
+  "firmware_snapshot": {
+    "archive": "_probe/archives/2026-10-29-single-wheel/firmware-ki004.zip",
+    "archive_bytes": 472610,
+    "archive_sha256": "2ca3735a8bbc87812dcef74264b643a191da1773e4a1081bedd890d6adf6bf45",
+    "verified_members": [
+      {
+        "source": "cboard_chassis/application/chassis_speed_test.h",
+        "member": "cboard_chassis/application/chassis_speed_test.h",
+        "bytes": 1111,
+        "sha256": "3471d7323950f725c27627af564cb2554029e6995c07de54c96fab79a6a14dcf"
+      },
+      {
+        "source": "cboard_chassis/application/chassis_bringup.h",
+        "member": "cboard_chassis/application/chassis_bringup.h",
+        "bytes": 5180,
+        "sha256": "36b3e7c8b4c07add96d2dcf20d507fc2c943ef7e07d316742d5cf69fe265d76d"
+      },
+      {
+        "source": "cboard_chassis/application/chassis_bringup.c",
+        "member": "cboard_chassis/application/chassis_bringup.c",
+        "bytes": 12710,
+        "sha256": "99a63dec4621cf66561bbb53ab0a9f77d4f61464273ce64918c73badd9af2181"
+      },
+      {
+        "source": "cboard_chassis/application/chassis_bringup_map.c",
+        "member": "cboard_chassis/application/chassis_bringup_map.c",
+        "bytes": 7105,
+        "sha256": "529ef95b8c37c5c5bb981dfc899cfe3e0f29c4308008e0eb5463fb37623a05e4"
+      },
+      {
+        "source": "cboard_chassis/application/chassis_bringup_map.h",
+        "member": "cboard_chassis/application/chassis_bringup_map.h",
+        "bytes": 7886,
+        "sha256": "f0b0195873a5808b36a4375f243f774ccc33d05dacc359f0a5501e8e605b7fd5"
+      },
+      {
+        "source": "cboard_chassis/MDK-ARM/chassis_task.uvprojx",
+        "member": "cboard_chassis/MDK-ARM/chassis_task.uvprojx",
+        "bytes": 30872,
+        "sha256": "e46a5a715f046a2663cac45bf59e5e388bcbf4c33ce5776d1c1eac7d5c68939e"
+      },
+      {
+        "source": "cboard_chassis/MDK-ARM/chassis_task/chassis_task.hex",
+        "member": "cboard_chassis/MDK-ARM/chassis_task/chassis_task.hex",
+        "bytes": 191273,
+        "sha256": "d83032fbaca41f90ef2ec4718977f2b329cab26b66f0bf04353a81a01a5d40d1"
+      },
+      {
+        "source": "cboard_chassis/MDK-ARM/chassis_task/chassis_task.axf",
+        "member": "cboard_chassis/MDK-ARM/chassis_task/chassis_task.axf",
+        "bytes": 2023040,
+        "sha256": "6c052b9cb4a7b98a33a0b9d76a44bfcf32368840d2ee49403b541a98d74123e6"
+      },
+      {
+        "source": "cboard_chassis/MDK-ARM/build-ki004.log",
+        "member": "cboard_chassis/MDK-ARM/build-ki004.log",
+        "bytes": 382,
+        "sha256": "3da7ffb5444b9a82403a68959337230604a4d79904f956aecf9a4a98f6bb7466"
+      }
+    ]
+  },
+  "total_frames": 4120133,
+  "total_telemetry_frames": 34553
+}

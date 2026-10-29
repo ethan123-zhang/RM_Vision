@@ -10,6 +10,8 @@ RoboMaster 2027 视觉方向的项目工作区。这里记录**当前进度、�
 
 ## 目录
 
+本次会话已收尾：[数据、结论与备份清单](docs/experiments/2026-10-29-single-wheel-session/README.md)；[第二阶段任务计划](docs/superpowers/plans/2026-10-29-cboard-stage2.md)。第一阶段为“功能完成、定量待验收”，第二阶段尚未实施；下次先执行计划任务0。
+
 | 路径 | 用途 |
 | :--- | :--- |
 | `PROGRESS.md` | 唯一“现在进行时”：状态、里程碑、下一步、阻塞 |
