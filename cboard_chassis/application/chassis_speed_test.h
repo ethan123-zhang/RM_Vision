@@ -5,7 +5,8 @@
 /* 电机转子 rpm，不是减速箱输出轮 rpm；控制周期固定 2 ms。
  * 独立于整车 PID，避免把 rpm 增益误用于官方 m/s 环。
  * 初始值只供架空低速验证，未经过实车整定。 */
-#define CHASSIS_SPEED_RPM 600
+/* 400rpm单变量定位实验；600rpm验收基线见stage1-acceptance。 */
+#define CHASSIS_SPEED_RPM 400
 #define CHASSIS_SPEED_KP 2.0f
 /* Ki 单变量对照：基线 0.002f；首轮平均收敛改善，纹波与整轮验收仍待验证。 */
 #define CHASSIS_SPEED_KI 0.004f

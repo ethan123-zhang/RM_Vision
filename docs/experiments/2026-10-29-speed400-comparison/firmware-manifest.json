@@ -1,0 +1,21 @@
+{
+  "artifacts": [
+    {
+      "path": "E:/RM/_probe/speed400-1793267528728/chassis_speed_test_400.h",
+      "bytes": 1189,
+      "sha256": "474f946a1987453d7ba6502dd65e7534467e3a2c33d6144c8d5e87402511d143"
+    },
+    {
+      "path": "E:/RM/_probe/speed400-1793267528728/firmware400.hex",
+      "bytes": 191273,
+      "sha256": "f5897a0b2a9c9dc6df91d6c1a9663a44cdcd8c3facb0610c504ff68fced7c004"
+    },
+    {
+      "path": "E:/RM/_probe/speed400-1793267528728/firmware400.axf",
+      "bytes": 2023040,
+      "sha256": "652887edca096a9f1a7d01f3591a1bd9e7d786eb2f55ebe298c3d65388688e4a"
+    }
+  ],
+  "baseline_backup": "E:/RM/_probe/speed400-1793267528728/firmware600.hex",
+  "flash_status": "user flashed; after RESET, CAN action diagnostics confirmed targets +400/0/-400/0 for IDs 1,2,4"
+}

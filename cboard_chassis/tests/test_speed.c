@@ -24,13 +24,13 @@ int main(void) {
   assert(chassis_speed_step(&s, 600, 0, 0) == 0);
   assert(s.integral == 0);
   assert(chassis_speed_step(&s, 0, 200, 1) < 0);
-  assert(chassis_speed_target(0) == 600);
-  assert(chassis_speed_target(2000) == 600);
-  assert(chassis_speed_target(7999) == 600);
+  assert(chassis_speed_target(0) == 400);
+  assert(chassis_speed_target(2000) == 400);
+  assert(chassis_speed_target(7999) == 400);
   assert(chassis_speed_target(8000) == 0);
   assert(chassis_speed_target(8999) == 0);
-  assert(chassis_speed_target(9000) == -600);
-  assert(chassis_speed_target(16999) == -600);
+  assert(chassis_speed_target(9000) == -400);
+  assert(chassis_speed_target(16999) == -400);
   assert(chassis_speed_target(17000) == 0);
   assert(chassis_speed_target(17999) == 0);
   assert(CHASSIS_SPEED_DURATION_MS == 18000u);

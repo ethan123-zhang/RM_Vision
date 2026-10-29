@@ -1,0 +1,96 @@
+[
+  {
+    "path": "E:\\RM\\_probe\\archives\\2026-10-29-speed400\\capture-run1.zip",
+    "sha256": "a99c9e3d5a4cfa3c7a7f7720ca49b965f37969205a48cf314833793948a9dab7",
+    "bytes": 5679873,
+    "members": [
+      {
+        "name": "capture-run1/capture.csv",
+        "bytes": 36807201,
+        "sha256": "16aa5cddfbca4ecc06ea90590b177d08914a74b9a30f334c5a1c7aa214c9cc8d"
+      },
+      {
+        "name": "capture-run1/capture.json",
+        "bytes": 1203,
+        "sha256": "55973a3ec433556566faa29ee4f7f4f5b9f875cd95530870a8e93f4b5a39fbb6"
+      },
+      {
+        "name": "capture-run1/capture.py",
+        "bytes": 2070,
+        "sha256": "d468012825b4f10e253103ab7b5552e399e84dc7b48f605db6505a3ad119455d"
+      },
+      {
+        "name": "capture-run1/experiment.json",
+        "bytes": 328,
+        "sha256": "a068ed88dc27c7c14add5344680b504fc374fe6190487b15da63de0babc9e3bc"
+      }
+    ]
+  },
+  {
+    "path": "E:\\RM\\_probe\\archives\\2026-10-29-speed400\\firmware-snapshots.zip",
+    "sha256": "3fbdc78cf0507e0aa79221c2d680dd67270295babdc578c246de9e9dd16ca1e1",
+    "bytes": 914366,
+    "members": [
+      {
+        "name": "firmware-snapshots/build400.log",
+        "bytes": 382,
+        "sha256": "3da7ffb5444b9a82403a68959337230604a4d79904f956aecf9a4a98f6bb7466"
+      },
+      {
+        "name": "firmware-snapshots/chassis_speed_test_400.h",
+        "bytes": 1189,
+        "sha256": "474f946a1987453d7ba6502dd65e7534467e3a2c33d6144c8d5e87402511d143"
+      },
+      {
+        "name": "firmware-snapshots/chassis_speed_test_600.h",
+        "bytes": 1111,
+        "sha256": "3471d7323950f725c27627af564cb2554029e6995c07de54c96fab79a6a14dcf"
+      },
+      {
+        "name": "firmware-snapshots/firmware400.axf",
+        "bytes": 2023040,
+        "sha256": "652887edca096a9f1a7d01f3591a1bd9e7d786eb2f55ebe298c3d65388688e4a"
+      },
+      {
+        "name": "firmware-snapshots/firmware400.hex",
+        "bytes": 191273,
+        "sha256": "f5897a0b2a9c9dc6df91d6c1a9663a44cdcd8c3facb0610c504ff68fced7c004"
+      },
+      {
+        "name": "firmware-snapshots/firmware600.axf",
+        "bytes": 2023040,
+        "sha256": "6c052b9cb4a7b98a33a0b9d76a44bfcf32368840d2ee49403b541a98d74123e6"
+      },
+      {
+        "name": "firmware-snapshots/firmware600.hex",
+        "bytes": 191273,
+        "sha256": "d83032fbaca41f90ef2ec4718977f2b329cab26b66f0bf04353a81a01a5d40d1"
+      },
+      {
+        "name": "firmware-snapshots/flash-attempt2-ui.txt",
+        "bytes": 6148,
+        "sha256": "50727b3f60aa88185a08652ab4fdaab71a510015067cf951c142791b39b82aea"
+      },
+      {
+        "name": "firmware-snapshots/host-startup-recheck.json",
+        "bytes": 483,
+        "sha256": "35aa4bd45d920f11927ded96f3dc7b713aa7c34a5478122c197e6b6f31a7b3b2"
+      },
+      {
+        "name": "firmware-snapshots/host-tests.json",
+        "bytes": 1138,
+        "sha256": "3cd3fb645505ebd789f8217e224ab140afc3403ba443e57153b39eddfb04aa37"
+      },
+      {
+        "name": "firmware-snapshots/keil-process.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "firmware-snapshots/test_speed_logged.c",
+        "bytes": 1698,
+        "sha256": "8d14f88db62287f3b41e25a4101c780fcc94a7db1096e4c4cbd62bcb6a8d9364"
+      }
+    ]
+  }
+]
