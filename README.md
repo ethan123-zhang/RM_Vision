@@ -6,11 +6,11 @@ RoboMaster 2027 视觉方向的项目工作区。这里记录**当前进度、�
 
 ## 当前状态
 
-截至 2026-10-29：当前主线为3V3重装机器人的C板四轮全向底盘。Ki=0.004四轮均有完整单轮序列，3号补测末尾零速与释放已确认；2号换过CAN线，速度纹波和低频降速仍待定量验收。当前保持参数，继续核对接线可靠性与波动。X5视觉推理与C8T6练习车建图回放已有阶段成果。详见 [PROGRESS.md](PROGRESS.md) 和 [本次交接](docs/handoffs/2026-10-29-cboard-speed-loop.md)。
+截至 2026-10-29：当前主线为3V3重装机器人的C板四轮全向底盘。第二阶段任务0已完成60秒静止基线与两轮四轮单轮重复验收：1号样本内达标，2～4号波动或调节时间未达标，第一阶段定量验收未通过，暂不进入四轮联动。保持模式3、Ki=0.004，下一步检查机械接触/阻力与供电后决定单变量实验。详见[定量验收报告](docs/experiments/stage1-acceptance/README.md)。X5视觉推理与C8T6练习车建图回放已有阶段成果。详见 [PROGRESS.md](PROGRESS.md) 和 [本次交接](docs/handoffs/2026-10-29-cboard-speed-loop.md)。
 
 ## 目录
 
-本次会话已收尾：[数据、结论与备份清单](docs/experiments/2026-10-29-single-wheel-session/README.md)；[第二阶段任务计划](docs/superpowers/plans/2026-10-29-cboard-stage2.md)。第一阶段为“功能完成、定量待验收”，第二阶段尚未实施；下次先执行计划任务0。
+本次会话已收尾：[数据、结论与备份清单](docs/experiments/2026-10-29-single-wheel-session/README.md)；[第二阶段任务计划](docs/superpowers/plans/2026-10-29-cboard-stage2.md)。第一阶段为“功能完成、定量验收未通过”；第二阶段任务0已实测，四轮联动尚未实施。
 
 | 路径 | 用途 |
 | :--- | :--- |

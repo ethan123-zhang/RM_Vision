@@ -1,0 +1,78 @@
+[
+  {
+    "path": "E:\\RM\\_probe\\archives\\2026-10-29-stage1-acceptance\\baseline-1793266272305.zip",
+    "bytes": 1912714,
+    "sha256": "f98aa9188ed2f70a1811fb70b23c631960d1c04a273cd89caee8abb226fba14d",
+    "members": [
+      {
+        "name": "baseline-1793266272305/baseline_quality.json",
+        "bytes": 692,
+        "sha256": "5095f9129a091813111c638f5181227bc67b6a95132e59fa5d9ffa763e3f8fa7"
+      },
+      {
+        "name": "baseline-1793266272305/capture.csv",
+        "bytes": 12592730,
+        "sha256": "741a2e6bb00dad13adeea37ead28b72575c78e7cfd11121b90197670d4a65b8c"
+      },
+      {
+        "name": "baseline-1793266272305/capture.json",
+        "bytes": 286,
+        "sha256": "1b288d1b37e52581e70d0543e1de6608fa278efa2a6de1cb9cd066cc2c79c459"
+      },
+      {
+        "name": "baseline-1793266272305/capture.py",
+        "bytes": 2068,
+        "sha256": "edd38e0c68b147b7148526f78e4935edd20579f27973497410733c8181df7a1b"
+      },
+      {
+        "name": "baseline-1793266272305/check_baseline.py",
+        "bytes": 1460,
+        "sha256": "92e19c0b446201bd93fd9a9fc37c82ad9062f5be9a3954b52df4407008680631"
+      }
+    ]
+  },
+  {
+    "path": "E:\\RM\\_probe\\archives\\2026-10-29-stage1-acceptance\\repeat-1793266358266.zip",
+    "bytes": 9710240,
+    "sha256": "4909a10a032e0a218758d3906b4f225088749d6d6d6824558a019c4b5faeaed8",
+    "members": [
+      {
+        "name": "repeat-1793266358266/capture.csv",
+        "bytes": 64075148,
+        "sha256": "e9e041e87af5bd503a5e2812489c1fc137591972182b2bfa7b47c9030c7cf3d4"
+      },
+      {
+        "name": "repeat-1793266358266/capture.json",
+        "bytes": 1497,
+        "sha256": "b2017da74e19ab964ec34a668403a53ddbb482ec8bde07dae688aad11a24f19e"
+      },
+      {
+        "name": "repeat-1793266358266/capture.py",
+        "bytes": 2070,
+        "sha256": "c4e67586afda80037382b4a9529bf06066bf65358908999228eed2c17cf12870"
+      }
+    ]
+  },
+  {
+    "path": "E:\\RM\\_probe\\archives\\2026-10-29-stage1-acceptance\\repeat2-1793266687532.zip",
+    "bytes": 5968023,
+    "sha256": "6be3c06181c28509164029ea35b716117cc5491206a98d239d0b69a1084a62c6",
+    "members": [
+      {
+        "name": "repeat2-1793266687532/capture.csv",
+        "bytes": 38242610,
+        "sha256": "7274a6345fdb600d3b501dff710b4f0eb7c36e4b88b90c1a23b6cdfab86f3c83"
+      },
+      {
+        "name": "repeat2-1793266687532/capture.json",
+        "bytes": 1495,
+        "sha256": "85b9e660e0e7f1a720f7d5f02966773ffaf198e3a5ac191135ba29f998be29b3"
+      },
+      {
+        "name": "repeat2-1793266687532/capture.py",
+        "bytes": 2070,
+        "sha256": "d468012825b4f10e253103ab7b5552e399e84dc7b48f605db6505a3ad119455d"
+      }
+    ]
+  }
+]

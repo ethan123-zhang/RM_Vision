@@ -1,0 +1,37 @@
+{
+  "duration_s": 60.003542,
+  "frames": 275684,
+  "counts": {
+    "0x201": 60180,
+    "0x202": 60039,
+    "0x204": 60190,
+    "0x203": 60112,
+    "0x200": 29996,
+    "0x1f0": 2307,
+    "0x1f2": 2307,
+    "0x1f1": 553
+  },
+  "max_gap_ms": {
+    "0x201": 1.536,
+    "0x202": 1.621,
+    "0x204": 1.792,
+    "0x203": 1.749,
+    "0x200": 2.432,
+    "0x1f0": 26.155,
+    "0x1f2": 26.283,
+    "0x1f1": 200.147
+  },
+  "peak_abs_rpm": {
+    "1": 7,
+    "2": 5,
+    "3": 6,
+    "4": 7
+  },
+  "nonzero_command_frames": 0,
+  "nonidle_diagnostic_frames": 0,
+  "statuses": {
+    "online=0f,mode=3": 553
+  },
+  "non8byte_frames": 0,
+  "communication_baseline_ok": true
+}
