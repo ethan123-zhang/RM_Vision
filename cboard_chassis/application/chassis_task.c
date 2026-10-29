@@ -141,16 +141,17 @@ void chassis_task(void const *pvParameters)
     //chassis init
     //底盘初始化
     chassis_init(&chassis_move);
-    // [BRINGUP] 阶段 0/1 的入口（编译期二选一）：
-    //   阶段 0 按键验 ID：按 KEY N 次，停手 3 s 后驱动 N 号电调
-    //   阶段 1 单电机扫描：按 ID 1..4 依次正反转
-    // 两个阶段都不依赖遥控器和陀螺仪；标定完后改成 NORMAL 就不再走这里。
+    // [BRINGUP] 调车模式入口（编译期选择）：
+    //   0 正常 / 1 单电机扫描 / 2 按键验 ID / 3 单轮速度闭环 / 4 固定电流开环
+    // 阶段 0/1/3/4 都不依赖遥控器整定；标定完后改成 NORMAL 就不再走这里。
 #if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
     chassis_bringup_key_id_loop(&chassis_move);
 #elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SWEEP
     chassis_bringup_sweep_loop(&chassis_move);
 #elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SPEED_TEST
     chassis_bringup_speed_loop(&chassis_move);
+#elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_OPEN_LOOP
+    chassis_bringup_open_loop_loop(&chassis_move);
 #endif
 
     // [BRINGUP] 官方这里是死等"4 个电机 + 遥控器全部在线"，任何一个没通就

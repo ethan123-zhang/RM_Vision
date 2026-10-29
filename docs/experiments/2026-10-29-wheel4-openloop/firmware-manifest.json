@@ -1,0 +1,65 @@
+{
+  "build": {
+    "tool": "Keil UV4 -b, AC5",
+    "result": "0 Error(s), 0 Warning(s)",
+    "code": 64664,
+    "ro": 2912,
+    "rw": 592,
+    "zi": 46216,
+    "date": "2026-10-29",
+    "mode": "CHASSIS_BRINGUP_MODE_OPEN_LOOP=4 (default temporarily 4)"
+  },
+  "snapshot": "_probe\\openloop-1793280138298",
+  "files": [
+    {
+      "name": "build.log",
+      "bytes": 436,
+      "sha256": "a6d0607ee12b53b7ea36324ab6b5a1f8f2026084a0812de2c858614bac3d9d46"
+    },
+    {
+      "name": "chassis_bringup.c",
+      "bytes": 16118,
+      "sha256": "149501a75daabda94e1437256ffc0cb66b8f6e17ed5b18c4d807cbfb1fdb189f"
+    },
+    {
+      "name": "chassis_bringup.h",
+      "bytes": 5581,
+      "sha256": "5b9ae8706fc2d37a1c2f1e23e33e40abe5f966d56666ca8fbb7f69267f041a01"
+    },
+    {
+      "name": "chassis_bringup_map.c",
+      "bytes": 7818,
+      "sha256": "b730bbdf6c5e7a9ef535b5fcabd002b581e3f3804df001342977f6d6a8fbc90b"
+    },
+    {
+      "name": "chassis_bringup_map.h",
+      "bytes": 7886,
+      "sha256": "f0b0195873a5808b36a4375f243f774ccc33d05dacc359f0a5501e8e605b7fd5"
+    },
+    {
+      "name": "chassis_open_loop.h",
+      "bytes": 2226,
+      "sha256": "1b3c99fcb69ae31bb247d90038cf90306da4c76ef5cd6dd35746ba416fa6a9da"
+    },
+    {
+      "name": "chassis_speed_test.h",
+      "bytes": 1189,
+      "sha256": "474f946a1987453d7ba6502dd65e7534467e3a2c33d6144c8d5e87402511d143"
+    },
+    {
+      "name": "chassis_task.axf",
+      "bytes": 2022568,
+      "sha256": "0ade9de5716753b7a639d5144615ca07a70bedf5b51ff0b0dac774582552563e"
+    },
+    {
+      "name": "chassis_task.c",
+      "bytes": 28268,
+      "sha256": "3da76af7b71f0458d28412079d3c4a404c63c77ef0e3b4ca42da94c0ad95e408"
+    },
+    {
+      "name": "chassis_task.hex",
+      "bytes": 190574,
+      "sha256": "a8ca7bd0b9bd86a8c1e4b9ba8fcd98a53f3871935b496842130176e167f50d68"
+    }
+  ]
+}

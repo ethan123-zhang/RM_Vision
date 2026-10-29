@@ -29,15 +29,17 @@
  *    0 = 正常跑车（官方逻辑，速度和电流都过标定表）
  *    1 = 单电机扫描（不依赖遥控器/陀螺仪，按裸 ID 1..4 依次正反转）
  *    2 = 按键验 ID（按 KEY N 次，停 3 s 后驱动 N 号电调）
- *    3 = 单轮速度闭环（KEY 选 ID，6 秒正/零/反/零，再按取消）
+ *    3 = 单轮速度闭环（KEY 选 ID，8/1/8/1 秒正/零/反/零，再按取消）
+ *    4 = 固定电流开环（KEY 选电流档，固定驱动 CAN ID 4，无速度环）
  * ========================================================================== */
 #define CHASSIS_BRINGUP_MODE_NORMAL 0
 #define CHASSIS_BRINGUP_MODE_SWEEP 1
 #define CHASSIS_BRINGUP_MODE_KEY_ID 2
 #define CHASSIS_BRINGUP_MODE_SPEED_TEST 3
+#define CHASSIS_BRINGUP_MODE_OPEN_LOOP 4
 
 #ifndef CHASSIS_BRINGUP_MODE
-#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_SPEED_TEST
+#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_OPEN_LOOP
 #endif
 
 /* C 板 KEY 按键：PA0，按下为低（官方 6.key_exit 例程同款） */
@@ -112,6 +114,13 @@ void chassis_bringup_sweep_loop(chassis_move_t *chassis);
  */
 void chassis_bringup_key_id_loop(chassis_move_t *chassis);
 void chassis_bringup_speed_loop(chassis_move_t *chassis);
+
+/**
+ * @brief  固定电流开环主循环，不会返回
+ *         固定驱动 CAN ID 4，按 KEY N 次选电流档（1..4），停手 3 s 后输出 12 s
+ * @param  chassis 只用来打调试帧
+ */
+void chassis_bringup_open_loop_loop(chassis_move_t *chassis);
 
 /**
  * @brief  轮位电流 -> CAN 电流（内部就是 chassis_map_wheel_to_can，失败时全 0）

@@ -8,6 +8,7 @@
 
 #include "chassis_bringup_map.h"
 #include "chassis_speed_test.h"
+#include "chassis_open_loop.h"
 
 /* 把宏表落成数组；下标 = 官方解算的轮位索引 0..3 */
 static const uint8_t chassis_wheel_can_id[CHASSIS_WHEEL_NUM] = {
@@ -256,4 +257,32 @@ int16_t chassis_speed_target(uint32_t elapsed_ms) {
   if (elapsed_ms < 2u * CHASSIS_SPEED_HOLD_MS + CHASSIS_SPEED_ZERO_MS)
     return -CHASSIS_SPEED_RPM;
   return 0;
+}
+
+/* 固定电流开环测试（机械诊断）：KEY 次数选档，档位电流固定。 */
+int16_t chassis_open_loop_current(uint8_t level) {
+  switch (level) {
+    case 1:
+      return CHASSIS_OPEN_LOOP_I1;
+    case 2:
+      return CHASSIS_OPEN_LOOP_I2;
+    case 3:
+      return CHASSIS_OPEN_LOOP_I3;
+    case 4:
+      return CHASSIS_OPEN_LOOP_I4;
+    default:
+      return 0;
+  }
+}
+
+uint8_t chassis_open_loop_overspeed(int16_t rpm) {
+  if (rpm > CHASSIS_OPEN_LOOP_RPM_LIMIT ||
+      rpm < -CHASSIS_OPEN_LOOP_RPM_LIMIT) {
+    return 1;
+  }
+  return 0;
+}
+
+uint8_t chassis_open_loop_running(uint32_t elapsed_ms) {
+  return (elapsed_ms < CHASSIS_OPEN_LOOP_DURATION_MS) ? 1u : 0u;
 }

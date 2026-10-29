@@ -20,6 +20,7 @@
 
 #include "bsp_buzzer.h"
 #include "chassis_speed_test.h"
+#include "chassis_open_loop.h"
 
 /* 标定表非法时提醒用，参数抄官方 test_task.c */
 #define CHASSIS_BEEP_PSC 1
@@ -328,6 +329,108 @@ void chassis_bringup_speed_loop(chassis_move_t *chassis) {
 #else
     (void)last_debug;
 #endif
+    chassis_bringup_status_update(chassis);
+    vTaskDelay(pdMS_TO_TICKS(CHASSIS_CONTROL_TIME_MS));
+  }
+}
+
+/* 固定电流开环测试：用于观察轮子"每转顿一下"是否来自机械侧。
+ * 固定 CAN ID 4，KEY 按 N 次（1..4）选电流档，停手 3 s 后恒定输出 12 s；
+ * 没有速度环，只有超时/掉线/超速保护，运行中再按 KEY 立即取消。
+ * 0x1F2 字段沿用速度模式：[0]=CAN ID，[1]=状态，[2:3]=电流指令，
+ * [4:5]=实测 rpm，[6:7]=实测电流反馈。 */
+void chassis_bringup_open_loop_loop(chassis_move_t *chassis) {
+  chassis_key_state_t selection;
+  chassis_key_gpio_t gpio = {1, 1, 0};
+  TickType_t start = xTaskGetTickCount();
+  uint32_t run_start = 0, last_debug = 0;
+  uint8_t active = 0, fault = 0, level = 0;
+  int16_t cmd = 0, measured = 0, measured_current = 0;
+  const uint8_t motor_index = (uint8_t)(CHASSIS_OPEN_LOOP_MOTOR - 1u);
+
+  chassis_bringup_key_gpio_init();
+  chassis_key_reset(&selection);
+  CAN_cmd_chassis(0, 0, 0, 0);
+
+  for (;;) {
+    uint32_t now = chassis_bringup_ms_since(start);
+    int16_t currents[4] = {0, 0, 0, 0};
+    uint8_t requested = 0;
+    int16_t unused_current = 0;
+
+    if (chassis_bringup_key_edge(&gpio, now)) {
+      if (active) {
+        /* 运行中按下 = 立即取消，本模式不重新开始 */
+        active = 0;
+        chassis_key_reset(&selection);
+      } else {
+        fault = 0;
+        (void)chassis_key_press(&selection, now);
+      }
+    }
+
+    if (!active) {
+      chassis_key_tick(&selection, now, &requested, &unused_current);
+      if (requested >= 1u && requested <= CHASSIS_OPEN_LOOP_LEVELS) {
+        /* 即使未上线也消费这次请求，避免之后突然启动 */
+        chassis_key_reset(&selection);
+        if (!toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + motor_index))) {
+          level = requested;
+          active = 1;
+          run_start = now;
+          fault = 0;
+        } else {
+          fault = 2;
+        }
+      }
+    }
+
+    if (active) {
+      const motor_measure_t *motor =
+          get_chassis_motor_measure_point(motor_index);
+      uint32_t elapsed = now - run_start;
+
+      measured = motor->speed_rpm;
+      measured_current = motor->given_current;
+      if (!chassis_open_loop_running(elapsed)) {
+        active = 0; /* 到时正常释放，不算故障 */
+      } else if (toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + motor_index))) {
+        fault = 2;
+        active = 0;
+      } else if (chassis_open_loop_overspeed(measured)) {
+        fault = 3;
+        active = 0;
+      } else {
+        cmd = chassis_open_loop_current(level);
+        currents[motor_index] = cmd;
+      }
+      if (!active) {
+        chassis_key_reset(&selection);
+      }
+    } else {
+      cmd = 0;
+    }
+
+    CAN_cmd_chassis(currents[0], currents[1], currents[2], currents[3]);
+
+#if CHASSIS_DEBUG_CAN
+    if ((uint32_t)(now - last_debug) >= 25u) {
+      uint8_t data[8];
+      last_debug = now;
+      data[0] = CHASSIS_OPEN_LOOP_MOTOR;
+      data[1] = active ? 1u : fault;
+      data[2] = (uint8_t)((uint16_t)cmd >> 8);
+      data[3] = (uint8_t)cmd;
+      data[4] = (uint8_t)((uint16_t)measured >> 8);
+      data[5] = (uint8_t)measured;
+      data[6] = (uint8_t)((uint16_t)measured_current >> 8);
+      data[7] = (uint8_t)measured_current;
+      chassis_bringup_can_send(0x1F2, data);
+    }
+#else
+    (void)last_debug;
+#endif
+
     chassis_bringup_status_update(chassis);
     vTaskDelay(pdMS_TO_TICKS(CHASSIS_CONTROL_TIME_MS));
   }
