@@ -1,7 +1,13 @@
 import csv,json,sys
 from pathlib import Path
 import numpy as np
-src=Path(sys.argv[1]);out=Path(__file__).resolve().parent;raw={i:[] for i in range(1,5)};commands=[];diag=[];base=None;counts={}
+# Explicit input/output so repeat runs never overwrite run1.
+# usage: python summarize400.py <capture.csv> <out_dir> <out_prefix> [reset_recovery_pc_s]
+if len(sys.argv)<4:
+    sys.exit('usage: summarize400.py <capture.csv> <out_dir> <prefix> [reset_recovery_pc_s]')
+src=Path(sys.argv[1]);out=Path(sys.argv[2]);prefix=sys.argv[3]
+reset_recovery=float(sys.argv[4]) if len(sys.argv)>4 else None
+raw={i:[] for i in range(1,5)};commands=[];diag=[];base=None;counts={}
 for row in csv.DictReader(src.open()):
  t=int(row['device_us'])/1e6;b=bytes.fromhex(row['data_hex']);cid=int(row['can_id'],16)
  if base is None:base=t
@@ -37,7 +43,7 @@ for rows,exitrow in sessions:
   run['release_samples']=len(a);run['release_nonzero_frames']=int(np.any(a[:,1:]!=0,axis=1).sum())
  runs.append(run)
 meta=json.loads(src.with_suffix('.json').read_text());assert counts==meta['counts'];assert sum(counts.values())==meta['frames'];assert [r['motor'] for r in runs]==[1,2,4];assert all(r['complete'] for r in runs)
-result={'input':str(src),'duration_s':t,'frames':meta['frames'],'diagnostic_samples':len(diag),'fault_diagnostic_samples':sum(d[2]>=2 for d in diag),'runs':runs,'purpose':'400rpm diagnostic comparison only; no acceptance conclusion','boundary':'tail ends at last diagnostic sample; about 26ms uncertainty','reset_recovery_pc_s':51.828}
-(out/'run1-summary.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-with (out/'run1-telemetry.csv').open('w',newline='') as f:w=csv.writer(f);w.writerow(['device_elapsed_s','motor','status','target_rpm','measured_rpm','current_command']);w.writerows(diag)
+result={'input':str(src),'duration_s':t,'frames':meta['frames'],'diagnostic_samples':len(diag),'fault_diagnostic_samples':sum(d[2]>=2 for d in diag),'runs':runs,'purpose':'400rpm diagnostic comparison only; no acceptance conclusion','boundary':'tail ends at last diagnostic sample; about 26ms uncertainty','reset_recovery_pc_s':reset_recovery}
+(out/f'{prefix}-summary.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+with (out/f'{prefix}-telemetry.csv').open('w',newline='') as f:w=csv.writer(f);w.writerow(['device_elapsed_s','motor','status','target_rpm','measured_rpm','current_command']);w.writerows(diag)
 print(json.dumps(result,indent=2))

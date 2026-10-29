@@ -1,0 +1,208 @@
+{
+  "purpose": "exploratory startup breakaway scan; not acceptance, not root-cause proof",
+  "parameters": {
+    "bin_s": 0.02,
+    "max_angle_counts_per_bin": 6,
+    "min_mean_abs_current": 400,
+    "merge_gap_s": 0.03,
+    "min_duration_s": 0.06,
+    "note": "angle +-6 of 8192 counts per 20 ms bin is about 2 rpm; current units are C620 protocol units"
+  },
+  "captures": {
+    "400-run1": {
+      "capture": "_probe\\speed400_capture\\run1-1793268106993\\capture.csv",
+      "phases": [
+        {
+          "motor": 1,
+          "target": 400,
+          "intervals": []
+        },
+        {
+          "motor": 1,
+          "target": -400,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": 400,
+          "intervals": [
+            {
+              "start_rel_s": 0.02001099999999667,
+              "end_rel_s": 0.5194589999999977,
+              "duration_s": 0.499448000000001,
+              "mean_abs_current": 1199.85
+            }
+          ]
+        },
+        {
+          "motor": 2,
+          "target": -400,
+          "intervals": []
+        },
+        {
+          "motor": 4,
+          "target": 400,
+          "intervals": [
+            {
+              "start_rel_s": 0.060842000000008056,
+              "end_rel_s": 0.13960299999999393,
+              "duration_s": 0.07876099999998587,
+              "mean_abs_current": 911.1
+            }
+          ]
+        },
+        {
+          "motor": 4,
+          "target": -400,
+          "intervals": []
+        }
+      ]
+    },
+    "400-run2": {
+      "capture": "_probe\\speed400_capture\\run2-1793274040118\\capture.csv",
+      "phases": [
+        {
+          "motor": 1,
+          "target": 400,
+          "intervals": []
+        },
+        {
+          "motor": 1,
+          "target": -400,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": 400,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": -400,
+          "intervals": [
+            {
+              "start_rel_s": 0.120829999999998,
+              "end_rel_s": 0.39973799999999926,
+              "duration_s": 0.27890800000000127,
+              "mean_abs_current": 958.9
+            }
+          ]
+        },
+        {
+          "motor": 4,
+          "target": 400,
+          "intervals": [
+            {
+              "start_rel_s": 0.040915999999995734,
+              "end_rel_s": 0.8990569999999991,
+              "duration_s": 0.8581410000000034,
+              "mean_abs_current": 1206.0
+            }
+          ]
+        },
+        {
+          "motor": 4,
+          "target": -400,
+          "intervals": [
+            {
+              "start_rel_s": 0.08029700000000162,
+              "end_rel_s": 0.49906399999998996,
+              "duration_s": 0.41876699999998834,
+              "mean_abs_current": 1000.45
+            }
+          ]
+        }
+      ]
+    },
+    "600-run1": {
+      "capture": "_probe\\stage1_acceptance_20261029\\repeat-1793266358266\\capture.csv",
+      "phases": [
+        {
+          "motor": 1,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 1,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 3,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 3,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 4,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 4,
+          "target": -600,
+          "intervals": []
+        }
+      ]
+    },
+    "600-run2": {
+      "capture": "_probe\\stage1_acceptance_20261029\\repeat2-1793266687532\\capture.csv",
+      "phases": [
+        {
+          "motor": 1,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 1,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 2,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 3,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 3,
+          "target": -600,
+          "intervals": []
+        },
+        {
+          "motor": 4,
+          "target": 600,
+          "intervals": []
+        },
+        {
+          "motor": 4,
+          "target": -600,
+          "intervals": []
+        }
+      ]
+    }
+  }
+}
