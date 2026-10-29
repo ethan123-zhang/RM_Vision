@@ -10,7 +10,10 @@
 #define CHASSIS_SPEED_KI 0.002f
 #define CHASSIS_SPEED_CURRENT_LIMIT 1500
 #define CHASSIS_SPEED_INTEGRAL_LIMIT 400.0f
-#define CHASSIS_SPEED_DURATION_MS 6000u
+/* 正反恒速各 8 秒，两个零速段各 1 秒，共 18 秒。 */
+#define CHASSIS_SPEED_HOLD_MS 8000u
+#define CHASSIS_SPEED_ZERO_MS 1000u
+#define CHASSIS_SPEED_DURATION_MS (2u * (CHASSIS_SPEED_HOLD_MS + CHASSIS_SPEED_ZERO_MS))
 
 typedef struct { float integral; } chassis_speed_test_t;
 void chassis_speed_reset(chassis_speed_test_t *s);

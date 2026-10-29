@@ -251,8 +251,9 @@ int16_t chassis_speed_step(chassis_speed_test_t *s, int16_t target,
 }
 
 int16_t chassis_speed_target(uint32_t elapsed_ms) {
-  if (elapsed_ms < 2000u) return CHASSIS_SPEED_RPM;
-  if (elapsed_ms < 3000u) return 0;
-  if (elapsed_ms < 5000u) return -CHASSIS_SPEED_RPM;
+  if (elapsed_ms < CHASSIS_SPEED_HOLD_MS) return CHASSIS_SPEED_RPM;
+  if (elapsed_ms < CHASSIS_SPEED_HOLD_MS + CHASSIS_SPEED_ZERO_MS) return 0;
+  if (elapsed_ms < 2u * CHASSIS_SPEED_HOLD_MS + CHASSIS_SPEED_ZERO_MS)
+    return -CHASSIS_SPEED_RPM;
   return 0;
 }
