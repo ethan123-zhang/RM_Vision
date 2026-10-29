@@ -1,0 +1,1242 @@
+{
+  "source": "_probe\\can_capture_ki004\\capture.csv",
+  "command_interval": {
+    "median_ms": 2.0050000021001324,
+    "max_ms": 577.6550000009593,
+    "p99_ms": 2.2610000014537945,
+    "gaps_over_4ms": 25
+  },
+  "feedback_intervals": {
+    "1": {
+      "median_ms": 0.981999997748062,
+      "max_ms": 127.4859999975888,
+      "p99_ms": 1.1950000043725595,
+      "gaps_over_4ms": 15
+    },
+    "2": {
+      "median_ms": 0.981999997748062,
+      "max_ms": 10398.557000007713,
+      "p99_ms": 1.2379999971017241,
+      "gaps_over_4ms": 13
+    },
+    "3": {
+      "median_ms": 0.981999997748062,
+      "max_ms": 128.85100000130478,
+      "p99_ms": 1.3220000109868124,
+      "gaps_over_4ms": 16
+    },
+    "4": {
+      "median_ms": 0.981999997748062,
+      "max_ms": 128.76600000890903,
+      "p99_ms": 1.365000003715977,
+      "gaps_over_4ms": 14
+    }
+  },
+  "max_abs_command": 1500,
+  "command_saturation_samples": 7576,
+  "commands_with_multiple_nonzero_motors": 0,
+  "segments": [
+    {
+      "run": 13,
+      "id": 1,
+      "target": 600,
+      "late_window_s": [
+        5.806000000022948,
+        7.804000000032488
+      ],
+      "dominant_frequency_hz": 70.5,
+      "mean_rotor_hz": 10.007167932105938,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 1.3875703533092714,
+          "explained_fraction_vs_linear_trend": 0.0012161881290588816
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.21540044489131366,
+          "explained_fraction_vs_linear_trend": 2.9066114880960114e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.7401514329587426,
+          "explained_fraction_vs_linear_trend": 0.0019039569656414956
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 2.6536426012558736,
+          "explained_fraction_vs_linear_trend": 0.004436446046603426
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 2.6009675874488547,
+          "explained_fraction_vs_linear_trend": 0.004258778029074928
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.5252197553840159,
+          "explained_fraction_vs_linear_trend": 0.00017313739187019284
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 36.150676146184075,
+          "explained_fraction_vs_linear_trend": 0.8224819638975167
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 3.3730738607325224,
+          "explained_fraction_vs_linear_trend": 0.007161314435231603
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 4.034541244421394,
+          "explained_fraction_vs_linear_trend": 0.010248157252375045
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.28092073935104245,
+          "explained_fraction_vs_linear_trend": 4.961880670384389e-05
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 1.979459805530967,
+          "explained_fraction_vs_linear_trend": 0.0024480535659786584
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 2.2934613155739774,
+          "explained_fraction_vs_linear_trend": 0.003308034602036547
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 7.461655219483428,
+      "encoder20ms_vs_reported20ms_corr": 0.7863520988526369,
+      "late_command_mean": 220.303,
+      "late_command_sd": 58.63268023039711,
+      "late_feedback_current_mean": 220.70140653308638,
+      "late_feedback_current_sd": 49.89005028733674,
+      "inferred_integral_second_means": [
+        120.48717948717949,
+        187.8684210526316,
+        209.53846153846155,
+        217.76315789473685,
+        220.51282051282053,
+        222.05263157894737,
+        221.5897435897436,
+        220.28947368421052
+      ],
+      "inferred_integral_first": 7.0,
+      "integral_first_same_sign_s": 0.0,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 582.3518036418643,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 594.3047769347758,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 597.5723040099905,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 598.5687811739989,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 599.6370867998537,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 600.6147603783569,
+          "peak_30to120_hz": 70.0
+        }
+      ],
+      "inferred_integral_peak_abs": 224.0,
+      "drops_below500_after1s": 0,
+      "deepest_events": []
+    },
+    {
+      "run": 13,
+      "id": 1,
+      "target": -600,
+      "late_window_s": [
+        5.806000000022948,
+        7.804000000032488
+      ],
+      "dominant_frequency_hz": 70.0,
+      "mean_rotor_hz": 9.99594248804043,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 1.241531634654957,
+          "explained_fraction_vs_linear_trend": 0.001018473257246466
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.3621806563225148,
+          "explained_fraction_vs_linear_trend": 8.661413029997789e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.276588846193131,
+          "explained_fraction_vs_linear_trend": 0.0010769639835440659
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 2.3360818747490533,
+          "explained_fraction_vs_linear_trend": 0.0036040564934245456
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 3.149890861170567,
+          "explained_fraction_vs_linear_trend": 0.006551375831618356
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.7706741585150716,
+          "explained_fraction_vs_linear_trend": 0.0003932933763187707
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 35.53234298254755,
+          "explained_fraction_vs_linear_trend": 0.8271476052903932
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 3.6373593665755677,
+          "explained_fraction_vs_linear_trend": 0.008782884278760172
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 3.6334821329596307,
+          "explained_fraction_vs_linear_trend": 0.008716658845457581
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.44022487207360433,
+          "explained_fraction_vs_linear_trend": 0.00012752741467370043
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 2.2681282187919862,
+          "explained_fraction_vs_linear_trend": 0.0034247473334150236
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 2.0806960535374652,
+          "explained_fraction_vs_linear_trend": 0.0028588021874317304
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 6.295404490715923,
+      "encoder20ms_vs_reported20ms_corr": 0.9259029765326866,
+      "late_command_mean": -220.991,
+      "late_command_sd": 56.6774992302942,
+      "late_feedback_current_mean": -220.39747514000572,
+      "late_feedback_current_sd": 50.39041447675336,
+      "inferred_integral_second_means": [
+        -6.871794871794871,
+        -145.57894736842104,
+        -193.82051282051282,
+        -212.57894736842104,
+        -217.56410256410257,
+        -221.47368421052633,
+        -220.53846153846155,
+        -221.07894736842104
+      ],
+      "inferred_integral_first": 163.0,
+      "integral_first_same_sign_s": 0.4159080000099493,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 559.8801586945882,
+          "peak_30to120_hz": 65.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 587.9019674598213,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 594.0277700457817,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 597.4492635537493,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 601.1129372681648,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 597.954564191682,
+          "peak_30to120_hz": 70.0
+        }
+      ],
+      "inferred_integral_peak_abs": 224.0,
+      "drops_below500_after1s": 1,
+      "deepest_events": [
+        {
+          "time_in_step_s": 1.200000000000955,
+          "min_oriented_rpm": 496.4843749680256,
+          "command_before": 224.03333333333333,
+          "command_next20ms_mean": 253.4,
+          "command_next20ms_peak": 335.0,
+          "feedback_current_before": 229.61361468029907,
+          "feedback_current_next20ms_mean": 236.6825532694948,
+          "encoder20ms_rpm_at_min": 549.5975062842149,
+          "recovery_to570_ms": 6.000000000028649
+        }
+      ]
+    },
+    {
+      "run": 12,
+      "id": 2,
+      "target": 600,
+      "late_window_s": [
+        5.780000000022824,
+        7.778000000032364
+      ],
+      "dominant_frequency_hz": 73.0,
+      "mean_rotor_hz": 9.918835182356299,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 1.7208192259820707,
+          "explained_fraction_vs_linear_trend": 0.0008031061243607418
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.5834724889492826,
+          "explained_fraction_vs_linear_trend": 9.210193678976797e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 0.3738792244508349,
+          "explained_fraction_vs_linear_trend": 3.812631390798238e-05
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 2.1367593837534304,
+          "explained_fraction_vs_linear_trend": 0.0012373679506069157
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 3.6475873486180888,
+          "explained_fraction_vs_linear_trend": 0.0036181233657325285
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.5253694105218141,
+          "explained_fraction_vs_linear_trend": 7.528024804914768e-05
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 33.31212356553713,
+          "explained_fraction_vs_linear_trend": 0.2952990084408713
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 2.6922927374980956,
+          "explained_fraction_vs_linear_trend": 0.0019690317216068953
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 3.471026418381071,
+          "explained_fraction_vs_linear_trend": 0.003279150878043313
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.8257576082795787,
+          "explained_fraction_vs_linear_trend": 0.00018503728306895617
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 6.12363219645032,
+          "explained_fraction_vs_linear_trend": 0.010204722439581704
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 1.8584445287483424,
+          "explained_fraction_vs_linear_trend": 0.0009386816777248175
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 6.806626829638623,
+      "encoder20ms_vs_reported20ms_corr": 0.9782427347506322,
+      "late_command_mean": 228.175,
+      "late_command_sd": 88.01935227550814,
+      "late_feedback_current_mean": 226.8251956643965,
+      "late_feedback_current_sd": 82.84806931672163,
+      "inferred_integral_second_means": [
+        108.46153846153847,
+        187.3421052631579,
+        197.51282051282053,
+        209.26315789473685,
+        216.69230769230768,
+        209.47368421052633,
+        220.56410256410257,
+        218.48648648648648
+      ],
+      "inferred_integral_first": 27.0,
+      "integral_first_same_sign_s": 0.0,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 583.542658248347,
+          "peak_30to120_hz": 72.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 587.042580902063,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 605.1426625783222,
+          "peak_30to120_hz": 73.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 598.0397798635565,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 593.938877918114,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 608.1924805111208,
+          "peak_30to120_hz": 73.0
+        }
+      ],
+      "inferred_integral_peak_abs": 239.0,
+      "drops_below500_after1s": 10,
+      "deepest_events": [
+        {
+          "time_in_step_s": 1.3700000000017667,
+          "min_oriented_rpm": 443.0,
+          "command_before": 231.23333333333332,
+          "command_next20ms_mean": 424.0,
+          "command_next20ms_peak": 503.0,
+          "feedback_current_before": 235.76037811303786,
+          "feedback_current_next20ms_mean": 429.21809271999393,
+          "encoder20ms_rpm_at_min": 495.8679453763253,
+          "recovery_to570_ms": 60.00000000028649
+        },
+        {
+          "time_in_step_s": 6.098000000024342,
+          "min_oriented_rpm": 444.1785715970897,
+          "command_before": 239.9,
+          "command_next20ms_mean": 438.8,
+          "command_next20ms_peak": 532.0,
+          "feedback_current_before": 247.0295693305348,
+          "feedback_current_next20ms_mean": 427.47275802871155,
+          "encoder20ms_rpm_at_min": 507.39194664722476,
+          "recovery_to570_ms": 44.00000000021009
+        },
+        {
+          "time_in_step_s": 1.1400000000006685,
+          "min_oriented_rpm": 458.0,
+          "command_before": 235.36666666666667,
+          "command_next20ms_mean": 347.2,
+          "command_next20ms_peak": 453.0,
+          "feedback_current_before": 226.32817968130212,
+          "feedback_current_next20ms_mean": 337.5285697651484,
+          "encoder20ms_rpm_at_min": 525.3884807457716,
+          "recovery_to570_ms": 26.000000000124146
+        }
+      ]
+    },
+    {
+      "run": 12,
+      "id": 2,
+      "target": -600,
+      "late_window_s": [
+        5.780000000022824,
+        7.778000000032364
+      ],
+      "dominant_frequency_hz": 3.5,
+      "mean_rotor_hz": 9.976994664378223,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 3.1447853282334237,
+          "explained_fraction_vs_linear_trend": 0.003205127152381304
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.2374694450143993,
+          "explained_fraction_vs_linear_trend": 1.835067006528135e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.0109960987739126,
+          "explained_fraction_vs_linear_trend": 0.00033019362984809675
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 3.5806890650383023,
+          "explained_fraction_vs_linear_trend": 0.0041655094580225205
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 2.8794063755070267,
+          "explained_fraction_vs_linear_trend": 0.0026772938831308712
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.9386562723789517,
+          "explained_fraction_vs_linear_trend": 0.0002860275661183964
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 33.19622833619616,
+          "explained_fraction_vs_linear_trend": 0.3596957659583142
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 3.708259433798386,
+          "explained_fraction_vs_linear_trend": 0.004469407932106484
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 2.8555705957131057,
+          "explained_fraction_vs_linear_trend": 0.002630735657541683
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.8253924482594032,
+          "explained_fraction_vs_linear_trend": 0.00022067934128455757
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 5.652218769304704,
+          "explained_fraction_vs_linear_trend": 0.010341196904002481
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 2.454951969606629,
+          "explained_fraction_vs_linear_trend": 0.0019466499384320768
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 6.379707449632193,
+      "encoder20ms_vs_reported20ms_corr": 0.9780078723903974,
+      "late_command_mean": -222.605,
+      "late_command_sd": 81.65615087058659,
+      "late_feedback_current_mean": -222.06974428112346,
+      "late_feedback_current_sd": 76.81135350901721,
+      "inferred_integral_second_means": [
+        -13.461538461538462,
+        -149.05263157894737,
+        -193.71794871794873,
+        -208.57894736842104,
+        -219.71794871794873,
+        -215.94736842105263,
+        -213.17948717948718,
+        -226.3783783783784
+      ],
+      "inferred_integral_first": 136.0,
+      "integral_first_same_sign_s": 0.4418499999883352,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 575.514996127995,
+          "peak_30to120_hz": 68.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 574.5704953630282,
+          "peak_30to120_hz": 67.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 598.4556121772919,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 602.0749966528558,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 594.7390583397203,
+          "peak_30to120_hz": 67.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 606.6259527239353,
+          "peak_30to120_hz": 72.0
+        }
+      ],
+      "inferred_integral_peak_abs": 231.0,
+      "drops_below500_after1s": 10,
+      "deepest_events": [
+        {
+          "time_in_step_s": 2.226000000005854,
+          "min_oriented_rpm": 444.43070367719685,
+          "command_before": 185.06666666666666,
+          "command_next20ms_mean": 400.9,
+          "command_next20ms_peak": 481.0,
+          "feedback_current_before": 179.5452932609323,
+          "feedback_current_next20ms_mean": 402.8384947955624,
+          "encoder20ms_rpm_at_min": 497.2773899462126,
+          "recovery_to570_ms": 76.00000000036289
+        },
+        {
+          "time_in_step_s": 6.990000000028601,
+          "min_oriented_rpm": 456.6232179807217,
+          "command_before": 228.06666666666666,
+          "command_next20ms_mean": 433.6,
+          "command_next20ms_peak": 495.0,
+          "feedback_current_before": 233.15565907143852,
+          "feedback_current_next20ms_mean": 439.42408765877735,
+          "encoder20ms_rpm_at_min": 491.70633952247476,
+          "recovery_to570_ms": 42.000000000200544
+        },
+        {
+          "time_in_step_s": 5.358000000020809,
+          "min_oriented_rpm": 474.9189450774103,
+          "command_before": 212.8,
+          "command_next20ms_mean": 359.9,
+          "command_next20ms_peak": 448.0,
+          "feedback_current_before": 223.7995345096552,
+          "feedback_current_next20ms_mean": 356.7206326322963,
+          "encoder20ms_rpm_at_min": 531.8633330203041,
+          "recovery_to570_ms": 28.000000000133696
+        }
+      ]
+    },
+    {
+      "run": 6,
+      "id": 3,
+      "target": 600,
+      "late_window_s": [
+        5.77999999998886,
+        7.777999999984203
+      ],
+      "dominant_frequency_hz": 70.0,
+      "mean_rotor_hz": 9.988165885429359,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 0.9491258311455535,
+          "explained_fraction_vs_linear_trend": 0.0004076086819012614
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.3228826365432906,
+          "explained_fraction_vs_linear_trend": 4.746977790703877e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 0.5797902157176709,
+          "explained_fraction_vs_linear_trend": 0.0001530831120046816
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 2.31666655855511,
+          "explained_fraction_vs_linear_trend": 0.002445090952826412
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 0.704922338163618,
+          "explained_fraction_vs_linear_trend": 0.00022608675118607202
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.20454939014407028,
+          "explained_fraction_vs_linear_trend": 1.9047796159354924e-05
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 32.07197517633514,
+          "explained_fraction_vs_linear_trend": 0.4684918970979497
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 1.1918378068496558,
+          "explained_fraction_vs_linear_trend": 0.000644505056165201
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 1.256611364249791,
+          "explained_fraction_vs_linear_trend": 0.0007180826921346917
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.17000290859641723,
+          "explained_fraction_vs_linear_trend": 1.3061856516949355e-05
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 2.3977576035962658,
+          "explained_fraction_vs_linear_trend": 0.0025934227154793543
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 3.0378702900077883,
+          "explained_fraction_vs_linear_trend": 0.004183911533419349
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 6.519203005790748,
+      "encoder20ms_vs_reported20ms_corr": 0.9611487373340155,
+      "late_command_mean": 326.403,
+      "late_command_sd": 68.24476969702513,
+      "late_feedback_current_mean": 326.6172235348342,
+      "late_feedback_current_sd": 79.15578992860934,
+      "inferred_integral_second_means": [
+        154.2051282051282,
+        252.6315789473684,
+        297.64102564102564,
+        309.6842105263158,
+        314.8205128205128,
+        321.0263157894737,
+        319.8205128205128,
+        331.13513513513516
+      ],
+      "inferred_integral_first": 24.0,
+      "integral_first_same_sign_s": 0.0,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 572.1156642901639,
+          "peak_30to120_hz": 66.86626746506985
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 589.397373417547,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 589.6059552854666,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 602.9638030348972,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 596.7517945980584,
+          "peak_30to120_hz": 72.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 591.369752815597,
+          "peak_30to120_hz": 70.0
+        }
+      ],
+      "inferred_integral_peak_abs": 340.0,
+      "drops_below500_after1s": 2,
+      "deepest_events": [
+        {
+          "time_in_step_s": 6.945999999986142,
+          "min_oriented_rpm": 447.0,
+          "command_before": 363.96666666666664,
+          "command_next20ms_mean": 562.3636363636364,
+          "command_next20ms_peak": 635.0,
+          "feedback_current_before": 371.7456597206752,
+          "feedback_current_next20ms_mean": 534.6458562614143,
+          "encoder20ms_rpm_at_min": 492.683081991828,
+          "recovery_to570_ms": 55.99999999986949
+        },
+        {
+          "time_in_step_s": 2.2119999999971753,
+          "min_oriented_rpm": 448.36208729052674,
+          "command_before": 346.56666666666666,
+          "command_next20ms_mean": 509.1818181818182,
+          "command_next20ms_peak": 590.0,
+          "feedback_current_before": 351.92730456127833,
+          "feedback_current_next20ms_mean": 495.4750991150935,
+          "encoder20ms_rpm_at_min": 502.2058875278219,
+          "recovery_to570_ms": 25.999999999939405
+        }
+      ]
+    },
+    {
+      "run": 6,
+      "id": 3,
+      "target": -600,
+      "late_window_s": [
+        5.805999999988799,
+        7.803999999984143
+      ],
+      "dominant_frequency_hz": 70.0,
+      "mean_rotor_hz": 10.011905791926027,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 1.6375605150977324,
+          "explained_fraction_vs_linear_trend": 0.0015055661468926784
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.2587976734044467,
+          "explained_fraction_vs_linear_trend": 3.763028182535155e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.1270281637299246,
+          "explained_fraction_vs_linear_trend": 0.0007155473480855434
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 2.4996662615401797,
+          "explained_fraction_vs_linear_trend": 0.003519008138018309
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 1.39667320572177,
+          "explained_fraction_vs_linear_trend": 0.0010982984112586358
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.7331484377627074,
+          "explained_fraction_vs_linear_trend": 0.00030116888020237376
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 31.534378071277324,
+          "explained_fraction_vs_linear_trend": 0.5598138623899134
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 1.6776861093917546,
+          "explained_fraction_vs_linear_trend": 0.0015839976204626849
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 1.1214778101857068,
+          "explained_fraction_vs_linear_trend": 0.0007092232262300158
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.3466800180541661,
+          "explained_fraction_vs_linear_trend": 6.76340997407543e-05
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 2.6181226519818632,
+          "explained_fraction_vs_linear_trend": 0.0038624697633102834
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 3.1313754708396067,
+          "explained_fraction_vs_linear_trend": 0.005506995970561146
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 5.556205789468615,
+      "encoder20ms_vs_reported20ms_corr": 0.9822416677335034,
+      "late_command_mean": -347.742,
+      "late_command_sd": 64.04143530558946,
+      "late_feedback_current_mean": -347.4473133140384,
+      "late_feedback_current_sd": 78.23521338466242,
+      "inferred_integral_second_means": [
+        28.615384615384617,
+        -192.97368421052633,
+        -276.4102564102564,
+        -308.5,
+        -325.35897435897436,
+        -340.13157894736844,
+        -348.56410256410254,
+        -348.2631578947368
+      ],
+      "inferred_integral_first": 241.0,
+      "integral_first_same_sign_s": 0.5456989999947837,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 529.8816870707483,
+          "peak_30to120_hz": 62.874251497005986
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 579.7577832662276,
+          "peak_30to120_hz": 68.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 588.3218469999042,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 591.7129468752909,
+          "peak_30to120_hz": 69.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 595.8686483818358,
+          "peak_30to120_hz": 70.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 594.1445607511869,
+          "peak_30to120_hz": 70.0
+        }
+      ],
+      "inferred_integral_peak_abs": 356.0,
+      "drops_below500_after1s": 2,
+      "deepest_events": [
+        {
+          "time_in_step_s": 1.4799999999988813,
+          "min_oriented_rpm": 421.00638977568013,
+          "command_before": 299.3333333333333,
+          "command_next20ms_mean": 493.0,
+          "command_next20ms_peak": 550.0,
+          "feedback_current_before": 301.07320850682186,
+          "feedback_current_next20ms_mean": 502.0812223751681,
+          "encoder20ms_rpm_at_min": 456.03037237746946,
+          "recovery_to570_ms": 179.9999999995805
+        },
+        {
+          "time_in_step_s": 6.335999999987564,
+          "min_oriented_rpm": 496.0,
+          "command_before": 326.6333333333333,
+          "command_next20ms_mean": 500.72727272727275,
+          "command_next20ms_peak": 551.0,
+          "feedback_current_before": 325.3010926960397,
+          "feedback_current_next20ms_mean": 492.57816432538345,
+          "encoder20ms_rpm_at_min": 534.6012199282661,
+          "recovery_to570_ms": 25.999999999939405
+        }
+      ]
+    },
+    {
+      "run": 10,
+      "id": 4,
+      "target": 600,
+      "late_window_s": [
+        5.806000000022948,
+        7.804000000032488
+      ],
+      "dominant_frequency_hz": 72.5,
+      "mean_rotor_hz": 9.888107420922175,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 5.931555160499332,
+          "explained_fraction_vs_linear_trend": 0.006935967987354297
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 1.0212359415052872,
+          "explained_fraction_vs_linear_trend": 0.00020706317708596433
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.2306917453013797,
+          "explained_fraction_vs_linear_trend": 0.00029939613104379426
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 3.883181987566299,
+          "explained_fraction_vs_linear_trend": 0.002962861913171966
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 0.5350659977437168,
+          "explained_fraction_vs_linear_trend": 5.6671835738209e-05
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.7375431111845446,
+          "explained_fraction_vs_linear_trend": 0.00010682139962547854
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 22.98412573752438,
+          "explained_fraction_vs_linear_trend": 0.10428701598889412
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 7.361440996310489,
+          "explained_fraction_vs_linear_trend": 0.010688261313009595
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 2.0830017998767523,
+          "explained_fraction_vs_linear_trend": 0.0008553353658100615
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.3124415770698447,
+          "explained_fraction_vs_linear_trend": 1.9344684610178575e-05
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 3.448427928286963,
+          "explained_fraction_vs_linear_trend": 0.002351780113137747
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 4.537503070360333,
+          "explained_fraction_vs_linear_trend": 0.004069340993439363
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 7.408653513259357,
+      "encoder20ms_vs_reported20ms_corr": 0.9879273281263792,
+      "late_command_mean": 243.358,
+      "late_command_sd": 103.31886486019869,
+      "late_feedback_current_mean": 242.004205680806,
+      "late_feedback_current_sd": 105.710406855312,
+      "inferred_integral_second_means": [
+        106.84615384615384,
+        195.05263157894737,
+        206.76923076923077,
+        218.05263157894737,
+        223.6153846153846,
+        216.1578947368421,
+        233.05128205128204,
+        227.78947368421052
+      ],
+      "inferred_integral_first": 2.0,
+      "integral_first_same_sign_s": 0.0,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 571.6418988851949,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 584.6752084924613,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 612.9297715219141,
+          "peak_30to120_hz": 72.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 592.5425294277545,
+          "peak_30to120_hz": 73.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 595.0985440735868,
+          "peak_30to120_hz": 72.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 607.8104587442938,
+          "peak_30to120_hz": 73.0
+        }
+      ],
+      "inferred_integral_peak_abs": 249.0,
+      "drops_below500_after1s": 7,
+      "deepest_events": [
+        {
+          "time_in_step_s": 1.098000000000468,
+          "min_oriented_rpm": 388.6299693509118,
+          "command_before": 271.8333333333333,
+          "command_next20ms_mean": 513.7,
+          "command_next20ms_peak": 609.0,
+          "feedback_current_before": 274.90437915827243,
+          "feedback_current_next20ms_mean": 514.6010885385328,
+          "encoder20ms_rpm_at_min": 434.37648962397543,
+          "recovery_to570_ms": 82.00000000039154
+        },
+        {
+          "time_in_step_s": 2.7880000000085374,
+          "min_oriented_rpm": 412.4394531942779,
+          "command_before": 352.5,
+          "command_next20ms_mean": 485.0,
+          "command_next20ms_peak": 597.0,
+          "feedback_current_before": 376.7836160011878,
+          "feedback_current_next20ms_mean": 484.2210579658939,
+          "encoder20ms_rpm_at_min": 461.0678152369232,
+          "recovery_to570_ms": 34.000000000162345
+        },
+        {
+          "time_in_step_s": 7.464000000030865,
+          "min_oriented_rpm": 414.09655245862035,
+          "command_before": 318.03333333333336,
+          "command_next20ms_mean": 501.6,
+          "command_next20ms_peak": 588.0,
+          "feedback_current_before": 331.49346944568157,
+          "feedback_current_next20ms_mean": 486.1703755987249,
+          "encoder20ms_rpm_at_min": 463.2315634665787,
+          "recovery_to570_ms": 48.00000000022919
+        }
+      ]
+    },
+    {
+      "run": 10,
+      "id": 4,
+      "target": -600,
+      "late_window_s": [
+        5.780000000022824,
+        7.778000000032364
+      ],
+      "dominant_frequency_hz": 4.0,
+      "mean_rotor_hz": 10.032535730720175,
+      "angle_locked_harmonics": [
+        {
+          "order": 1,
+          "amplitude_rpm": 3.295199372250636,
+          "explained_fraction_vs_linear_trend": 0.003342846867687266
+        },
+        {
+          "order": 2,
+          "amplitude_rpm": 0.5692476578213453,
+          "explained_fraction_vs_linear_trend": 9.933182705634813e-05
+        },
+        {
+          "order": 3,
+          "amplitude_rpm": 1.616215886381629,
+          "explained_fraction_vs_linear_trend": 0.0008021417966052047
+        },
+        {
+          "order": 4,
+          "amplitude_rpm": 3.0944289322958047,
+          "explained_fraction_vs_linear_trend": 0.002955309472775225
+        },
+        {
+          "order": 5,
+          "amplitude_rpm": 0.26216028967639865,
+          "explained_fraction_vs_linear_trend": 2.1048009863244843e-05
+        },
+        {
+          "order": 6,
+          "amplitude_rpm": 0.5308395344050776,
+          "explained_fraction_vs_linear_trend": 8.663988112611598e-05
+        },
+        {
+          "order": 7,
+          "amplitude_rpm": 21.830212764430808,
+          "explained_fraction_vs_linear_trend": 0.14910913049875807
+        },
+        {
+          "order": 8,
+          "amplitude_rpm": 7.405785946003464,
+          "explained_fraction_vs_linear_trend": 0.016891924651096235
+        },
+        {
+          "order": 9,
+          "amplitude_rpm": 2.144815332243271,
+          "explained_fraction_vs_linear_trend": 0.0014078001680086771
+        },
+        {
+          "order": 10,
+          "amplitude_rpm": 0.35409399036101774,
+          "explained_fraction_vs_linear_trend": 3.812447975393152e-05
+        },
+        {
+          "order": 11,
+          "amplitude_rpm": 3.6396379387710796,
+          "explained_fraction_vs_linear_trend": 0.004056593608125492
+        },
+        {
+          "order": 12,
+          "amplitude_rpm": 4.809332778312567,
+          "explained_fraction_vs_linear_trend": 0.007064652638184565
+        }
+      ],
+      "encoder20ms_vs_reported20ms_rmse_rpm": 6.044240270313551,
+      "encoder20ms_vs_reported20ms_corr": 0.9856204574330601,
+      "late_command_mean": -221.967,
+      "late_command_sd": 84.46828938128202,
+      "late_feedback_current_mean": -221.91174825292035,
+      "late_feedback_current_sd": 75.92827633482774,
+      "inferred_integral_second_means": [
+        -4.9743589743589745,
+        -151.55263157894737,
+        -200.97435897435898,
+        -209.5,
+        -226.48717948717947,
+        -219.1578947368421,
+        -217.3846153846154,
+        -232.45945945945945
+      ],
+      "inferred_integral_first": 143.0,
+      "integral_first_same_sign_s": 0.49385900000925176,
+      "frequency_seconds": [
+        {
+          "second": 1,
+          "mean_abs_rpm": 578.2203891662276,
+          "peak_30to120_hz": 68.0
+        },
+        {
+          "second": 2,
+          "mean_abs_rpm": 574.057064891506,
+          "peak_30to120_hz": 68.0
+        },
+        {
+          "second": 3,
+          "mean_abs_rpm": 601.4464569182587,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 4,
+          "mean_abs_rpm": 601.1440342712051,
+          "peak_30to120_hz": 72.0
+        },
+        {
+          "second": 5,
+          "mean_abs_rpm": 590.8613063250568,
+          "peak_30to120_hz": 71.0
+        },
+        {
+          "second": 6,
+          "mean_abs_rpm": 613.3108402193999,
+          "peak_30to120_hz": 72.0
+        }
+      ],
+      "inferred_integral_peak_abs": 247.0,
+      "drops_below500_after1s": 6,
+      "deepest_events": [
+        {
+          "time_in_step_s": 5.636000000022136,
+          "min_oriented_rpm": 413.7385193359152,
+          "command_before": 252.6,
+          "command_next20ms_mean": 515.5,
+          "command_next20ms_peak": 602.0,
+          "feedback_current_before": 265.74159279017266,
+          "feedback_current_next20ms_mean": 507.3874230573965,
+          "encoder20ms_rpm_at_min": 453.55889672481453,
+          "recovery_to570_ms": 76.00000000036289
+        },
+        {
+          "time_in_step_s": 2.3260000000063314,
+          "min_oriented_rpm": 422.6595310770917,
+          "command_before": 234.4,
+          "command_next20ms_mean": 446.7,
+          "command_next20ms_peak": 522.0,
+          "feedback_current_before": 237.446416305395,
+          "feedback_current_next20ms_mean": 443.4433905586484,
+          "encoder20ms_rpm_at_min": 464.989900579738,
+          "recovery_to570_ms": 74.00000000035334
+        },
+        {
+          "time_in_step_s": 2.5740000000075156,
+          "min_oriented_rpm": 446.70540267696015,
+          "command_before": 270.8666666666667,
+          "command_next20ms_mean": 455.0,
+          "command_next20ms_peak": 525.0,
+          "feedback_current_before": 287.1226690847403,
+          "feedback_current_next20ms_mean": 455.6888740466308,
+          "encoder20ms_rpm_at_min": 489.0461666331305,
+          "recovery_to570_ms": 48.00000000022919
+        }
+      ]
+    }
+  ]
+}

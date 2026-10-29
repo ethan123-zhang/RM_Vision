@@ -7,7 +7,7 @@
  * 初始值只供架空低速验证，未经过实车整定。 */
 #define CHASSIS_SPEED_RPM 600
 #define CHASSIS_SPEED_KP 2.0f
-/* Ki 单变量对照：基线 0.002f；本轮只验证收敛速度，尚待上板采集。 */
+/* Ki 单变量对照：基线 0.002f；首轮平均收敛改善，纹波与整轮验收仍待验证。 */
 #define CHASSIS_SPEED_KI 0.004f
 #define CHASSIS_SPEED_CURRENT_LIMIT 1500
 #define CHASSIS_SPEED_INTEGRAL_LIMIT 400.0f
