@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<!-- 只用于出图取证：在场地世界基础上加一台俯视相机 + Sensors 系统。
+     用法: gz sim -s -r --headless-rendering worlds/visual_capture.sdf
+     相机在 (-9.5,-11.5,9.0)，朝向场地中心，1280x720，hfov=1.2 rad。 -->
+<sdf version="1.9">
+  <world name="rmul2027_3v3">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <!-- 出图配色（2026-11-01 定稿，与 rmul2027_3v3_field_fenced.sdf 一致）：
+         四档亮度分开 —— 天空(≈56) < 地面(≈90) < 侧壁(≈120~150) < 台面(≈215)，
+         补光把背光侧壁照亮，环境光 0.35 让投影显现。只改颜色/光照，不改几何。 -->
+    <scene>
+      <ambient>0.35 0.35 0.35 1</ambient>
+      <background>0.035 0.04 0.055 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.12 0.12 0.12 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.60 0.62 0.68 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.503 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material><ambient>0.08 0.085 0.10 1</ambient><diffuse>0.08 0.085 0.10 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field</uri>
+      <name>rmul2027_3v3_field</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <model name="overview_cam">
+      <static>true</static>
+      <pose>-9.5 -11.5 9.0 0 0.542 0.880</pose>
+      <link name="cam_link">
+        <sensor name="overview" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>overview/image</topic>
+          <camera name="overview">
+            <horizontal_fov>1.2</horizontal_fov>
+            <image><width>1280</width><height>720</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <!-- 正俯视相机：透视投影下所有场地点的 Z 距离相同，
+         所以像素尺度 = 2*20*tan(hfov/2)/1280，可直接用像素量场地尺寸 -->
+    <model name="topdown_cam">
+      <static>true</static>
+      <pose>0 0 20 0 1.5707963 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="topdown" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>topdown/image</topic>
+          <camera name="topdown">
+            <horizontal_fov>1.2</horizontal_fov>
+            <image><width>1280</width><height>720</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <!-- 近景相机：拍机器人站在台面上的特写（放在 (3.4,-2.6,1.9)，看向机器人 (1.5,1.0,0.15)） -->
+    <model name="closeup_cam">
+      <static>true</static>
+      <pose>3.4 -2.6 1.9 0 0.407 2.058</pose>
+      <link name="cam_link">
+        <sensor name="closeup" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>closeup/image</topic>
+          <camera name="closeup">
+            <horizontal_fov>1.0</horizontal_fov>
+            <image><width>1024</width><height>576</height><format>R8G8B8</format></image>
+            <clip><near>0.05</near><far>100</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <!-- ===== 以下三台相机专门用来"看见并量出 0.503 m 的台面高度" =====
+
+         1) elevation_wide：正立面（沿 +Y 平视，pitch=0，相机 z 取墙体半高 -0.2515）。
+            相机与 y=-4.3 前立面等距 → 立面在同一深度平面上，竖向比例均匀、无透视误差；
+            画面里就是一整条 12.6 m 宽的亮带 x 0.503 m 高（宽高比 25.05），
+            可用像素宽高比直接反推高度，不依赖焦距。
+         2) elevation_wall：同轴向的近距离特写（距墙 4.7 m、hfov 0.30），
+            墙面在 720 px 里占 ~450 px，"半米高差"肉眼一眼可见、
+            且可用已知焦距换算成米。
+         3) oblique_low：低机位 3/4 斜视（z=2.2 m，俯角 9.5°），
+            同时拍到台面、四条侧壁和 -0.503 m 的地面 —— 这就是"这是一块高台"的主图。 -->
+
+    <model name="elevation_wide_cam">
+      <static>true</static>
+      <pose>0 -25.0 -0.2515 0 0 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="elevation_wide" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>elevation_wide/image</topic>
+          <camera name="elevation_wide">
+            <horizontal_fov>0.65</horizontal_fov>
+            <image><width>1920</width><height>1080</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <model name="elevation_wall_cam">
+      <static>true</static>
+      <pose>2.0 -9.0 -0.2515 0 0 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="elevation_wall" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>elevation_wall/image</topic>
+          <camera name="elevation_wall">
+            <horizontal_fov>0.30</horizontal_fov>
+            <image><width>1280</width><height>720</height><format>R8G8B8</format></image>
+            <clip><near>0.05</near><far>100</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <model name="oblique_low_cam">
+      <static>true</static>
+      <pose>-10.5 -9.0 2.2 0 0.1650 0.7086</pose>
+      <link name="cam_link">
+        <sensor name="oblique_low" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>oblique_low/image</topic>
+          <camera name="oblique_low">
+            <horizontal_fov>1.2</horizontal_fov>
+            <image><width>1600</width><height>900</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </world>
+</sdf>

@@ -1,0 +1,12 @@
+{
+  "predicted_rows": {
+    "fence_top": 442.4047384284841,
+    "platform_top": 466.52733610869296,
+    "ground": 506.19938114621885
+  },
+  "measured_rows": {
+    "fence_top": 437.5,
+    "platform_top": 465.5,
+    "ground": 502.5
+  }
+}

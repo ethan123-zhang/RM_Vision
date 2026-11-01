@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!-- RMUL 2027 3V3 场地世界（GUI 用 / 带围挡）
+     与 rmul2027_3v3_field.sdf 的唯一几何差别：多一圈 0.30 m 围挡
+     （models/rmul2027_3v3_fence，图纸里没有，为仿真可用性与"一眼看出是高台"而加）。
+     1:1 验收请用不带围挡的 rmul2027_3v3_field.sdf。
+     画面相关（只为看得清，不改几何）：
+       - 天空压暗 < 地面中灰 < 侧壁 < 台面，四档亮度分开
+       - 补光把背光侧壁照亮；环境光 0.35 让台子的投影显现
+       - GUI 相机放在 +y 侧，正好看到台子投在地面上的影子
+     启动: bash gui_final.sh   （默认加载本世界） -->
+<sdf version="1.9">
+  <world name="rmul2027_3v3">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+
+    <scene>
+      <ambient>0.35 0.35 0.35 1</ambient>
+      <background>0.035 0.04 0.055 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.12 0.12 0.12 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <!-- 补光：把主光照不到的 -x/+y 侧壁也打亮，避免"一侧黑成背景" -->
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.60 0.62 0.68 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <!-- 场地外的地面：与场地底面同一高度 -->
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.503 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>400 400</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.8</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="ground_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>400 400</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.08 0.085 0.10 1</ambient>
+            <diffuse>0.08 0.085 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field</uri>
+      <name>rmul2027_3v3_field</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <!-- 0.30 m 围挡（图纸外补的，见 models/rmul2027_3v3_fence） -->
+    <include>
+      <uri>model://rmul2027_3v3_fence</uri>
+      <name>rmul2027_3v3_fence</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <!-- GUI 初始视角：低机位 3/4 斜视，+y 侧（看得到台子的投影）。
+         注：真正生效的是 config/gui_field.config 的 <camera_pose>（--gui-config 覆盖这里）。 -->
+    <gui fullscreen="false">
+      <camera name="user_camera">
+        <pose>-8.5 7.5 2.6 0 0.226 -0.723</pose>
+      </camera>
+    </gui>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+  </world>
+</sdf>

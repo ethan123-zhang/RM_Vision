@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!-- 对照组：collision 直接用 CAD 网格（不推荐，只用于验证/对比）。
+     视觉与碰撞都用同一份 field_zup.stl（Z-up 米制，台面 z=0）。 -->
+<sdf version="1.9">
+  <model name="rmul2027_3v3_field">
+    <static>true</static>
+    <link name="field_link">
+      <collision name="field_collision">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field/meshes/field_zup.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+
+      <visual name="field_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field/meshes/field_zup.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.30 0.32 0.35 1</ambient>
+          <diffuse>0.55 0.57 0.60 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

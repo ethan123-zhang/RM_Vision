@@ -1,0 +1,67 @@
+{
+  "source_stl": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/build/field.stl",
+  "source_bbox_m": [
+    [
+      -6.3,
+      6.3
+    ],
+    [
+      -0.403,
+      0.1
+    ],
+    [
+      -4.3,
+      4.3
+    ]
+  ],
+  "output_stl": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/models/rmul2027_3v3_field/meshes/field_zup.stl",
+  "output_bytes": 7726084,
+  "bbox_m": [
+    [
+      -6.3,
+      6.3
+    ],
+    [
+      -4.3,
+      4.3
+    ],
+    [
+      -0.503,
+      0.0
+    ]
+  ],
+  "size_m": [
+    12.6,
+    8.6,
+    0.503
+  ],
+  "triangles": 154520,
+  "unique_vertices": 77368,
+  "surface_area_m2": 349.331,
+  "horizontal_area_m2": 254.567,
+  "vertical_area_m2": 94.645,
+  "closed_volume_m3": 15.8801,
+  "degenerate_triangles": 0,
+  "open_edges": 0,
+  "nonmanifold_edges": 0,
+  "edge_direction_conflicts": 463560,
+  "top_surface_levels_m": {
+    "-0.503": 352,
+    "-0.500": 7858,
+    "-0.480": 6040,
+    "-0.370": 268,
+    "-0.350": 232,
+    "-0.302": 344,
+    "-0.301": 2640,
+    "-0.300": 5174,
+    "-0.120": 136,
+    "-0.111": 354,
+    "-0.110": 4276,
+    "-0.107": 3480,
+    "-0.103": 5376,
+    "-0.102": 314,
+    "-0.101": 1256,
+    "-0.100": 29728,
+    "+0.000": 39622
+  }
+}

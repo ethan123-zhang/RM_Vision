@@ -1,0 +1,195 @@
+{
+  "world": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/worlds/visual_capture.sdf",
+  "field": {
+    "x": 12.6,
+    "y": 8.6,
+    "h": 0.503
+  },
+  "cameras": {
+    "elevation_wide": {
+      "pred_top_row": 505.3840456000497,
+      "pred_bot_row": 574.6159541311008,
+      "pred_height_px": 69.23190853105109,
+      "depth_m": 20.6999999196153,
+      "m_per_px": 0.0072654359632609465,
+      "profile_median": 82.901,
+      "meas_top_row": 504.5,
+      "meas_bot_row": 573.5,
+      "meas_top_grad": 40.61499999999999,
+      "meas_bot_grad": -43.77199999999999,
+      "meas_height_px": 69.0,
+      "edge_err_px": {
+        "top": 0.884045600049717,
+        "bottom": 1.115954131100807
+      },
+      "height_m_from_focal": 0.5013150814650053,
+      "bright_bbox": {
+        "u0": 93,
+        "u1": 1826,
+        "v0": 506,
+        "v1": 573,
+        "coverage": 0.05686342592592593
+      },
+      "mask_thr": 115,
+      "checks": [
+        {
+          "name": "顶边位置",
+          "ok": true,
+          "detail": "0.9 px"
+        },
+        {
+          "name": "底边位置",
+          "ok": true,
+          "detail": "1.1 px"
+        },
+        {
+          "name": "墙高(焦距换算)",
+          "ok": true,
+          "detail": "501.3 mm vs 503.0 mm"
+        },
+        {
+          "name": "亮带宽度 ≈ 12.6 m",
+          "ok": true,
+          "detail": "1734 px vs 预测 1734.2 px"
+        },
+        {
+          "name": "宽高比 = 12.6/0.503（不依赖焦距）",
+          "ok": true,
+          "detail": "25.50 vs 25.05"
+        },
+        {
+          "name": "墙高(用宽度做标尺)",
+          "ok": true,
+          "detail": "494.1 mm"
+        }
+      ],
+      "pred_width_px": 1734.2386630044612,
+      "meas_width_px": 1734,
+      "meas_height_px_from_bbox": 68,
+      "aspect_meas": 25.5,
+      "aspect_drawing": 25.04970178926441,
+      "height_m_from_width_ref": 0.4941176470588235,
+      "aspect_err": 0.017658753362179834
+    },
+    "elevation_wall": {
+      "pred_top_row": 133.40285125574582,
+      "pred_bot_row": 586.5971409932152,
+      "pred_height_px": 453.19428973746943,
+      "depth_m": 4.699999866025515,
+      "m_per_px": 0.0011098992259776935,
+      "profile_median": 122.63,
+      "meas_top_row": 132.5,
+      "meas_bot_row": 583.5,
+      "meas_top_grad": 40.61499999999999,
+      "meas_bot_grad": -74.658,
+      "meas_height_px": 451.0,
+      "edge_err_px": {
+        "top": 0.9028512557458157,
+        "bottom": 3.0971409932152483
+      },
+      "height_m_from_focal": 0.5005645509159398,
+      "bright_bbox": {
+        "u0": 0,
+        "u1": 1279,
+        "v0": 134,
+        "v1": 583,
+        "coverage": 0.625
+      },
+      "mask_thr": 115,
+      "checks": [
+        {
+          "name": "顶边位置",
+          "ok": true,
+          "detail": "0.9 px"
+        },
+        {
+          "name": "底边位置",
+          "ok": true,
+          "detail": "3.1 px"
+        },
+        {
+          "name": "墙高(焦距换算)",
+          "ok": true,
+          "detail": "500.6 mm vs 503.0 mm"
+        }
+      ],
+      "wall_px_of_frame": 0.6263888888888889
+    },
+    "oblique_low": {
+      "cam_pose": [
+        -10.5,
+        -9.0,
+        2.2,
+        0.0,
+        0.165,
+        0.7086
+      ],
+      "w": 1600,
+      "h": 900,
+      "pred_solid_bbox": {
+        "u0": 84.96109096288114,
+        "u1": 1339.539108993109,
+        "v0": 376.692299514224,
+        "v1": 740.2923728802101
+      },
+      "pred_flat_bbox": {
+        "u0": 84.96109096288114,
+        "u1": 1339.539108993109,
+        "v0": 376.692299514224,
+        "v1": 655.0367605460194
+      },
+      "pred_wall_band_px": 85.25561233419069,
+      "bright_bbox": {
+        "u0": 86,
+        "u1": 1336,
+        "v0": 377,
+        "v1": 654,
+        "coverage": 0.11749236111111111
+      },
+      "mask_thr": 150,
+      "d_bbox_vs_flat": {
+        "u0": 1.0389090371188558,
+        "u1": -3.539108993109039,
+        "v0": 0.3077004857760244,
+        "v1": -1.0367605460194227
+      },
+      "d_bbox_vs_solid": {
+        "u0": 1.0389090371188558,
+        "u1": -3.539108993109039,
+        "v0": 0.3077004857760244,
+        "v1": -86.29237288021011
+      },
+      "wall_band_meas": {
+        "pred_top_row": 603.6952852138495,
+        "meas_top_row": 603.5,
+        "grad_top": -72.85799999999998,
+        "pred_bot_row": 678.6812231257886,
+        "meas_bot_row": 677.5,
+        "grad_bot": -27.843000000000004,
+        "meas_band_px": 74.0,
+        "pred_band_px": 74.98593791193912
+      },
+      "checks": [
+        {
+          "name": "亮面 bbox ≈ 台面顶面投影（±10 px）",
+          "ok": true,
+          "detail": "{'u0': 1.0389090371188558, 'u1': -3.539108993109039, 'v0': 0.3077004857760244, 'v1': -1.0367605460194227}"
+        },
+        {
+          "name": "预测墙带厚度 > 5 px（不是零厚度）",
+          "ok": true,
+          "detail": "85.3 px"
+        },
+        {
+          "name": "侧壁带厚度与预测一致（±8 px）",
+          "ok": true,
+          "detail": "74.0 vs 75.0 px"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "ok": true,
+    "failed": []
+  }
+}

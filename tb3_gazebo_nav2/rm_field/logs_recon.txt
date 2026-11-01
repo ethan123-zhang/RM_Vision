@@ -1,0 +1,49 @@
+OS        : Ubuntu 24.04.5 LTS
+KERNEL    : 6.18.40.1-microsoft-standard-WSL2
+CPUS      : 24
+MEM       : 7 GiB total / 7 GiB available
+DISK      : 948G free on /
+--- executables ---
+gz               /usr/bin/gz
+freecadcmd       MISSING
+freecad          MISSING
+freecadcmd.DEBUG MISSING
+gmsh             MISSING
+python3          /usr/bin/python3
+pip3             MISSING
+assimp           MISSING
+meshlabserver    MISSING
+blender          MISSING
+convert          /usr/bin/convert
+import           /usr/bin/import
+xdotool          /usr/bin/xdotool
+xvfb-run         MISSING
+cmake            /usr/bin/cmake
+g++              /usr/bin/g++
+ros2             MISSING
+--- python modules ---
+trimesh    MISSING
+numpy      OK
+OCC        MISSING
+cadquery   MISSING
+OCP        MISSING
+PIL        OK
+lxml       OK
+--- ros / gz ---
+jazzy
+ros2: /opt/ros/jazzy/bin/ros2
+ros pkg count: 405
+8.15.0
+--- apt candidates (installed?) ---
+freecad: not-installed
+gmsh: not-installed
+python3-occ: not-installed
+freecad-python3: not-installed
+libocct-data-exchange-7.6: not-installed
+--- display ---
+DISPLAY=:0 WAYLAND_DISPLAY=wayland-0 XDG_SESSION_TYPE=
+ls: cannot access '/dev/dri': No such file or directory
+--- network probe (apt/pip) ---
+apt simulate gmsh exit=0 (54 lines)
+pip download exit=1
+/usr/bin/python3: No module named pip

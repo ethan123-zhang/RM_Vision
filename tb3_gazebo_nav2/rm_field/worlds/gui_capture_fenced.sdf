@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!-- 出图用：带围挡世界 + 一台与 GUI 完全同位的相机（-8.5 7.5 2.6 / pitch 0.226 / yaw -0.723）。
+     用途：在没有可靠的 GUI 截图手段时，用离屏渲染给出"你在 GUI 里应该看到什么"。
+     用法: bash capture_probe.sh gui_fenced_view.png worlds/gui_capture_fenced.sdf /gui_view/image -->
+<sdf version="1.9">
+  <world name="rmul2027_3v3">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <scene>
+      <ambient>0.35 0.35 0.35 1</ambient>
+      <background>0.020 0.023 0.032 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.12 0.12 0.12 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.60 0.62 0.68 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.503 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material><ambient>0.09 0.095 0.11 1</ambient><diffuse>0.09 0.095 0.11 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field</uri>
+      <name>rmul2027_3v3_field</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+    <include>
+      <uri>model://rmul2027_3v3_fence</uri>
+      <name>rmul2027_3v3_fence</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <model name="gui_view_cam">
+      <static>true</static>
+      <pose>-8.5 7.5 2.6 0 0.226 -0.723</pose>
+      <link name="cam_link">
+        <sensor name="gui_view" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>gui_view/image</topic>
+          <camera name="gui_view">
+            <horizontal_fov>1.15</horizontal_fov>
+            <image><width>1000</width><height>845</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </world>
+</sdf>

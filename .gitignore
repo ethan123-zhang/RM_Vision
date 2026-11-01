@@ -39,3 +39,13 @@ venv/
 .idea/
 Thumbs.db
 .DS_Store
+
+# ---- Gazebo 仿真（tb3_gazebo_nav2）：可重新生成的大文件与调试产物 ----
+tb3_gazebo_nav2/**/*.stl
+tb3_gazebo_nav2/**/build/
+tb3_gazebo_nav2/logs/
+tb3_gazebo_nav2/rm_field/logs/
+# rm_field/shots 只保留证据图，其余调试截图不入库
+tb3_gazebo_nav2/rm_field/shots/*.png
+!tb3_gazebo_nav2/rm_field/shots/height_*.png
+!tb3_gazebo_nav2/rm_field/shots/gui_fenced_view*.png
