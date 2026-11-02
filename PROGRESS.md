@@ -1,9 +1,11 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-01
+> 最后更新：2026-11-02
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **2026-11-02 副线（视觉输入/工具）：新增 Windows 相机帧率测试脚本 `tools/cam_fps/cam_fps.py`。** 对 ZSKJ-Camera 实测（MJPG/MSMF）：640×480 与 640×360 = 30 fps、800×600 = 20 fps、1024×768 与 1280×720 = 10 fps、1280×1024 = 5 fps，**1080p 及以上不支持**（驱动回退）；YUYV 除 640×480 外均 6.7～8.3 fps。排查中确认两个 Windows 采坑：DSHOW 后端会把 MJPG 请求换成 YUY2，且驱动拒绝分辨率后会输出伪帧率（1080p 报 113 fps、320×240 报 187 fps），扫描必须用 `--exact` 过滤。数据、交叉验证与复现命令见[本轮实验](docs/experiments/2026-11-02-zskj-camera-fps/README.md)，用法见 `tools/cam_fps/README.md`。底盘/仿真主线未改动。
 
 > **最新接续（2026-11-01，副线 Gazebo 仿真）：RMUL2027 3V3 场地已 1:1 进 Gazebo，比例/碰撞/台面高度/观感四项都量化验收完毕。**
 > 场地 12.600 × 8.600 m、台面 z=0、台下 0.503 m；台面高度不再靠“看着像”，而是像素级实测：正立面亮带 1734×69 px → 墙高 **501.3 mm**（焦距换算）/ **494.1 mm**（12.6 m 宽度做标尺），墙面近景墙高 **451 px = 画面 62.6%**，低机位斜视侧壁带 74 px（预测 75 px），`bash capture_height.sh` 11 条断言全过。用户两轮反馈“看不出高台/没看到围栏”后定位到四级原因（俯角太小、地面≈背景、**投影≈天空**、单一材质无竖直参照），改法全部是颜色/光照/相机，几何未动；另加 **0.30 m 围挡**做可选变体世界（`worlds/rmul2027_3v3_field_fenced.sdf`，GUI 默认加载它；1:1 图纸世界 `rmul2027_3v3_field.sdf` 仍是验收基线）。同时确认 `<gui><camera><track>` 会覆盖 `--gui-config` 的 camera_pose、WSLg 抓图不可靠，均已记入 issue。遗留：围栏碰撞未实测（0.7 m/s 撞边不越界）、0.30 m 高度待赛规核对、Nav2 地图未开始。记录见[本轮实验](docs/experiments/2026-11-01-rm-field-gazebo/README.md)、[围挡决策](docs/decisions/2026-11-01-rm-field-fenced-gui-variant.md)、[GUI 观感 issue](docs/issues/2026-11-01-wslg-gui-visibility.md)；细节在 `tb3_gazebo_nav2/rm_field/README.md` §4/§9/§10。底盘主线状态见下条，未被本轮改动。
