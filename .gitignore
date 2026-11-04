@@ -28,6 +28,18 @@ x5_odin/*.log
 *.pem
 secrets/
 
+# ---- 厂商资料 / 第三方示例（不入库，可自行下载）----
+Development-Board-C-Examples-master/
+# Keil DFP 器件包（随 Keil 安装，几十 MB）
+**/.pack/
+
+# ---- 本地 Agent / 编辑器状态（不上传）----
+.dsh/
+.obsidian/
+
+# ---- 板端运行日志副本（可重新生成，分析结论见 docs/experiments）----
+car_slam_lap/demo/**/*.log
+
 # ---- 缓存与编辑器 ----
 __pycache__/
 *.py[cod]
