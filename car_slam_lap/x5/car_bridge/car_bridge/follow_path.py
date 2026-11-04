@@ -119,6 +119,12 @@ TRACK_ALIGN_ENTER_RAD = math.radians(60.0)
 TRACK_ALIGN_EXIT_RAD = math.radians(20.0)
 #: 原地对齐超时（s）；按默认 w_max 转半圈还留余量，超时按失败停车，不无限旋转。
 TRACK_ALIGN_TIMEOUT_S = 15.0
+
+#: 末段收口：方位误差超过这个角度就先原地转正，再低速直行到终点转心。
+#: 这里刻意不用纯追踪——点目标 + 固定曲率会让车绕着终点兜圈。
+GOAL_APPROACH_ALIGN_RAD = 0.35
+#: 末段收口的直行速度上限（m/s），比跟踪段更慢，方便"停得准"。
+GOAL_APPROACH_VMAX = 0.12
 #: 最近点搜索的局部弧长窗口（m）：不允许为了凑欧式最近点跨过掉头/回程段。
 NEAREST_BACK_M = 0.30
 NEAREST_FORWARD_M = 0.30
@@ -246,6 +252,11 @@ class FollowPath(Node):
         # 起点阶段的判据与目标都用转心位姿：力臂为零时就是路线首点本身。
         self._start_cx, self._start_cy = self._rotation_center(
             self.px[0], self.py[0], self.pyaw[0])
+        # 终点同理：最后一步是"原地转正"，转心不动而传感器点会绕转心画圆
+        # （0.27 m 力臂转 155° 就扫 0.52 m），位置判据必须看转心，否则
+        # 转正过程中会被误判成"漂离终点"。朝向对齐后传感器自然落回示教点。
+        self._goal_cx, self._goal_cy = self._rotation_center(
+            self.px[-1], self.py[-1], self.pyaw[-1])
         if self.base_offset_x or self.base_offset_y:
             self.get_logger().info(
                 f"力臂补偿：base_frame 相对转心 "
@@ -338,6 +349,8 @@ class FollowPath(Node):
         self._err_n = 0
         self._idx_prev = -1
         self._align_start: Optional[float] = None
+        # 最终对齐的超时按初始角度自适应（见 align 分支），先给个默认值。
+        self._align_timeout_s: float = ALIGN_TIMEOUT_S
         # 跟踪阶段：当前沿弧长选到的目标点，以及大转角原地对齐的起始时刻。
         self._target_idx = 0
         self._track_align_t0: Optional[float] = None
@@ -577,7 +590,9 @@ class FollowPath(Node):
         self._log_progress(x, y, idx, dist)
 
         remaining = self.total_len - self.s[idx]
-        goal_dist = math.hypot(self.px[-1] - x, self.py[-1] - y)
+        # 位置判据一律用转心：终点对齐是原地转，转心不动、传感器点会扫圆。
+        cx, cy = self._rotation_center(x, y, yaw)
+        goal_dist = math.hypot(self._goal_cx - cx, self._goal_cy - cy)
         yaw_err = abs(wrap_pi(self.pyaw[-1] - yaw))
         # "进度接近末段"和"真的走到终点"必须同时成立：闭合路线的起点
         # 也可能离最后一点很近，不能只看剩余弧长或最近点索引。
@@ -603,6 +618,46 @@ class FollowPath(Node):
 
             ti = self._target_index(idx)
             self._target_idx = ti
+            if near_end:
+                # 末段直接瞄准终点转心：示教时"停下来说话"会录出几个几乎重合
+                # 的尾点（实测末 3 点间距 0.2 mm），拿它当前视点会让方位角
+                # 随噪声乱翻，车原地打转直到 track_align 超时。走转心还顺带
+                # 把力臂算进去：转到终点朝向后传感器自然落回示教点。
+                # 用 near_end（含"真的走过半程"）而不是只看剩余弧长：闭合路线
+                # 的起点离末点同样很近，不能一进 run 就当成到终点。
+                dx, dy = self._goal_cx - cx, self._goal_cy - cy
+                target_dist = math.hypot(dx, dy)
+                heading = wrap_pi(math.atan2(dy, dx) - yaw)
+                if target_dist < self.goal_tol:
+                    # 已经够近，剩下只是朝向问题：交给终点对齐，别再往前顶。
+                    if not self.align_yaw or yaw_err <= ALIGN_TOL:
+                        self._stop(
+                            f"到达终点（位置误差 {target_dist:.2f} m，"
+                            f"朝向误差 {yaw_err:.2f} rad）",
+                            OUTCOME_SUCCESS,
+                        )
+                        return
+                    self._state = "align"
+                    self._align_start = None
+                    self._track_align_t0 = None
+                    self.get_logger().info(
+                        f"位置到终点但朝向差 {yaw_err:.2f} rad，开始最终对齐"
+                    )
+                    self._publish(0.0, 0.0)
+                    return
+                # 收口用"先对准转心方向、再直行"，不用纯追踪：拿一个点当前视
+                # 目标时，固定曲率会让车绕着终点画圈（实测 d 卡在 0.33 m、
+                # w 恒定 0.57 rad/s 永不收敛）。
+                if abs(heading) > GOAL_APPROACH_ALIGN_RAD:
+                    w = max(-self.w_max, min(self.w_max, 1.5 * heading))
+                    self._publish(0.0, w)
+                    return
+                v = min(self.v_max, GOAL_APPROACH_VMAX)
+                if target_dist < 0.30:
+                    v = min(v, 0.08)
+                w = max(-self.w_max, min(self.w_max, 1.2 * heading))
+                self._publish(v, w)
+                return
             dx, dy = self.px[ti] - x, self.py[ti] - y
             target_dist = math.hypot(dx, dy)
             alpha = wrap_pi(math.atan2(dy, dx) - yaw)
@@ -635,8 +690,10 @@ class FollowPath(Node):
             curvature = 2.0 * math.sin(alpha) / max(target_dist, 1e-3)
 
             v = self.v_max * max(0.25, math.cos(alpha))
-            if remaining < 0.5:  # 快到终点先减速
+            if remaining < 0.5 or target_dist < 0.5:  # 快到终点先减速
                 v = min(v, 0.15)
+            if target_dist < 0.25:                    # 末段精修再慢一档
+                v = min(v, 0.08)
             w = max(-self.w_max, min(self.w_max, v * curvature))
             self._publish(v, w)
             return
@@ -644,16 +701,25 @@ class FollowPath(Node):
         if self._state == "align":
             if self._align_start is None:
                 self._align_start = now
+                # 超时按初始角度估算：低速下 180° 在 w_max=0.35 时需要约 9 s，
+                # 固定 5 s 会把"其实还能转完"的情况判成失败（实车 21:07 现场）。
+                turn_speed = max(self.w_max * 0.8, 0.05)
+                self._align_timeout_s = max(
+                    ALIGN_TIMEOUT_S,
+                    1.5 * abs(wrap_pi(self.pyaw[-1] - yaw)) / turn_speed)
             # 先看有没有漂离终点：对齐阶段也不能只凭 yaw 判成功。
-            goal_dist = math.hypot(self.px[-1] - x, self.py[-1] - y)
+            # 同样看转心——原地转正期间传感器点会绕转心扫过一大段弧。
+            goal_dist = math.hypot(self._goal_cx - cx, self._goal_cy - cy)
             if goal_dist > self.goal_tol:
                 self._stop(
                     f"最终对齐时已漂离终点 {goal_dist:.2f} m "
                     f"> goal_tol={self.goal_tol:.2f} m，失败"
                 )
                 return
-            if now - self._align_start > ALIGN_TIMEOUT_S:
-                self._stop("最终朝向对齐超时（失败，未走完）")
+            if now - self._align_start > self._align_timeout_s:
+                self._stop(
+                    f"最终朝向对齐超时（{self._align_timeout_s:.1f} s，失败，未走完）"
+                )
                 return
             err = wrap_pi(self.pyaw[-1] - yaw)
             if abs(err) <= ALIGN_TOL:

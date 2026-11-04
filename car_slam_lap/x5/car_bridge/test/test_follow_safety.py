@@ -1015,6 +1015,147 @@ class FollowPathSafetyTest(unittest.TestCase):
         for linear, _ in self._commands(node):
             self.assertGreaterEqual(linear, 0.0)
 
+    # ------------------------------------------------ 终点对齐的力臂补偿（任务05 残留风险）
+    def _simulate_final_align(self, offset, yaw_err_rad, center_shift=(0.0, 0.0),
+                              goal_tol: float = 0.20, seconds: float = 30.0):
+        """车停在终点、带朝向偏差原地转正；传感器点绕转心画圆，转心不动。"""
+        points = [(0.0, 0.0, 0.0), (0.5, 0.0, 0.0), (1.0, 0.0, 0.03)]
+        node = self._node_default_start(
+            points, base_offset_x=offset[0], base_offset_y=offset[1],
+            goal_tol=goal_tol)
+        node._state = "align"
+        node._align_start = None
+        # 直接摆到终点场景：跳过"首次位姿是否在起点范围内"的入口检查。
+        node._start_checked = True
+        node._start_phase_t0 = 1.0
+        goal_yaw = 0.03
+        theta = follow.wrap_pi(goal_yaw + yaw_err_rad)
+        cx = node._goal_cx + center_shift[0]
+        cy = node._goal_cy + center_shift[1]
+        stamp = 1.0
+        trace: list[str] = []
+        for _ in range(int(seconds * 20) + 20):
+            sensor = (
+                cx + offset[0] * math.cos(theta) - offset[1] * math.sin(theta),
+                cy + offset[0] * math.sin(theta) + offset[1] * math.cos(theta),
+            )
+            self._tick_pose(node, stamp, (sensor[0], sensor[1], theta), dt=0.05)
+            stamp += 0.05
+            if node._done:
+                break
+            _v, w = self._commands(node)[-1]
+            trace.append(
+                f"{node._state:5s} yaw_err={follow.wrap_pi(goal_yaw - theta):+.3f} "
+                f"w={w:+.3f}")
+            theta = follow.wrap_pi(theta + w * 0.05)
+        return node, trace
+
+    def test_final_align_tolerates_lever_arm_sweep(self) -> None:
+        # 实车现场（2026-11-04 20:56）：0.27 m 力臂 + 终点朝向差 155°，
+        # 原地转正时传感器点扫过 0.52 m，被旧的传感器点位判据判成
+        # "漂离终点 0.22 m"，整圈虽然走完却算失败。判据改看转心后应成功。
+        node, trace = self._simulate_final_align((0.2626, -0.0471), 2.7)
+        self.assertTrue(node._done, "\n".join(trace[-15:]))
+        self.assertEqual(node._outcome, follow.OUTCOME_SUCCESS, node._reason)
+        self.assertIn("到达终点", node._reason)
+        # 终点对齐只允许原地转：不能为了"贴回终点"而平移。
+        for linear, _ in self._commands(node):
+            self.assertEqual(linear, 0.0)
+
+    def test_final_align_still_fails_when_center_drifts(self) -> None:
+        # 转心真的漂了 0.30 m（不是传感器扫圆）时必须失败，安全判据不能被改没。
+        node, trace = self._simulate_final_align(
+            (0.2626, -0.0471), 2.7, center_shift=(0.30, 0.0))
+        self.assertTrue(node._done, "\n".join(trace[-15:]))
+        self.assertEqual(node._outcome, follow.OUTCOME_FAILED)
+        self.assertIn("漂离终点", node._reason)
+        self._assert_tail_zero(node)
+
+    def test_final_align_timeout_scales_with_turn_angle(self) -> None:
+        # 实车现场（2026-11-04 21:07）：路线末段是倒着蹭进去的，回放只能前进，
+        # 抵达时朝向差 176°，而固定 5 s 超时只够转 80°（w_max=0.35）→ 误判失败。
+        # 超时改为按初始角度自适应后，同样角度应能转完并成功。
+        for label, offset, w_max, yaw_err in (
+            ("176° @ w_max=0.35", (0.2626, -0.0471), 0.35, 3.07),
+            ("90° @ w_max=0.35", (0.2626, -0.0471), 0.35, 1.57),
+        ):
+            with self.subTest(case=label):
+                points = [(0.0, 0.0, 0.0), (0.5, 0.0, 0.0), (1.0, 0.0, 0.03)]
+                node = self._node_default_start(
+                    points, base_offset_x=offset[0], base_offset_y=offset[1],
+                    w_max=w_max)
+                node._state = "align"
+                node._align_start = None
+                node._start_checked = True
+                node._start_phase_t0 = 1.0
+                goal_yaw = 0.03
+                theta = follow.wrap_pi(goal_yaw + yaw_err)
+                cx, cy = node._goal_cx, node._goal_cy
+                stamp = 1.0
+                for _ in range(int(30.0 * 20)):
+                    sensor = (
+                        cx + offset[0] * math.cos(theta)
+                        - offset[1] * math.sin(theta),
+                        cy + offset[0] * math.sin(theta)
+                        + offset[1] * math.cos(theta),
+                    )
+                    self._tick_pose(node, stamp,
+                                    (sensor[0], sensor[1], theta), dt=0.05)
+                    stamp += 0.05
+                    if node._done:
+                        break
+                    _v, w = self._commands(node)[-1]
+                    theta = follow.wrap_pi(theta + w * 0.05)
+                self.assertTrue(node._done)
+                self.assertEqual(node._outcome, follow.OUTCOME_SUCCESS,
+                                 f"{label}: {node._reason}")
+                self.assertGreater(node._align_timeout_s, follow.ALIGN_TIMEOUT_S)
+                for linear, _ in self._commands(node):
+                    self.assertEqual(linear, 0.0)
+
+    def _simulate_tail_converge(self, offset, start_sensor, start_yaw,
+                                seconds: float = 60.0):
+        """末段有重合尾点、车还过冲了一段：应能自己转回来收口，而不是原地打转。"""
+        route = [(0.0, 0.0, 0.0), (0.5, 0.0, 0.0), (1.0, 0.0, 0.0),
+                 (1.0, 0.0, 0.0), (1.0, 0.0, 0.0)]
+        node = self._node_default_start(
+            route, base_offset_x=offset[0], base_offset_y=offset[1])
+        node._start_checked = True
+        node._start_phase_t0 = 1.0
+        node._state = "run"
+        # 终点判据要求真的走过半程；这里假装已经跑过大半，只剩收口。
+        node._traveled = 0.9 * node.total_len
+        sx, sy, yaw = start_sensor[0], start_sensor[1], start_yaw
+        # 差速车是绕转心转、传感器绕转心画圆：状态量必须放在转心上，
+        # 否则"原地转"会算成传感器点不动 → 转心凭空漂移（错误模型）。
+        cx = sx - (offset[0] * math.cos(yaw) - offset[1] * math.sin(yaw))
+        cy = sy - (offset[0] * math.sin(yaw) + offset[1] * math.cos(yaw))
+        stamp = 1.0
+        trace: list[str] = []
+        for _ in range(int(seconds * 10)):
+            sx = cx + offset[0] * math.cos(yaw) - offset[1] * math.sin(yaw)
+            sy = cy + offset[0] * math.sin(yaw) + offset[1] * math.cos(yaw)
+            self._tick_pose(node, stamp, (sx, sy, yaw), dt=0.1)
+            stamp += 0.1
+            if node._done:
+                break
+            v, w = self._commands(node)[-1]
+            trace.append(f"{node._state:11s} v={v:.3f} w={w:+.3f}")
+            yaw = follow.wrap_pi(yaw + w * 0.1)
+            cx += v * math.cos(yaw) * 0.1
+            cy += v * math.sin(yaw) * 0.1
+        return node, trace
+
+    def test_degenerate_tail_points_do_not_spin_forever(self) -> None:
+        # 实车现场（2026-11-04 21:01）：示教末段停车录出 3 个重合点，车过冲
+        # 0.29 m 后纯追踪把"脚下的点"当前视目标，方位角乱翻 → track_align
+        # 转 15 s 超时。末段改为瞄准终点转心后应自己转回来收口成功。
+        node, trace = self._simulate_tail_converge(
+            (0.2626, -0.0471), (1.25, 0.15), 1.1)
+        self.assertTrue(node._done, "\n".join(trace[-15:]))
+        self.assertEqual(node._outcome, follow.OUTCOME_SUCCESS, node._reason)
+        self.assertIn("到达终点", node._reason)
+
     def test_strict_start_with_lever_arm_does_not_converge(self) -> None:
         # 已确认的物理缺陷（Odin1 偏离转心 0.19–0.25 m）会让"严格起点 + 先转正
         # 再补位"进入极限环：align 要把朝向转回路线方向，而 return 要把车头对准

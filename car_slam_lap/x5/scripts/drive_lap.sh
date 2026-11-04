@@ -6,6 +6,15 @@
 #         bash drive_lap.sh <route_map.yaml>
 #         VMAX=0.25 bash drive_lap.sh         # 临时降速（正式跑之前一定先慢速试）
 #
+# 可选环境变量（都直接透传给 follow_path）：
+#   VMAX=0.15              目标速度上限（默认 0.30）
+#   W_MAX=0.35             角速度上限（rad/s，默认 0.35；follow_path 内建默认 1.2 太快）
+#   RETURN_W_MAX=0.30      回起点/起始对齐的角速度上限（rad/s，默认 0.30）
+#   BASE_OFFSET_X/Y=...    力臂补偿（m，车体系；标定见 calibrate_lever_arm）
+#   START_MAX_OFFSET_M=... 允许距离起点多远（m，默认 0.5；放大时同步放大下面的超时）
+#   RETURN_TIMEOUT_S=...   回起点+起始对齐总超时（s，默认 30）
+#   MAX_TIME_S=...         总时限（s，默认 0 = 不限）
+#
 # 前置检查（不满足直接退出，不会带着车乱跑）：
 #   1. route_map.yaml 存在，且与地图文件有有效 bundle（内容 SHA256 配套）
 #   2. car_bridge 在跑（/car/status 有数据）；本脚本不会自动启动底盘桥接
@@ -99,19 +108,64 @@ if ! wait_for_tf map "$BASE_FRAME" 5; then
 fi
 echo "✓ 定位可用（TF 只是必要条件，原始里程计新鲜度由 follow_path 继续检查）"
 
+# 力臂补偿：base_frame（imu/雷达）相对转心的偏置，车体系、有符号、单位 m。
+# 用 `ros2 run car_bridge calibrate_lever_arm` 标定；默认 0 表示不补偿（旧行为）。
+OFFX="${BASE_OFFSET_X:-0.0}"
+OFFY="${BASE_OFFSET_Y:-0.0}"
+# 角速度上限（rad/s）。follow_path 的默认值是 1.2，急弯原地对齐时看起来会"猛转"，
+# 演示/低速场景务必显式给个小值（0.30~0.40 ≈ 17~23 deg/s）。
+WMAX="${W_MAX:-0.35}"
+# 回起点/起始对齐阶段的角速度上限（rad/s）；比跟踪段更保守。
+RWMAX="${RETURN_W_MAX:-0.30}"
+# 起点范围（m）：车第一次位姿离路线首点超过它就直接拒跑，避免半路乱切路线。
+SMO="${START_MAX_OFFSET_M:-0.5}"
+# 回起点+起始对齐总超时（s）：范围放大时必须同步放大（实测 1.5 m 约需 54 s）。
+RTO="${RETURN_TIMEOUT_S:-30.0}"
+# 总时限（s），0 = 不限。14 m 路线 @0.15 m/s 约需 100 s 跟踪 + 起点阶段。
+MX="${MAX_TIME_S:-0.0}"
+
+# ROS 2 从命令行值推断参数类型：写 280 会被当成 INTEGER，而 follow_path 声明的
+# max_time_s 是 DOUBLE，直接抛 InvalidParameterTypeException。所以统一补成浮点。
+num_float() {
+  local v="$1" name="$2"
+  case "$v" in
+    ''|*[!0-9.eE+-]*) echo "✗ $name 不是数字: '$v'" >&2; exit 1 ;;
+  esac
+  case "$v" in
+    *.*|*e*|*E*) printf '%s' "$v" ;;
+    *) printf '%s.0' "$v" ;;
+  esac
+}
+VMAX="$(num_float "$VMAX" VMAX)"
+WMAX="$(num_float "$WMAX" W_MAX)"
+RWMAX="$(num_float "$RWMAX" RETURN_W_MAX)"
+OFFX="$(num_float "$OFFX" BASE_OFFSET_X)"
+OFFY="$(num_float "$OFFY" BASE_OFFSET_Y)"
+SMO="$(num_float "$SMO" START_MAX_OFFSET_M)"
+RTO="$(num_float "$RTO" RETURN_TIMEOUT_S)"
+MX="$(num_float "$MX" MAX_TIME_S)"
+
 cat <<EOF
 
 == 5 s 后开始，Ctrl-C 随时停 ==
    先回起点再跟踪；限起点附近空旷通道，无自动绕障。
    手工起 bridge 的方式不变，本脚本不会自动启动底盘。
+   v_max=$VMAX  w_max=$WMAX  return_w_max=$RWMAX
+   base_offset=($OFFX, $OFFY)  起点范围=${SMO} m  回起点超时=${RTO} s  总时限=$MX
 
 EOF
-VMAX="${VMAX:-0.30}"
 ros2 run car_bridge follow_path --ros-args \
   -p path_file:="$PATH_FILE" \
   -p map_file:="$MAP_BIN" \
   -p base_frame:="$BASE_FRAME" \
   -p v_max:="$VMAX" \
+  -p w_max:="$WMAX" \
+  -p return_w_max:="$RWMAX" \
+  -p base_offset_x:="$OFFX" \
+  -p base_offset_y:="$OFFY" \
+  -p start_max_offset_m:="$SMO" \
+  -p return_timeout_s:="$RTO" \
+  -p max_time_s:="$MX" \
   -p save_actual:="$MAP_DIR/lap_actual.yaml" \
   -p start_delay_s:=5.0
 
