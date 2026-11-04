@@ -1,0 +1,110 @@
+{
+  "file": "E:\\RM\\_probe\\wheel4-no-gearbox-20261030-run1\\capture.csv",
+  "span_s": 179.995,
+  "modes": [
+    4
+  ],
+  "online_masks": [
+    15
+  ],
+  "segments": [
+    {
+      "dur_s": 7.436,
+      "kick_ms": 0.0,
+      "hold_ms": 7383.9,
+      "hold_cmd": 450,
+      "terminal_status": 0,
+      "status_seq": [
+        0,
+        1
+      ],
+      "rpm_max": 150,
+      "rpm_min": -11,
+      "rpm_mean": 0.3,
+      "rpm_last": -3,
+      "static_frac": 0.993,
+      "current_mean": 452.8,
+      "current_max": 1477,
+      "temp_end": 22,
+      "cmd_0x200_mean": 451.9,
+      "rev_net": 0.064,
+      "rev_travel": 0.066,
+      "rpm_p95": 3,
+      "valid_window_s": 5.435,
+      "steady_ref_rpm": 0.0,
+      "ma20_min": -2.9,
+      "ma20_max": 0.4,
+      "head1_rpm": -0.1,
+      "tail1_rpm": -0.2,
+      "trend_ratio": -0.101,
+      "verdict": "稳态参考转速 0.0rpm <50rpm（行程 0.066 转、静止占比 99.3%）：转子基本未连续转动，降速事件口径不适用，不可判定",
+      "index": 1,
+      "t_start_pc_s": 59.453,
+      "t_end_pc_s": 66.875,
+      "exit": "提前退出，状态 0：0x1F2 无法区分按键取消与其他正常取消"
+    },
+    {
+      "dur_s": 1.638,
+      "kick_ms": 1611.9,
+      "hold_ms": 0.0,
+      "hold_cmd": 0,
+      "terminal_status": 0,
+      "status_seq": [
+        0,
+        1
+      ],
+      "rpm_max": 4,
+      "rpm_min": -17,
+      "rpm_mean": -0.4,
+      "rpm_last": -17,
+      "static_frac": 0.998,
+      "current_mean": 1494.6,
+      "current_max": 1560,
+      "temp_end": 22,
+      "cmd_0x200_mean": 1492.7,
+      "rev_net": -0.001,
+      "rev_travel": 0.002,
+      "rpm_p95": 3,
+      "verdict": "去掉起转 2s 后有效窗口不足：不可判定",
+      "index": 2,
+      "t_start_pc_s": 73.25,
+      "t_end_pc_s": 74.89,
+      "exit": "提前退出，状态 0：0x1F2 无法区分按键取消与其他正常取消"
+    },
+    {
+      "dur_s": 8.06,
+      "kick_ms": 25.9,
+      "hold_ms": 7981.9,
+      "hold_cmd": 550,
+      "terminal_status": 0,
+      "status_seq": [
+        0,
+        1
+      ],
+      "rpm_max": 152,
+      "rpm_min": -5,
+      "rpm_mean": 0.4,
+      "rpm_last": 0,
+      "static_frac": 0.992,
+      "current_mean": 553.2,
+      "current_max": 1544,
+      "temp_end": 22,
+      "cmd_0x200_mean": 553.0,
+      "rev_net": 0.07,
+      "rev_travel": 0.07,
+      "rpm_p95": 0,
+      "valid_window_s": 6.058,
+      "steady_ref_rpm": 0.0,
+      "ma20_min": -1.2,
+      "ma20_max": 0.0,
+      "head1_rpm": -0.1,
+      "tail1_rpm": -0.1,
+      "trend_ratio": 0.005,
+      "verdict": "稳态参考转速 0.0rpm <50rpm（行程 0.07 转、静止占比 99.2%）：转子基本未连续转动，降速事件口径不适用，不可判定",
+      "index": 3,
+      "t_start_pc_s": 79.234,
+      "t_end_pc_s": 87.296,
+      "exit": "到时正常释放（保持段时长与 8s 吻合）"
+    }
+  ]
+}
