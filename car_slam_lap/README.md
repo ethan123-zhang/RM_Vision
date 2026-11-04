@@ -537,14 +537,29 @@ python3 -m car_bridge.route_bundle validate \
 传感器点绕转心画圆，转心不动，一次收敛、不再补位。约定
 `传感器位姿 = 转心 + R(yaw)·(offset_x, offset_y)`。
 
-标定方法（车断电前先做，只需一次）：
+标定方法（车断电前做一次，节点不发 cmd_vel，纯手动/遥控转车）：
 
-1. 在原地把车**转 180°**，记录转前朝向 `yaw0` 与位姿点在 map 里的位移 `Δs`；
-2. `offset = -R(-yaw0)·Δs / 2`（位移方向是 `-2·offset` 旋转到地图系）；
-3. 运行时加上 `-p base_offset_x:=... -p base_offset_y:=...`，启动日志会打印
-   `力臂补偿：base_frame 相对转心 (x, y) m` 以便核对。
+```bash
+# 车已重定位、周围 1 m 空旷；节点只读 TF，等提示后原地把车转约 180°
+ros2 run car_bridge calibrate_lever_arm
+# 输出：-p base_offset_x:=0.2400 -p base_offset_y:=-0.0700
+```
 
-补偿参数默认 0 = 不补偿，行为与之前一致；填错符号只会退化成"安全停车"，不会反向跑。
+它自己判断"静止起点 → 转够 120° → 停稳 1 s"，转不够不给结果；反解公式是
+`offset = -R(-yaw0)·Δs/2`（转 180° 时），也就是"位姿点位移方向 = −2·offset
+旋转到地图系"。结果模长超过 0.6 m 会警告（说明车不是原地转、被拖着走了或
+定位跳变），接近 0 也会提醒（可能传感器就在转心附近，或两次采到相近角度）。
+
+把输出的两个参数加到 `follow_path` 启动参数里：
+
+```bash
+ros2 run car_bridge follow_path --ros-args \
+  -p path_file:=$HOME/car_ws/maps/lab1/route_map.yaml \
+  -p base_offset_x:=0.2400 -p base_offset_y:=-0.0700
+```
+
+补偿参数默认 0 = 不补偿，行为与之前一致；填错符号只会退化成"有限次补位后
+安全停车"，不会反向跑。
 
 > 本节的脚本与离线测试只验证软件流程；地图定位精度、TF 真实时序、跨重启一致性和整车
 > 导航仍需板端实车验收。

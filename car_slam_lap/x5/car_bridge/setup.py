@@ -26,6 +26,7 @@ setup(
             "route_bundle = car_bridge.route_bundle:main",
             "map_from_cloud = car_bridge.map_from_cloud:main",
             "calibrate_speed = car_bridge.calibrate_speed:main",
+            "calibrate_lever_arm = car_bridge.calibrate_lever_arm:main",
         ],
     },
 )
