@@ -895,14 +895,15 @@ class FollowPathSafetyTest(unittest.TestCase):
         self._assert_tail_zero(node)
 
     def _simulate_start_flow(self, r: float, along: float, yaw_deg: float,
-                             seconds_budget: float = 90.0):
+                             seconds_budget: float = 90.0, **node_overrides):
         """用"转心 + 传感器偏置"的差速车运动学跑一遍起始流程。
 
         返回 (node, entered_run, sensor, theta, trace)。r 是 base_frame 相对
         转心的距离，along 是传感器在路线起点 +x 方向的位置，yaw_deg 是初始
         车身朝向与路线起点朝向的差。
         """
-        node = self._node_default_start(LINE, return_timeout_s=seconds_budget)
+        node_overrides.setdefault("return_timeout_s", seconds_budget)
+        node = self._node_default_start(LINE, **node_overrides)
         theta = math.radians(yaw_deg)
         center = (along - r * math.cos(theta), -r * math.sin(theta))
         stamp = 1.0
@@ -948,6 +949,71 @@ class FollowPathSafetyTest(unittest.TestCase):
         for linear, _ in self._commands(node):
             self.assertGreaterEqual(linear, 0.0)
         self.assertTrue(any(v > 0.0 for v, _ in self._commands(node)))
+
+    def test_base_offset_parameters_validated(self) -> None:
+        for name, value in (("base_offset_x", float("nan")),
+                            ("base_offset_x", float("inf")),
+                            ("base_offset_y", float("nan"))):
+            with self.subTest(arg=name), self.assertRaises(ValueError):
+                self._node_default_start(LINE, **{name: value})
+        # 负偏移合法：传感器可能在转心后方或右侧。
+        node = self._node_default_start(LINE, base_offset_x=-0.2,
+                                       base_offset_y=0.05)
+        self.assertAlmostEqual(node.base_offset_x, -0.2)
+        self.assertAlmostEqual(node.base_offset_y, 0.05)
+
+    def test_base_offset_defaults_to_zero(self) -> None:
+        # 默认 0 = 不补偿，行为与任务05 B（只判传感器点）完全一致。
+        node = self._node_default_start(LINE)
+        self.assertEqual((node.base_offset_x, node.base_offset_y), (0.0, 0.0))
+
+    def test_rotation_center_compensates_lever_arm(self) -> None:
+        node = self._node_default_start(LINE, base_offset_x=0.25)
+        # 传感器在车头前 0.25 m：位姿点 (0,0,0) 对应的转心在 -x 方向。
+        cx, cy = node._rotation_center(0.0, 0.0, 0.0)
+        self.assertAlmostEqual(cx, -0.25, places=9)
+        self.assertAlmostEqual(cy, 0.0, places=9)
+        # 偏置随车身朝向一起转：车身转 90° 后，转心在 -y 方向。
+        cx, cy = node._rotation_center(0.0, 0.0, math.pi / 2)
+        self.assertAlmostEqual(cx, 0.0, places=9)
+        self.assertAlmostEqual(cy, -0.25, places=9)
+        # 偏置为零时必须原样返回，不引入任何浮点噪声。
+        plain = self._node_default_start(LINE)
+        self.assertEqual(plain._rotation_center(0.3, -0.2, 0.4), (0.3, -0.2))
+
+    def test_start_target_is_compensated_center(self) -> None:
+        # 路线起点 (0,0,0)。传感器偏 0.25 m 时，转向中心的目标应是 (-0.25, 0)，
+        # 而不是传感器点 (0,0)：否则"转正"和"到位"互相打架（任务05 B 的极限环）。
+        node = self._node_default_start(LINE, base_offset_x=0.25)
+        self.assertAlmostEqual(node._start_cx, -0.25, places=9)
+        self.assertAlmostEqual(node._start_cy, 0.0, places=9)
+
+    def test_base_offset_start_target_rejects_sensor_on_start(self) -> None:
+        # 传感器点正好压在路线起点上、朝向还差 0.5 rad：转心其实偏了 0.12 m，
+        # 不能用"传感器点就在起点"就直接进 run。
+        node = self._node_default_start(LINE, base_offset_x=0.25)
+        cx, cy = node._rotation_center(0.0, 0.0, 0.5)
+        self.assertGreater(math.hypot(cx - node._start_cx, cy - node._start_cy),
+                           node.start_pos_tol_m)
+
+    def test_base_offset_converges_with_lever_arm_simulation(self) -> None:
+        # 配上力臂补偿后，同一物理几何（传感器偏 0.25 m、0.45 m / 140°）应
+        # 一次到位进 run，不再出现 B 的"转正 vs 对准目标"极限环。
+        node, entered_run, sensor, theta, trace = self._simulate_start_flow(
+            r=0.25, along=-0.45, yaw_deg=140.0, base_offset_x=0.25)
+        self.assertTrue(
+            entered_run,
+            f"没进 run，最终状态 {node._state}，原因 {node._reason}，"
+            f"往返 {node._start_roundtrips} 次\n" + "\n".join(trace[-25:]),
+        )
+        self.assertEqual(node._start_roundtrips, 0)   # 旋转不再需要补位
+        self.assertLessEqual(math.hypot(sensor[0], sensor[1]),
+                             node.start_pos_tol_m + node.base_offset_x + 1e-6)
+        self.assertLessEqual(abs(follow.wrap_pi(-theta)),
+                             node.start_yaw_tol_rad + 1e-6)
+        self.assertLessEqual(node._start_elapsed, 30.0)
+        for linear, _ in self._commands(node):
+            self.assertGreaterEqual(linear, 0.0)
 
     def test_strict_start_with_lever_arm_does_not_converge(self) -> None:
         # 已确认的物理缺陷（Odin1 偏离转心 0.19–0.25 m）会让"严格起点 + 先转正

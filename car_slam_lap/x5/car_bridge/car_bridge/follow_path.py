@@ -40,6 +40,13 @@ odom/TF/底盘状态安全门，并保持"只向前"——这里不是倒车支�
 与"朝向对齐"在物理上互斥（转 140° 必然平移 0.47 m），所以对齐阶段只判朝向，
 转正后位置超差就回 return 补位；往返轮次上限 START_RETURN_ROUNDTRIP_MAX，
 共享 return_timeout_s 兜底，超过轮次按失败停车。
+
+力臂补偿（可选，默认关闭）：给出 base_offset_x/y（base_frame 相对转心，
+车体系，m；传感器位姿 = 转心 + R(yaw)·offset）后，起始判据与回起点目标都
+改用**转心**位姿。原地转只让传感器点绕转心画圆，转心不动，于是"转正"与
+"到位"不再互相抵消，一次收敛，不再需要补位往返。标定方法：原地转 180°，
+记位姿点在地图里的位移 Δs 与转前朝向 yaw0，则 offset = -R(-yaw0)·Δs/2
+（位移方向是 -2·offset 旋转到地图系）。
 return_to_start=false 仅供已人工对齐的历史诊断，会打印警告。
 
 用法：
@@ -131,6 +138,17 @@ def _finite_param(name: str, value, *, allow_zero: bool = False) -> float:
     return number
 
 
+def _finite_signed_param(name: str, value) -> float:
+    """力臂偏置允许为负：传感器可能在转心后方或右侧。"""
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"参数 {name} 必须是数字，收到 {value!r}") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"参数 {name} 必须是有限数，收到 {value!r}")
+    return number
+
+
 class FollowPath(Node):
     def __init__(self) -> None:
         super().__init__("follow_path")
@@ -169,6 +187,11 @@ class FollowPath(Node):
         self.declare_parameter("return_v_max", 0.08)
         self.declare_parameter("return_w_max", 0.4)
         self.declare_parameter("return_timeout_s", 30.0)
+        # 力臂补偿：base_frame（位姿来源）相对转心的位置，车体系，单位 m。
+        # 约定 传感器位姿 = 转心 + R(yaw)·(base_offset_x, base_offset_y)。
+        # 默认 0 = 不补偿（判据直接用传感器点，与任务05 B 行为一致）。
+        self.declare_parameter("base_offset_x", 0.0)
+        self.declare_parameter("base_offset_y", 0.0)
 
         self.return_to_start = bool(self.get_parameter("return_to_start").value)
         self.start_max_offset_m = _finite_param(
@@ -183,6 +206,10 @@ class FollowPath(Node):
             "return_w_max", self.get_parameter("return_w_max").value, allow_zero=True)
         self.return_timeout_s = _finite_param(
             "return_timeout_s", self.get_parameter("return_timeout_s").value)
+        self.base_offset_x = _finite_signed_param(
+            "base_offset_x", self.get_parameter("base_offset_x").value)
+        self.base_offset_y = _finite_signed_param(
+            "base_offset_y", self.get_parameter("base_offset_y").value)
         if not self.return_to_start:
             self.get_logger().warn(
                 "return_to_start=False：跳过自动回起点与起始对齐，仅供已人工对齐的"
@@ -215,6 +242,16 @@ class FollowPath(Node):
         # 累积弧长，用于"还剩多远"和沿弧长挑目标
         self.s = cumulative_arc_length(self.px, self.py)
         self.total_len = self.s[-1]
+
+        # 起点阶段的判据与目标都用转心位姿：力臂为零时就是路线首点本身。
+        self._start_cx, self._start_cy = self._rotation_center(
+            self.px[0], self.py[0], self.pyaw[0])
+        if self.base_offset_x or self.base_offset_y:
+            self.get_logger().info(
+                f"力臂补偿：base_frame 相对转心 "
+                f"({self.base_offset_x:+.3f}, {self.base_offset_y:+.3f}) m，"
+                f"起始判据与回起点目标改用转心位姿"
+            )
 
         self.base_frame: str = self.get_parameter("base_frame").value
         # 跟踪参数必须有限且为正：NaN/Inf/负数会让 cmd_vel 变成非法值。
@@ -506,7 +543,9 @@ class FollowPath(Node):
         if not self._start_checked:
             self._start_checked = True
             self._start_phase_t0 = now
-            offset = math.hypot(x - self.px[0], y - self.py[0])
+            # 力臂补偿后按转心判"是否在允许的起点范围"，与回起点的目标一致。
+            cx, cy = self._rotation_center(x, y, yaw)
+            offset = math.hypot(cx - self._start_cx, cy - self._start_cy)
             if offset > self.start_max_offset_m:
                 self._fail_start(
                     now,
@@ -627,6 +666,18 @@ class FollowPath(Node):
             self._publish(0.0, w)
 
     # ---------------------------------------------------------- 回起点
+    def _rotation_center(self, x: float, y: float, yaw: float) -> Tuple[float, float]:
+        """把 base_frame 位姿换算到转心（车体原点）。
+
+        约定 传感器 = 转心 + R(yaw)·offset，所以
+        转心 = 传感器 - R(yaw)·offset。力臂为零时原样返回，不引入浮点误差。
+        """
+        if not (self.base_offset_x or self.base_offset_y):
+            return x, y
+        cos_yaw, sin_yaw = math.cos(yaw), math.sin(yaw)
+        return (x - self.base_offset_x * cos_yaw + self.base_offset_y * sin_yaw,
+                y - self.base_offset_x * sin_yaw - self.base_offset_y * cos_yaw)
+
     def _tick_start(self, now: float, x: float, y: float, yaw: float) -> None:
         """return_start / align_start 阶段；与任务01安全门串联，不另开循环。"""
         if now - self._start_phase_t0 > self.return_timeout_s:
@@ -636,8 +687,10 @@ class FollowPath(Node):
             )
             return
 
-        target_x, target_y = self.px[0], self.py[0]
-        dx, dy = target_x - x, target_y - y
+        target_x, target_y = self._start_cx, self._start_cy
+        # 位置/方位都对转心算：原地转只让传感器点绕转心画圆，转心不动。
+        cx, cy = self._rotation_center(x, y, yaw)
+        dx, dy = target_x - cx, target_y - cy
         dist = math.hypot(dx, dy)
 
         if self._state == "return":
