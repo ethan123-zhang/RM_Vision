@@ -833,28 +833,185 @@ class FollowPathSafetyTest(unittest.TestCase):
         self.assertEqual(v, 0.0)
         self.assertAlmostEqual(abs(w), node.return_w_max, places=9)
 
-    def test_start_align_tolerates_imu_offset_drift(self) -> None:
-        # 起始对齐要原地转，传感器偏离转心带来的等效平移不能算"漂离"。
+    def test_start_align_ignores_position_while_rotating(self) -> None:
+        # 方案 B：align_start 只负责朝向。传感器偏离转心约 0.25 m，原地转正
+        # 本身就会让位姿点扫过几十厘米，所以转动期间绝不能拿位置判失败。
         node = self._node_default_start(LINE)
         self._tick_pose(node, 1.0, (0.0, 0.0, 0.0))
         self.assertEqual(node._state, "align_start")
-        drift = node.start_pos_tol_m + follow.START_ALIGN_DRIFT_SLACK_M - 0.01
-        self._tick_pose(node, 1.1, (drift, 0.0, 0.2))
+        # 已漂 0.30 m，朝向还差 0.30 rad（仍在对齐过程中）
+        self._tick_pose(node, 1.1, (0.30, 0.0, 0.30))
         self.assertFalse(node._done, node._reason)
         self.assertEqual(node._state, "align_start")
         v, w = self._commands(node)[-1]
         self.assertEqual(v, 0.0)
         self.assertNotEqual(w, 0.0)
 
-    def test_start_align_drift_stops(self) -> None:
+    def test_start_align_returns_to_start_when_heading_done_but_off_position(self) -> None:
+        # 朝向已对齐但位置差超过容差：不能直接进 run，要回 return 补位。
         node = self._node_default_start(LINE)
         self._tick_pose(node, 1.0, (0.0, 0.0, 0.0))
         self.assertEqual(node._state, "align_start")
-        self._tick_pose(node, 1.1, (0.3, 0.0, 0.0))
+        self._tick_pose(node, 1.1, (0.30, 0.0, 0.0))
+        self.assertFalse(node._done, node._reason)
+        self.assertEqual(node._state, "return")
+        self.assertEqual(self._commands(node)[-1], (0.0, 0.0))
+        self.assertEqual(node._start_roundtrips, 1)
+        self.assertTrue(
+            any("补位" in message for message in node.get_logger().infos),
+            node.get_logger().infos,
+        )
+
+    def test_start_roundtrip_converges_and_runs(self) -> None:
+        node = self._node_default_start(LINE)
+        self._tick_pose(node, 1.0, (0.0, 0.0, 0.0))     # return -> align_start
+        self._tick_pose(node, 1.1, (0.30, 0.0, 0.0))    # 朝向已对、位置差 -> return
+        self.assertEqual(node._state, "return")
+        self._tick_pose(node, 1.2, (0.02, 0.0, 0.02))   # 补位到容差内 -> align_start
+        self.assertEqual(node._state, "align_start")
+        self._tick_pose(node, 1.3, (0.02, 0.0, 0.02))   # 位置/朝向都达标 -> run
+        self.assertEqual(node._state, "run")
+        self.assertFalse(node._done)
+        self.assertEqual(node._start_roundtrips, 1)
+        self.assertIn("补位往返 1 次", node.summary())
+        # 先转正再补位的全过程只允许前进或原地转，绝不倒车。
+        for linear, _ in self._commands(node):
+            self.assertGreaterEqual(linear, 0.0)
+
+    def test_start_roundtrip_limit_fails(self) -> None:
+        # 每轮都"转正→位置差→补位"，若始终不收敛，超轮次必须失败停车。
+        node = self._node_default_start(LINE)
+        self._tick_pose(node, 1.0, (0.0, 0.0, 0.0))
+        for i in range(follow.START_RETURN_ROUNDTRIP_MAX + 1):
+            self._tick_pose(node, 1.1 + 0.2 * i, (0.30, 0.0, 0.0))
+            if node._done:
+                break
+            self._tick_pose(node, 1.2 + 0.2 * i, (0.0, 0.0, 0.0))
         self.assertTrue(node._done)
         self.assertEqual(node._outcome, follow.OUTCOME_FAILED)
-        self.assertIn("漂离", node._reason)
+        self.assertIn("往返", node._reason)
+        self.assertEqual(node._start_roundtrips,
+                         follow.START_RETURN_ROUNDTRIP_MAX + 1)
         self._assert_tail_zero(node)
+
+    def _simulate_start_flow(self, r: float, along: float, yaw_deg: float,
+                             seconds_budget: float = 90.0):
+        """用"转心 + 传感器偏置"的差速车运动学跑一遍起始流程。
+
+        返回 (node, entered_run, sensor, theta, trace)。r 是 base_frame 相对
+        转心的距离，along 是传感器在路线起点 +x 方向的位置，yaw_deg 是初始
+        车身朝向与路线起点朝向的差。
+        """
+        node = self._node_default_start(LINE, return_timeout_s=seconds_budget)
+        theta = math.radians(yaw_deg)
+        center = (along - r * math.cos(theta), -r * math.sin(theta))
+        stamp = 1.0
+        entered_run = False
+        trace: list[str] = []
+        for _ in range(int(seconds_budget * 10) + 50):
+            sensor = (center[0] + r * math.cos(theta),
+                      center[1] + r * math.sin(theta))
+            self._tick_pose(node, stamp, (sensor[0], sensor[1], theta))
+            stamp += 0.1
+            if node._done or node._state == "run":
+                entered_run = node._state == "run"
+                break
+            v, w = self._commands(node)[-1]
+            trace.append(
+                f"{node._state:11s} dist={math.hypot(sensor[0], sensor[1]):.3f} "
+                f"yaw_err={follow.wrap_pi(-theta):+.3f} v={v:.3f} w={w:+.3f}")
+            if len(trace) > 400:
+                trace.pop(0)
+            theta += w * 0.1
+            center = (center[0] + v * math.cos(theta) * 0.1,
+                      center[1] + v * math.sin(theta) * 0.1)
+        sensor = (center[0] + r * math.cos(theta),
+                  center[1] + r * math.sin(theta))
+        return node, entered_run, sensor, theta, trace
+
+    def test_start_roundtrip_converges_without_lever_arm(self) -> None:
+        # 先证明状态机本身对：没有传感器偏置时，0.45 m / 140° 能收敛进 run。
+        node, entered_run, sensor, theta, trace = self._simulate_start_flow(
+            r=0.0, along=-0.45, yaw_deg=140.0)
+        self.assertTrue(
+            entered_run,
+            f"没进 run，最终状态 {node._state}，原因 {node._reason}，"
+            f"往返 {node._start_roundtrips} 次\n" + "\n".join(trace[-25:]),
+        )
+        self.assertLessEqual(node._start_roundtrips,
+                             follow.START_RETURN_ROUNDTRIP_MAX)
+        self.assertLessEqual(math.hypot(sensor[0], sensor[1]),
+                             node.start_pos_tol_m + 1e-6)
+        self.assertLessEqual(abs(follow.wrap_pi(-theta)),
+                             node.start_yaw_tol_rad + 1e-6)
+        self.assertLessEqual(node._start_elapsed, 30.0)
+        for linear, _ in self._commands(node):
+            self.assertGreaterEqual(linear, 0.0)
+        self.assertTrue(any(v > 0.0 for v, _ in self._commands(node)))
+
+    def test_strict_start_with_lever_arm_does_not_converge(self) -> None:
+        # 已确认的物理缺陷（Odin1 偏离转心 0.19–0.25 m）会让"严格起点 + 先转正
+        # 再补位"进入极限环：align 要把朝向转回路线方向，而 return 要把车头对准
+        # 目标点，两个目标在同一几何下互相抵消（实测 dist 在 0.099~0.137 m 之间
+        # 来回）。这条用例固定的是"失败必须安全"：有界往返、写零停车、绝不倒车。
+        # 结论：严格判据在力臂存在时不可能达标 → 起步要用力臂补偿或宽松起点。
+        node, entered_run, _sensor, _theta, trace = self._simulate_start_flow(
+            r=0.25, along=-0.45, yaw_deg=140.0)
+        self.assertFalse(entered_run)
+        self.assertTrue(node._done)
+        self.assertEqual(node._outcome, follow.OUTCOME_FAILED)
+        self.assertIn("往返", node._reason)
+        self.assertEqual(node._start_roundtrips,
+                         follow.START_RETURN_ROUNDTRIP_MAX + 1)
+        for linear, _ in self._commands(node):
+            self.assertGreaterEqual(linear, 0.0)
+        self._assert_tail_zero(node)
+
+    def test_loose_start_converges_with_lever_arm(self) -> None:
+        # 方案 A 的参数组合（0.50 m / 34°）：允许的转角小到"转正带来的等效平移"
+        # 仍落在位置容差内，所以同一物理几何下能直接进 run，交给纯追踪收敛。
+        for label, (along, yaw_deg) in (
+            ("后方 0.45 m / 30°", (-0.45, 30.0)),
+            ("侧方 0.30 m / 30°", (0.30, 30.0)),
+        ):
+            with self.subTest(case=label):
+                node = self._node_default_start(
+                    LINE,
+                    start_pos_tol_m=0.50,
+                    start_yaw_tol_rad=math.radians(34.0),
+                    return_timeout_s=90.0,
+                )
+                theta = math.radians(yaw_deg)
+                r = 0.25
+                center = (along - r * math.cos(theta), -r * math.sin(theta))
+                stamp = 1.0
+                entered_run = False
+                trace = []
+                for _ in range(900):
+                    sensor = (center[0] + r * math.cos(theta),
+                              center[1] + r * math.sin(theta))
+                    self._tick_pose(node, stamp, (sensor[0], sensor[1], theta))
+                    stamp += 0.1
+                    if node._done or node._state == "run":
+                        entered_run = node._state == "run"
+                        break
+                    v, w = self._commands(node)[-1]
+                    trace.append(f"{node._state:11s} "
+                                 f"dist={math.hypot(sensor[0], sensor[1]):.3f} "
+                                 f"yaw_err={follow.wrap_pi(-theta):+.3f}")
+                    if len(trace) > 400:
+                        trace.pop(0)
+                    theta += w * 0.1
+                    center = (center[0] + v * math.cos(theta) * 0.1,
+                              center[1] + v * math.sin(theta) * 0.1)
+                self.assertTrue(
+                    entered_run,
+                    f"{label}: 没进 run，最终状态 {node._state}，"
+                    f"原因 {node._reason}，往返 {node._start_roundtrips} 次\n"
+                    + "\n".join(trace[-25:]),
+                )
+                self.assertLessEqual(node._start_roundtrips,
+                                     follow.START_RETURN_ROUNDTRIP_MAX)
 
     def test_return_and_start_align_share_one_timeout(self) -> None:
         for pose in ((-0.2, 0.0, 0.0), (0.0, 0.0, 0.0)):

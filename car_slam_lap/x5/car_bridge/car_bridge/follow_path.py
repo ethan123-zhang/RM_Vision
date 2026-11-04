@@ -31,11 +31,15 @@ odom/TF/底盘状态安全门，并保持"只向前"——这里不是倒车支�
 
 默认流程（return_to_start=true）：
     启动宽限（只发 0）-> 定位/底盘安全门 -> 首次位姿起点范围检查
-    -> 小范围回起点 -> 起始朝向对齐 -> 纯追踪 -> 终点对齐 -> done
+    -> 小范围回起点 -> 起始朝向对齐（只转不看位置）-> 位置不够就回起点补位
+    -> 纯追踪 -> 终点对齐 -> done
 回起点只适用于已确认空旷的小范围，不倒车、不绕障、不做任意地点返回。
 回起点"边走边转"时角速度按 w <= v/RETURN_MIN_RADIUS_M 封顶（转弯半径不能
-小于到位容差，否则会绕着起点打圈）；起始对齐的漂移判据另加
-START_ALIGN_DRIFT_SLACK_M，给"原地转导致的传感器等效平移"留余量。
+小于到位容差，否则会绕着起点打圈）。
+起始对齐采用"先转正再补位"：位姿传感器偏离转心约 0.25 m，"位置在起点"
+与"朝向对齐"在物理上互斥（转 140° 必然平移 0.47 m），所以对齐阶段只判朝向，
+转正后位置超差就回 return 补位；往返轮次上限 START_RETURN_ROUNDTRIP_MAX，
+共享 return_timeout_s 兜底，超过轮次按失败停车。
 return_to_start=false 仅供已人工对齐的历史诊断，会打印警告。
 
 用法：
@@ -96,10 +100,11 @@ START_HEADING_TOL_RAD = 0.35
 #: 容差 0.10 m，结果绕了 194° 才"蹭"进容差圈，朝向完全不对）。
 RETURN_MIN_RADIUS_M = 0.40
 
-#: 起始对齐阶段允许的额外漂移（m）。位姿来自装在车上的传感器，它偏离转心
-#: 约 0.2 m（原地转实测），所以"原地转"本身就会带来等效平移；漂移判据如果
-#: 卡在 start_pos_tol_m，正常对齐也会被判失败（实车首测即如此）。
-START_ALIGN_DRIFT_SLACK_M = 0.15
+#: "先转正再补位"的最大往返轮次。位姿来自装在车上的传感器，它偏离转心约
+#: 0.25 m（原地转实测 0.19–0.25 m），转正朝向必然带来等效平移；因此对齐阶段
+#: 只判朝向，位置差回 return 补位。正常应每轮递减，超过这个轮次说明不收敛，
+#: 失败停车而不是一直来回蹭。
+START_RETURN_ROUNDTRIP_MAX = 3
 
 #: 大转角停走对齐：目标方位误差超过进入阈值就停车原地转，缩到退出阈值内才
 #: 恢复跟踪。进入阈值必须大于退出阈值，中间靠状态滞回，避免在阈值附近抖动。
@@ -284,6 +289,7 @@ class FollowPath(Node):
         self._start_checked = False
         self._start_phase_t0: Optional[float] = None
         self._start_elapsed = 0.0
+        self._start_roundtrips = 0
         self._start = time.monotonic() + float(self.get_parameter("start_delay_s").value)
         self._t0: Optional[float] = None
         self._done = False
@@ -659,28 +665,44 @@ class FollowPath(Node):
             self._publish(v, w)
             return
 
-        # align_start
-        drift_limit = self.start_pos_tol_m + START_ALIGN_DRIFT_SLACK_M
-        if dist > drift_limit:
-            self._fail_start(
-                now,
-                f"起始对齐时已漂离首点 {dist:.2f} m > start_pos_tol_m="
-                f"{self.start_pos_tol_m:.2f}+{START_ALIGN_DRIFT_SLACK_M:.2f} m，失败停车",
-            )
-            return
+        # align_start：只负责朝向。
+        # 转正本身会因传感器偏离转心带来等效平移（0.25 m 力臂：转 140° 就扫
+        # 0.47 m），所以转动期间不做位置判据；转正后再看位置差，需要的话回
+        # return 补位，并按往返轮次防抖（方案 B）。
         yaw_err = wrap_pi(self.pyaw[0] - yaw)
-        if abs(yaw_err) <= self.start_yaw_tol_rad:
+        if abs(yaw_err) > self.start_yaw_tol_rad:
+            w = max(-self.return_w_max, min(self.return_w_max, 1.5 * yaw_err))
+            self._publish(0.0, w)
+            return
+
+        if dist <= self.start_pos_tol_m:
             # 位置和朝向都达标：先发零，重置路线跟踪状态，下一拍才正式 run。
             self._publish(0.0, 0.0)
             self._start_elapsed = now - self._start_phase_t0
             self._reset_route_tracking(x, y)
             self._state = "run"
             self.get_logger().info(
-                f"起始位置/朝向已达标（yaw 误差 {abs(yaw_err):.2f} rad），开始跟踪路线"
+                f"起始位置/朝向已达标（yaw 误差 {abs(yaw_err):.2f} rad，"
+                f"位置误差 {dist:.2f} m），开始跟踪路线"
             )
             return
-        w = max(-self.return_w_max, min(self.return_w_max, 1.5 * yaw_err))
-        self._publish(0.0, w)
+
+        self._start_roundtrips += 1
+        if self._start_roundtrips > START_RETURN_ROUNDTRIP_MAX:
+            self._fail_start(
+                now,
+                f"起始补位往返超过 {START_RETURN_ROUNDTRIP_MAX} 轮仍未收敛"
+                f"（位置差 {dist:.2f} m > start_pos_tol_m="
+                f"{self.start_pos_tol_m:.2f} m），失败停车",
+            )
+            return
+        self.get_logger().info(
+            f"起始朝向已对齐（yaw 误差 {abs(yaw_err):.2f} rad），但位置差 "
+            f"{dist:.2f} m > start_pos_tol_m={self.start_pos_tol_m:.2f} m："
+            f"第 {self._start_roundtrips} 轮回起点补位"
+        )
+        self._publish(0.0, 0.0)
+        self._state = "return"
 
     def _fail_start(self, now: float, reason: str) -> None:
         if self._start_phase_t0 is not None:
@@ -741,6 +763,7 @@ class FollowPath(Node):
             f"结果: {outcome_text}\n"
             f"结束原因: {self._reason or '未开始'}\n"
             f"回起点/起始对齐 {self._start_elapsed:.1f} s  "
+            f"（补位往返 {self._start_roundtrips} 次）  "
             f"路线跟踪 {route_dur:.1f} s\n"
             f"跟踪点数: {self._err_n}  用时 {dur:.1f} s  行驶 {self._traveled:.2f} m\n"
             f"横向误差 max={self._err_max:.3f} m  rms={rms:.3f} m\n"
