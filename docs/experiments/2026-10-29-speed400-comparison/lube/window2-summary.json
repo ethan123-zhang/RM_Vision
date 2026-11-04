@@ -1,0 +1,257 @@
+{
+  "input": "_probe\\speed400_capture\\run3-lube2-1793277188520\\capture.csv",
+  "duration_s": 179.96204399999988,
+  "frames": 827064,
+  "diagnostic_samples": 6923,
+  "fault_diagnostic_samples": 0,
+  "runs": [
+    {
+      "motor": 1,
+      "start_s": 44.70357100000547,
+      "end_s": 62.717241999998805,
+      "targets": [
+        400,
+        0,
+        -400,
+        0
+      ],
+      "durations_s": [
+        8.006957999998122,
+        1.0136159999965457,
+        7.979395000002114,
+        1.013701999996556
+      ],
+      "phases": [
+        {
+          "target": 400,
+          "first_diagnostic_s": 44.70357100000547,
+          "last_diagnostic_s": 52.684545000010985,
+          "tail_samples": 2005,
+          "tail_mean_rpm": 399.9705735660848,
+          "tail_std_rpm": 25.166530279409564,
+          "tail_min_rpm": 336.0,
+          "tail_max_rpm": 464.0,
+          "tail_peak_abs_rpm": 464.0,
+          "mean_error_pct": 0.007356608478801264,
+          "error_95pct_rpm": [
+            -49.0,
+            47.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 52.71052900000359,
+          "last_diagnostic_s": 53.698119000007864,
+          "tail_samples": 502,
+          "tail_mean_rpm": -0.45219123505976094,
+          "tail_std_rpm": 1.248387477551118,
+          "tail_min_rpm": -5.0,
+          "tail_max_rpm": 4.0,
+          "tail_peak_abs_rpm": 5.0
+        },
+        {
+          "target": -400,
+          "first_diagnostic_s": 53.724145000000135,
+          "last_diagnostic_s": 61.67755700000271,
+          "tail_samples": 2005,
+          "tail_mean_rpm": -399.94413965087284,
+          "tail_std_rpm": 23.83301994546948,
+          "tail_min_rpm": -457.0,
+          "tail_max_rpm": -340.0,
+          "tail_peak_abs_rpm": 457.0,
+          "mean_error_pct": 0.013965087281789579,
+          "error_95pct_rpm": [
+            -44.0,
+            46.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 61.70354000000225,
+          "last_diagnostic_s": 62.69121499999892,
+          "tail_samples": 501,
+          "tail_mean_rpm": -0.30538922155688625,
+          "tail_std_rpm": 1.0612720205491106,
+          "tail_min_rpm": -3.0,
+          "tail_max_rpm": 4.0,
+          "tail_peak_abs_rpm": 4.0
+        }
+      ],
+      "complete": true,
+      "command_peak": 804.0,
+      "saturation_frames": 0,
+      "other_motor_nonzero_frames": 0,
+      "command_max_gap_ms": 2.3890000011306256,
+      "release_samples": 485,
+      "release_nonzero_frames": 0
+    },
+    {
+      "motor": 2,
+      "start_s": 70.04794299999776,
+      "end_s": 88.06524000001082,
+      "targets": [
+        400,
+        0,
+        -400,
+        0
+      ],
+      "durations_s": [
+        8.007512000011047,
+        1.013530999989598,
+        7.9820830000098795,
+        1.0141710000025341
+      ],
+      "phases": [
+        {
+          "target": 400,
+          "first_diagnostic_s": 70.04794299999776,
+          "last_diagnostic_s": 78.02947200000926,
+          "tail_samples": 2001,
+          "tail_mean_rpm": 384.93553223388307,
+          "tail_std_rpm": 35.12986319621802,
+          "tail_min_rpm": 259.0,
+          "tail_max_rpm": 460.0,
+          "tail_peak_abs_rpm": 460.0,
+          "mean_error_pct": 3.7661169415292335,
+          "error_95pct_rpm": [
+            -97.0,
+            37.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 78.0554550000088,
+          "last_diagnostic_s": 79.04304499999853,
+          "tail_samples": 501,
+          "tail_mean_rpm": 0.0,
+          "tail_std_rpm": 0.0,
+          "tail_min_rpm": 0.0,
+          "tail_max_rpm": 0.0,
+          "tail_peak_abs_rpm": 0.0
+        },
+        {
+          "target": -400,
+          "first_diagnostic_s": 79.0689859999984,
+          "last_diagnostic_s": 87.02495800000906,
+          "tail_samples": 2001,
+          "tail_mean_rpm": -390.67566216891555,
+          "tail_std_rpm": 36.25225702358628,
+          "tail_min_rpm": -461.0,
+          "tail_max_rpm": -258.0,
+          "tail_peak_abs_rpm": 461.0,
+          "mean_error_pct": 2.3310844577711123,
+          "error_95pct_rpm": [
+            -46.0,
+            98.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 87.05106900000828,
+          "last_diagnostic_s": 88.03934200000367,
+          "tail_samples": 500,
+          "tail_mean_rpm": 0.0,
+          "tail_std_rpm": 0.0,
+          "tail_min_rpm": 0.0,
+          "tail_max_rpm": 0.0,
+          "tail_peak_abs_rpm": 0.0
+        }
+      ],
+      "complete": true,
+      "command_peak": 1125.0,
+      "saturation_frames": 0,
+      "other_motor_nonzero_frames": 0,
+      "command_max_gap_ms": 2.390000008745119,
+      "release_samples": 484,
+      "release_nonzero_frames": 0
+    },
+    {
+      "motor": 4,
+      "start_s": 95.50277700000152,
+      "end_s": 113.5196910000086,
+      "targets": [
+        400,
+        0,
+        -400,
+        0
+      ],
+      "durations_s": [
+        8.007341999997152,
+        1.0137870000035036,
+        7.98157099999662,
+        1.0142140000098152
+      ],
+      "phases": [
+        {
+          "target": 400,
+          "first_diagnostic_s": 95.50277700000152,
+          "last_diagnostic_s": 103.48417799999879,
+          "tail_samples": 2007,
+          "tail_mean_rpm": 379.8953662182362,
+          "tail_std_rpm": 46.11907006078358,
+          "tail_min_rpm": 200.0,
+          "tail_max_rpm": 483.0,
+          "tail_peak_abs_rpm": 483.0,
+          "mean_error_pct": 5.026158445440956,
+          "error_95pct_rpm": [
+            -145.0,
+            54.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 103.51011899999867,
+          "last_diagnostic_s": 104.49783700000262,
+          "tail_samples": 501,
+          "tail_mean_rpm": -0.10578842315369262,
+          "tail_std_rpm": 0.571081569329682,
+          "tail_min_rpm": -5.0,
+          "tail_max_rpm": 0.0,
+          "tail_peak_abs_rpm": 5.0
+        },
+        {
+          "target": -400,
+          "first_diagnostic_s": 104.52390600000217,
+          "last_diagnostic_s": 112.47949300000619,
+          "tail_samples": 2006,
+          "tail_mean_rpm": -375.69940179461616,
+          "tail_std_rpm": 40.29632103770214,
+          "tail_min_rpm": -473.0,
+          "tail_max_rpm": -241.0,
+          "tail_peak_abs_rpm": 473.0,
+          "mean_error_pct": 6.075149551345959,
+          "error_95pct_rpm": [
+            -46.0,
+            123.0
+          ]
+        },
+        {
+          "target": 0,
+          "first_diagnostic_s": 112.50547699999879,
+          "last_diagnostic_s": 113.49370700000145,
+          "tail_samples": 502,
+          "tail_mean_rpm": 0.0,
+          "tail_std_rpm": 0.0,
+          "tail_min_rpm": 0.0,
+          "tail_max_rpm": 0.0,
+          "tail_peak_abs_rpm": 0.0
+        }
+      ],
+      "complete": true,
+      "command_peak": 803.0,
+      "saturation_frames": 0,
+      "other_motor_nonzero_frames": 0,
+      "command_max_gap_ms": 2.4319999938597903,
+      "release_samples": 485,
+      "release_nonzero_frames": 0
+    }
+  ],
+  "purpose": "400rpm diagnostic comparison only; no acceptance conclusion",
+  "boundary": "tail ends at last diagnostic sample; about 26ms uncertainty",
+  "reset_recovery_pc_s": null,
+  "expected_motors": [
+    1,
+    2,
+    4
+  ]
+}

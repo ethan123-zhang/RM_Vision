@@ -2,11 +2,12 @@ import csv,json,sys
 from pathlib import Path
 import numpy as np
 # Explicit input/output so repeat runs never overwrite run1.
-# usage: python summarize400.py <capture.csv> <out_dir> <out_prefix> [reset_recovery_pc_s]
+# usage: python summarize400.py <capture.csv> <out_dir> <out_prefix> [reset_recovery_pc_s] [expected_motors]
 if len(sys.argv)<4:
-    sys.exit('usage: summarize400.py <capture.csv> <out_dir> <prefix> [reset_recovery_pc_s]')
+    sys.exit('usage: summarize400.py <capture.csv> <out_dir> <prefix> [reset_recovery_pc_s] [expected_motors]')
 src=Path(sys.argv[1]);out=Path(sys.argv[2]);prefix=sys.argv[3]
-reset_recovery=float(sys.argv[4]) if len(sys.argv)>4 else None
+expected=[int(m) for m in sys.argv[5].split(',')] if len(sys.argv)>5 else [1,2,4]
+reset_recovery=None if len(sys.argv)<=4 or sys.argv[4].lower()=='none' else float(sys.argv[4])
 raw={i:[] for i in range(1,5)};commands=[];diag=[];base=None;counts={}
 for row in csv.DictReader(src.open()):
  t=int(row['device_us'])/1e6;b=bytes.fromhex(row['data_hex']);cid=int(row['can_id'],16)
@@ -42,8 +43,8 @@ for rows,exitrow in sessions:
   a=commands[(commands[:,0]>=exitrow[0]+.03)&(commands[:,0]<=exitrow[0]+1)]
   run['release_samples']=len(a);run['release_nonzero_frames']=int(np.any(a[:,1:]!=0,axis=1).sum())
  runs.append(run)
-meta=json.loads(src.with_suffix('.json').read_text());assert counts==meta['counts'];assert sum(counts.values())==meta['frames'];assert [r['motor'] for r in runs]==[1,2,4];assert all(r['complete'] for r in runs)
-result={'input':str(src),'duration_s':t,'frames':meta['frames'],'diagnostic_samples':len(diag),'fault_diagnostic_samples':sum(d[2]>=2 for d in diag),'runs':runs,'purpose':'400rpm diagnostic comparison only; no acceptance conclusion','boundary':'tail ends at last diagnostic sample; about 26ms uncertainty','reset_recovery_pc_s':reset_recovery}
+meta=json.loads(src.with_suffix('.json').read_text());assert counts==meta['counts'];assert sum(counts.values())==meta['frames'];assert [r['motor'] for r in runs]==expected;assert all(r['complete'] for r in runs)
+result={'input':str(src),'duration_s':t,'frames':meta['frames'],'diagnostic_samples':len(diag),'fault_diagnostic_samples':sum(d[2]>=2 for d in diag),'runs':runs,'purpose':'400rpm diagnostic comparison only; no acceptance conclusion','boundary':'tail ends at last diagnostic sample; about 26ms uncertainty','reset_recovery_pc_s':reset_recovery,'expected_motors':expected}
 (out/f'{prefix}-summary.json').write_text(json.dumps(result,indent=2),encoding='utf8')
 with (out/f'{prefix}-telemetry.csv').open('w',newline='') as f:w=csv.writer(f);w.writerow(['device_elapsed_s','motor','status','target_rpm','measured_rpm','current_command']);w.writerows(diag)
 print(json.dumps(result,indent=2))
