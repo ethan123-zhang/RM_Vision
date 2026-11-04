@@ -1,5 +1,7 @@
 # car_slam_lap —— 小车「建图 + 走一圈」练习场
 
+> ROS 新手阅读：[路线二与现有方案的区别](路线二与现有方案的区别_ROS新手版.md)。针对这台实体练习车，解释位置记录、地图定位、起点偏差和建议修改；文中的新功能尚未实施。
+
 > **这是干嘛的**：拿现成的 C8T6 双驱底盘 + RDK X5 + Odin1，跑通
 > **房间建图 → 重定位 → 小车自己走一圈** 这条完整链路，为之后调比赛机器人打基础。
 >
@@ -451,3 +453,67 @@ python3 ~/car_slam_lap/tests/sim_room_cloud.py
 已经用它抓到过三个 bug：俯视图被 `medianBlur(3)` 把 1 px 宽的墙线整条抹掉、
 `Ctrl-C` 时 `rclpy.shutdown()` 被调两次报 `RCLError`、以及关停后往 rosout 写日志报
 `publisher's context is invalid`。
+
+---
+
+## 14. 定位模式重新示教与地图路线绑定（任务03，软件流程）
+
+历史 `path.yaml` / odom 系示教数据保持原样，不转换、不改写。新的正式走圈流程要求
+**地图文件 + map 系路线 + manifest** 三者内容配套：
+
+| 文件 | 作用 |
+| :--- | :--- |
+| `odin_map/*.bin` 或 `map_path.txt` 指向的地图 | 当前重定位使用的 Odin1 地图 |
+| `route_map.yaml` | 严格定位模式下重新示教的 map 系路线 |
+| `route_map.yaml.manifest.json` | 地图/路线的 SHA256、`frame_id=map`、`base_frame`、点数和首点 |
+
+manifest 只证明“路线与地图是配套内容”，**不证明定位精度、跨重启空间一致性或整车导航完成**。
+旧 `path.yaml` 不能直接改名成 `route_map.yaml`，也不能用脚本自动把 odom 改成 map。
+
+### 14.1 重新示教
+
+```bash
+# 1) 先手动启动旧地图重定位（用同一张 .bin）
+bash ~/car_slam_lap/x5/scripts/start_relocal.sh ~/car_ws/maps/lab1
+
+# 2) 停掉 car_bridge（避免它转发 /cmd_vel 和 DT7 抢控制权），然后严格示教
+bash ~/car_slam_lap/x5/scripts/teach_map_route.sh ~/car_ws/maps/lab1
+#    默认输出 ~/car_ws/maps/lab1/route_map.yaml + route_map.yaml.manifest.json
+#    用 DT7 示教，结束时 Ctrl-C；中途定位/原始里程计故障则不会写正式 bundle
+```
+
+`teach_map_route.sh` 只启动严格 `record_path`，不会启动 bridge/follow/建图；它还会核对
+驱动实际配置 `custom_map_mode=2`、`relocalization_map_abs_path` 指向的地图内容与选中地图
+一致。该核对不等于证明定位精度。输出或 manifest 已存在时拒绝覆盖。
+
+严格模式会同时检查：
+
+- 原始 `/odin1/odometry`：`OdomGuard` + sensor data QoS，frame/child/数值/时间戳推进；
+- `map <- base_frame` 与 `odom <- map` 两个 TF 都存在；
+- `odom <- map` 的 stamp 与原始消息 stamp 同属设备时间域，绝对差不超过 0.5 s；
+- 地图 TF 未就绪最多等 30 s，等待期间不录点；收到过有效定位后再故障就中止。
+
+### 14.2 走圈
+
+```bash
+# 仍按原方式手动起 bridge（脚本不自动启动底盘）
+ros2 run car_bridge bridge_node
+
+# 默认读取地图目录下的 route_map.yaml，并强制校验 bundle
+bash ~/car_slam_lap/x5/scripts/drive_lap.sh ~/car_ws/maps/lab1
+
+# 也可以显式传 route_map.yaml；仍会校验 manifest 和地图内容
+bash ~/car_slam_lap/x5/scripts/drive_lap.sh ~/car_ws/maps/lab1/route_map.yaml
+
+# 只读检查
+python3 -m car_bridge.route_bundle validate \
+  --path ~/car_ws/maps/lab1/route_map.yaml \
+  --map ~/car_ws/maps/lab1/odin_map/xxx.bin \
+  --base-frame imu
+```
+
+`drive_lap.sh` 不再默认放行旧 `path.yaml`；显式传入的其他路径也必须通过 bundle 校验。
+启动提示会写明：**先回起点再跟踪；限起点附近空旷通道，无自动绕障。**
+
+> 本节的脚本与离线测试只验证软件流程；地图定位精度、TF 真实时序、跨重启一致性和整车
+> 导航仍需板端实车验收。
