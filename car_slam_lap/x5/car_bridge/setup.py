@@ -23,6 +23,7 @@ setup(
             "teleop_keys = car_bridge.teleop_keys:main",
             "record_path = car_bridge.record_path:main",
             "follow_path = car_bridge.follow_path:main",
+            "route_bundle = car_bridge.route_bundle:main",
             "map_from_cloud = car_bridge.map_from_cloud:main",
             "calibrate_speed = car_bridge.calibrate_speed:main",
         ],

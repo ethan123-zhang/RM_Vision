@@ -67,17 +67,31 @@ def write_path(path: str, frame_id: str, points: Iterable[Point],
 
 
 # ---------------------------------------------------------------- 读
-def load_path(path: str) -> Tuple[str, List[Point]]:
+def load_path(path: str, require_frame: bool = False,
+              require_finite: bool = False) -> Tuple[str, List[Point]]:
     """读轨迹文件，返回 (frame_id, points)。
 
     格式不对时抛 ValueError 并说清哪儿不对——这比后面跑出诡异轨迹再回来查便宜。
+
+    两个默认关闭的严格开关（follow_path 会打开它们）：
+        require_frame: 文件必须显式写 frame_id，缺失不再悄悄当成 map；
+        require_finite: x/y/yaw/t 必须是有限数，NaN/Inf 直接拒绝。
+    默认行为保持原样，避免影响只想要宽松读取的旧调用方。
     """
     with open(path, "r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
 
     if not isinstance(data, dict):
         raise ValueError(f"{path} 不是合法的轨迹文件（顶层应为映射）")
-    frame = str(data.get("frame_id", "map"))
+    if "frame_id" in data:
+        frame = str(data["frame_id"])
+    elif require_frame:
+        raise ValueError(
+            f"{path} 缺少 frame_id：路线必须显式声明参考系（如 map），"
+            "不能依赖默认值"
+        )
+    else:
+        frame = "map"
     raw = data.get("points")
     if not isinstance(raw, list) or not raw:
         raise ValueError(f"{path} 缺少 points 列表")
@@ -86,6 +100,12 @@ def load_path(path: str) -> Tuple[str, List[Point]]:
     for i, item in enumerate(raw):
         if not isinstance(item, dict) or "x" not in item or "y" not in item:
             raise ValueError(f"{path} 第 {i} 个点缺少 x/y：{item!r}")
-        pts.append((float(item["x"]), float(item["y"]),
-                    float(item.get("yaw", 0.0)), float(item.get("t", 0.0))))
+        try:
+            point: Point = (float(item["x"]), float(item["y"]),
+                            float(item.get("yaw", 0.0)), float(item.get("t", 0.0)))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{path} 第 {i} 个点不是数字：{item!r}") from exc
+        if require_finite and not all(math.isfinite(value) for value in point):
+            raise ValueError(f"{path} 第 {i} 个点含 NaN/Inf：{item!r}")
+        pts.append(point)
     return frame, pts

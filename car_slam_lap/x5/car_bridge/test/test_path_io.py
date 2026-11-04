@@ -110,6 +110,42 @@ def test_path_length() -> None:
     assert pio.path_length([]) == 0.0
 
 
+def test_require_frame_is_optional() -> None:
+    """默认仍兼容缺 frame_id 的旧文件；严格模式必须显式声明。"""
+    with tempfile.TemporaryDirectory() as d:
+        f = str(Path(d) / "noframe.yaml")
+        Path(f).write_text(
+            "points:\n  - {x: 0.0, y: 0.0}\n  - {x: 1.0, y: 0.0}\n",
+            encoding="utf-8",
+        )
+        frame, _ = pio.load_path(f)
+        assert frame == "map"
+        try:
+            pio.load_path(f, require_frame=True)
+        except ValueError:
+            return
+        raise AssertionError("严格模式应拒绝缺少 frame_id 的路线")
+
+
+def test_require_finite_is_optional() -> None:
+    """默认仍按旧行为读；严格模式在进入控制前拒绝 NaN/Inf。"""
+    with tempfile.TemporaryDirectory() as d:
+        f = str(Path(d) / "nan.yaml")
+        Path(f).write_text(
+            "frame_id: map\npoints:\n"
+            "  - {x: .nan, y: 0.0, yaw: 0.0}\n"
+            "  - {x: 1.0, y: 0.0, yaw: 0.0}\n",
+            encoding="utf-8",
+        )
+        _, pts = pio.load_path(f)
+        assert math.isnan(pts[0][0])
+        try:
+            pio.load_path(f, require_finite=True)
+        except ValueError:
+            return
+        raise AssertionError("严格模式应拒绝 NaN/Inf 路线点")
+
+
 def _run_all() -> int:
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
