@@ -1,0 +1,2 @@
+{"status": 125, "flags": ["can_ok", "rc_ok", "estop", "can_ack", "uart2_rx", "dbus_frame"], "src": "none"}
+{"frames": 30, "crc_errors": 0, "transmitted_frames": 0}

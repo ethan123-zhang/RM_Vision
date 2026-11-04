@@ -1,0 +1,25 @@
+发送 6s @ 50 Hz, speed=0 angular=0 (0 = 车轮不动)
+
+[发]  sent=1     status=0     crc_err=0   无上行                                                   
+[发]  sent=26    status=5     crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.07s
+[发]  sent=51    status=10    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.07s
+[发]  sent=77    status=15    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.09s
+[发]  sent=103   status=21    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.01s
+[发]  sent=128   status=26    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.01s
+[发]  sent=153   status=31    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.01s
+[发]  sent=179   status=36    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.03s
+[发]  sent=205   status=41    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.05s
+[发]  sent=231   status=46    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.07s
+[发]  sent=256   status=51    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.07s
+[发]  sent=282   status=56    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.09s
+[发]  sent=300   status=60    crc_err=0   ['link_ok', 'rc_ok', 'uart2_rx', 'dbus_frame'] src=serial age=0.07s
+停发 1.0 s，检查 LINK_OK 是否掉下去（看门狗）...
+
+---------------- 结果 ----------------
+发送帧数          : 300
+收到 status 帧     : 70  (CRC 错 0)
+status 实测频率    : 10.00 Hz  (期望 ~10 Hz)，最大间隔 101 ms
+最后一份 status    : ['rc_ok', 'uart2_rx', 'dbus_frame'] src=rc
+停发后 LINK_OK     : 已掉落 ✓
+--------------------------------------
+PASS

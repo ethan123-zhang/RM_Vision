@@ -1,0 +1,15 @@
+{
+  "odom_count": 190,
+  "odom_receive_span_s": 18.43655037879944,
+  "max_odom_gap_s": 0.15774106979370117,
+  "nonadvancing_stamp_count": 0,
+  "invalid_pose_count": 0,
+  "frames": [
+    [
+      "odom",
+      "imu"
+    ]
+  ],
+  "odom_map_count": 0,
+  "physical_localization_accuracy_verified": false
+}

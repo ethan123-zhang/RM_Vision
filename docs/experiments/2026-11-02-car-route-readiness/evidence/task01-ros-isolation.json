@@ -1,0 +1,25 @@
+{
+  "domain_id": 93,
+  "serial_bridge_started": false,
+  "command_count": 124,
+  "odometry_count": 56,
+  "nonzero_count": 64,
+  "follower_exit": 1,
+  "stop_delay_s": 0.5065258479999102,
+  "last_commands": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "all_finite": true,
+  "passed": true
+}

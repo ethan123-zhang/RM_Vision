@@ -1,0 +1,5 @@
+{
+  "paired_odom_count": 64,
+  "odom_minus_latest_map_stamp_min_s": 0.0,
+  "odom_minus_latest_map_stamp_max_s": 0.09756117699998867
+}

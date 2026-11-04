@@ -1,0 +1,39 @@
+REVIEW_DIR=/tmp/car-route-task03-review-CkE2D1
+BASH_SYNTAX_PASS
+
+----------------------------------------------------------------------
+Ran 108 tests in 1.157s
+
+OK
+  ok    test_empty_rejected
+  ok    test_load_accepts_hand_written
+  ok    test_load_rejects_broken_files
+  ok    test_no_tmp_left_behind
+  ok    test_path_length
+  ok    test_require_finite_is_optional
+  ok    test_require_frame_is_optional
+  ok    test_round_trip
+  ok    test_wrap_pi
+  ok    test_yaw_from_quaternion
+
+10/10 通过
+  ok    test_bad_crc_rejected
+  ok    test_clamp
+  ok    test_crc_external_vector
+  ok    test_golden_set_vel
+  ok    test_golden_status
+  ok    test_half_frame
+  ok    test_resync_after_junk
+  ok    test_roundtrip
+  ok    test_status_frame
+  ok    test_units_from_rate
+  ok    test_wrong_sof_direction
+
+11/11 通过
+[INFO] [1793678247.472648030] [record_path]: 严格定位示教: map <- imu -> /tmp/car-route-task03-review-CkE2D1/no-localization.yaml；地图 /home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin
+[INFO] [1793678247.475046433] [record_path]: 地图 SHA256 73fa18f4bfb85150...；odom<-map stamp 容差 0.5 s，未就绪最多等 30 s
+[ERROR] [1793678275.738748277] [record_path]: 示教中止：30 s 内未收到合格原始里程计/地图 TF，放弃示教
+[WARN] [1793678275.749778759] [record_path]: 一个点都没录到，不写文件
+[ERROR] [1793678275.758315129] [record_path]: 非正常退出，不写正式 bundle
+REAL_ROS_NO_LOCALIZATION_REJECTION_PASS
+6929 bash -c #!/bin/bash set -eo pipefail source /opt/ros/humble/setup.bash RUN=$(mktemp -d /tmp/car-route-task03-review-XXXXXX) echo "REVIEW_DIR=$RUN" python3 -m zipfile -e /tmp/car-route-20261103-task03.zip "$RUN" export PYTHONPATH="$RUN/car_bridge:${PYTHONPATH:-}" export ROS_DOMAIN_ID=95 for script in "$RUN"/scripts/*.sh; do bash -n "$script"; done echo 'BASH_SYNTAX_PASS' python3 -m unittest discover -s "$RUN/car_bridge/test" -v > "$RUN/tests.log" 2>&1 tail -n 5 "$RUN/tests.log" python3 "$RUN/car_bridge/test/test_path_io.py" python3 "$RUN/car_bridge/test/test_protocol.py" set +e timeout --signal=INT --kill-after=3s 38s python3 -m car_bridge.record_path --ros-args -p map_file:=/home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin -p out_path:="$RUN/no-localization.yaml" -p world_frame:=map -p "fallback_frame:=''" -p base_frame:=imu > "$RUN/no-localization.log" 2>&1 CODE=$? set -e cat "$RUN/no-localization.log" test "$CODE" -eq 1 grep -q '30 s 内未收到合格原始里程计' "$RUN/no-localization.log" test ! -e "$RUN/no-localization.yaml.manifest.json" echo 'REAL_ROS_NO_LOCALIZATION_REJECTION_PASS' pgrep -af '[b]ridge_node|[f]ollow_path|[r]ecord_path|[h]ost_sdk_sample' || true 

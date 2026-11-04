@@ -1,0 +1,12 @@
+  ok    test_empty_rejected
+  ok    test_load_accepts_hand_written
+  ok    test_load_rejects_broken_files
+  ok    test_no_tmp_left_behind
+  ok    test_path_length
+  ok    test_require_finite_is_optional
+  ok    test_require_frame_is_optional
+  ok    test_round_trip
+  ok    test_wrap_pi
+  ok    test_yaw_from_quaternion
+
+10/10 通过

@@ -1,0 +1,8 @@
+{
+  "host": "10.77.156.239",
+  "check": "ps -eo pid,comm,args filtered for bridge_node/link_test/follow_path/record_path/host_sdk_sample; fuser -v /dev/ttyS1",
+  "stdout": "",
+  "ssh_exit_code": 0,
+  "serial_sender_restarted_after_check": false,
+  "note": "工具执行结果摘录；空输出未由Tee-Object生成日志文件。仅停止软件收发，未物理断开串口线。"
+}

@@ -1,0 +1,13 @@
+  ok    test_bad_crc_rejected
+  ok    test_clamp
+  ok    test_crc_external_vector
+  ok    test_golden_set_vel
+  ok    test_golden_status
+  ok    test_half_frame
+  ok    test_resync_after_junk
+  ok    test_roundtrip
+  ok    test_status_frame
+  ok    test_units_from_rate
+  ok    test_wrong_sof_direction
+
+11/11 通过

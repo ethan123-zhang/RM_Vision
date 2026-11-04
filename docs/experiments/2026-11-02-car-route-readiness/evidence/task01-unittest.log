@@ -1,0 +1,53 @@
+test_align_drift_beyond_goal_tol_fails (test_follow_safety.FollowPathSafetyTest.test_align_drift_beyond_goal_tol_fails) ... ok
+test_alignment_timeout_is_failure (test_follow_safety.FollowPathSafetyTest.test_alignment_timeout_is_failure) ... ok
+test_backward_stamp_faults_without_resuming (test_follow_safety.FollowPathSafetyTest.test_backward_stamp_faults_without_resuming) ... ok
+test_closed_loop_start_is_not_completion (test_follow_safety.FollowPathSafetyTest.test_closed_loop_start_is_not_completion) ... ok
+test_end_index_but_far_from_goal_is_not_success (test_follow_safety.FollowPathSafetyTest.test_end_index_but_far_from_goal_is_not_success) ... ok
+test_fresh_tf_but_stale_odometry_stops (test_follow_safety.FollowPathSafetyTest.test_fresh_tf_but_stale_odometry_stops) ... ok
+test_invalid_odometry_after_valid_faults_immediately (test_follow_safety.FollowPathSafetyTest.test_invalid_odometry_after_valid_faults_immediately)
+有效帧之后来一条坏帧：即使还没到停更阈值也不能继续发非零。 ... ok
+test_invalid_tf_is_zero_and_fails (test_follow_safety.FollowPathSafetyTest.test_invalid_tf_is_zero_and_fails) ... ok
+test_legacy_odom_allowed_with_warning (test_follow_safety.FollowPathSafetyTest.test_legacy_odom_allowed_with_warning) ... ok
+test_legacy_odom_rejected_by_default (test_follow_safety.FollowPathSafetyTest.test_legacy_odom_rejected_by_default) ... ok
+test_map_route_loads (test_follow_safety.FollowPathSafetyTest.test_map_route_loads) ... ok
+test_missing_frame_id_rejected (test_follow_safety.FollowPathSafetyTest.test_missing_frame_id_rejected) ... ok
+test_no_odometry_publishes_zero_and_fails (test_follow_safety.FollowPathSafetyTest.test_no_odometry_publishes_zero_and_fails) ... ok
+test_non_finite_position_rejected (test_follow_safety.FollowPathSafetyTest.test_non_finite_position_rejected) ... ok
+test_non_finite_route_values_rejected (test_follow_safety.FollowPathSafetyTest.test_non_finite_route_values_rejected) ... ok
+test_publish_failure_marks_failed (test_follow_safety.FollowPathSafetyTest.test_publish_failure_marks_failed) ... ok
+test_raw_odometry_uses_sensor_data_qos (test_follow_safety.FollowPathSafetyTest.test_raw_odometry_uses_sensor_data_qos) ... ok
+test_repeated_stamp_does_not_keep_odometry_alive (test_follow_safety.FollowPathSafetyTest.test_repeated_stamp_does_not_keep_odometry_alive) ... ok
+test_shutdown_exception_does_not_mask_control_exception (test_follow_safety.FollowPathSafetyTest.test_shutdown_exception_does_not_mask_control_exception) ... ok
+test_sigint_stops_saves_and_exits_130 (test_follow_safety.FollowPathSafetyTest.test_sigint_stops_saves_and_exits_130) ... ok
+test_startup_grace_period_only_publishes_zero (test_follow_safety.FollowPathSafetyTest.test_startup_grace_period_only_publishes_zero) ... ok
+test_stationary_pose_with_advancing_stamps_stays_active (test_follow_safety.FollowPathSafetyTest.test_stationary_pose_with_advancing_stamps_stays_active) ... ok
+test_success_requires_goal_position_and_heading (test_follow_safety.FollowPathSafetyTest.test_success_requires_goal_position_and_heading) ... ok
+test_unexpected_exception_still_stops_and_saves_actual_path (test_follow_safety.FollowPathSafetyTest.test_unexpected_exception_still_stops_and_saves_actual_path) ... ok
+test_unknown_route_frame_rejected (test_follow_safety.FollowPathSafetyTest.test_unknown_route_frame_rejected) ... ok
+test_wrong_frame_or_child_rejected (test_follow_safety.FollowPathSafetyTest.test_wrong_frame_or_child_rejected) ... ok
+test_zero_norm_quaternion_rejected (test_follow_safety.FollowPathSafetyTest.test_zero_norm_quaternion_rejected) ... ok
+test_zero_stamp_does_not_refresh (test_follow_safety.FollowPathSafetyTest.test_zero_stamp_does_not_refresh) ... ok
+test_backward_stamp_faults_without_auto_recovery (test_localization_guard.OdomGuardTest.test_backward_stamp_faults_without_auto_recovery) ... ok
+test_first_nonzero_stamp_establishes_baseline (test_localization_guard.OdomGuardTest.test_first_nonzero_stamp_establishes_baseline) ... ok
+test_monotonic_now_is_used (test_localization_guard.OdomGuardTest.test_monotonic_now_is_used) ... ok
+test_non_finite_quaternion_rejected (test_localization_guard.OdomGuardTest.test_non_finite_quaternion_rejected) ... ok
+test_non_finite_stamp_faults (test_localization_guard.OdomGuardTest.test_non_finite_stamp_faults) ... ok
+test_non_finite_values_rejected (test_localization_guard.OdomGuardTest.test_non_finite_values_rejected) ... ok
+test_rejected_message_does_not_refresh_baseline (test_localization_guard.OdomGuardTest.test_rejected_message_does_not_refresh_baseline) ... ok
+test_rejected_message_latches_fault (test_localization_guard.OdomGuardTest.test_rejected_message_latches_fault) ... ok
+test_repeated_stamp_does_not_refresh (test_localization_guard.OdomGuardTest.test_repeated_stamp_does_not_refresh) ... ok
+test_stationary_pose_with_advancing_stamp_is_valid (test_localization_guard.OdomGuardTest.test_stationary_pose_with_advancing_stamp_is_valid) ... ok
+test_wrong_frame_or_child_rejected (test_localization_guard.OdomGuardTest.test_wrong_frame_or_child_rejected) ... ok
+test_zero_norm_quaternion_rejected (test_localization_guard.OdomGuardTest.test_zero_norm_quaternion_rejected) ... ok
+test_zero_stamp_does_not_refresh_after_baseline (test_localization_guard.OdomGuardTest.test_zero_stamp_does_not_refresh_after_baseline) ... ok
+test_zero_stamp_never_becomes_baseline (test_localization_guard.OdomGuardTest.test_zero_stamp_never_becomes_baseline) ... ok
+test_error_does_not_contain_silent_default (test_localization_guard.RouteFrameTest.test_error_does_not_contain_silent_default) ... ok
+test_legacy_odom_accepted_only_when_explicit (test_localization_guard.RouteFrameTest.test_legacy_odom_accepted_only_when_explicit) ... ok
+test_legacy_odom_rejected_by_default (test_localization_guard.RouteFrameTest.test_legacy_odom_rejected_by_default) ... ok
+test_map_route_accepted (test_localization_guard.RouteFrameTest.test_map_route_accepted) ... ok
+test_unknown_or_empty_frame_rejected (test_localization_guard.RouteFrameTest.test_unknown_or_empty_frame_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 47 tests in 0.070s
+
+OK

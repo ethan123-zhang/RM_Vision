@@ -1,0 +1,19 @@
+发送 3s @ 50 Hz, speed=0 angular=0 (0 = 车轮不动)
+
+[发]  sent=1     status=0     crc_err=0   无上行                                                   
+[发]  sent=26    status=5     crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.01s
+[发]  sent=51    status=10    crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.01s
+[发]  sent=76    status=15    crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.01s
+[发]  sent=102   status=20    crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.03s
+[发]  sent=128   status=25    crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.05s
+[发]  sent=150   status=30    crc_err=0   ['link_ok', 'rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none age=0.01s
+停发 1.0 s，检查 LINK_OK 是否掉下去（看门狗）...
+
+---------------- 结果 ----------------
+发送帧数          : 150
+收到 status 帧     : 40  (CRC 错 0)
+status 实测频率    : 10.00 Hz  (期望 ~10 Hz)，最大间隔 101 ms
+最后一份 status    : ['rc_ok', 'estop', 'uart2_rx', 'dbus_frame'] src=none
+停发后 LINK_OK     : 已掉落 ✓
+--------------------------------------
+PASS

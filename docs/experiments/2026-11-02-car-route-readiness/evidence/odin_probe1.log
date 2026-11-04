@@ -1,0 +1,276 @@
+[INFO] [1793623723.166602162] [lydros_node]: Services ready: /odin1/get_ae /odin1/get_awb /odin1/set_ae /odin1/set_awb; /odin1/get_device_logs /odin1/save_map /odin1/reset_algo
+package_path: /home/sunrise/odin_ws/src/odin_ros_driver
+[INFO] [1793623723.171071557] [init]: Command file path set to: /tmp/odin_command.txt
+Loading config file: /home/sunrise/odin_ws/src/odin_ros_driver/config/control_command.yaml
+Config file content:
+# =============================================================================
+# Odin1 配置 —— 重定位（custom_map_mode: 2）
+#
+# 用法：x5/scripts/start_relocal.sh <map.bin>
+#       脚本把下面的 /home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin 替换成真实路径，生成一份临时配置再启动驱动。
+#       驱动重定位成功后才会发布 map -> odom 这个 TF，follow_path 就靠它定位。
+#
+# 重定位成功率的关键：车要停在**建图那趟的起点附近**（1 m 内、朝向差 <10°）。
+# custom_init_pos 保持单位阵，表示"我猜自己就在地图原点"。
+# =============================================================================
+
+register_keys:
+  strict_usb3.0_check: 0
+  use_host_ros_time: 0
+  streamctrl: 1
+
+  sendrgbcompressed: 0
+  sendrgb: 0
+  sendrgbundistort: 0
+  rgb_format: 1
+  rgb_width: 1600
+  rgb_height: 1296
+  rgb_fps: 100
+
+  sendimu: 1
+  enable_imu_smooth: 0
+  imu_smooth_frequency: 400
+
+  sendodom: 1
+  send_odom_baselink_tf: 1
+  tf_extra_publish_rate: 50
+
+  senddtof: 0
+  cloud_raw_confidence_threshold: 35
+  dtof_fps: 100
+  sendcloudslam: 1
+  sendcloudrender: 0
+  senddepth: 0
+  sendreprojection: 0
+  sendoverlay: 0
+  overlay_reprojected_topic: "/odin1/reprojected_image"
+  overlay_camera_topic: "/odin1/image/undistorted"
+  overlay_output_topic: "/odin1/overlay_image"
+  overlay_alpha: 0.6
+
+  recorddata: 0
+  devstatuslog: 1
+  save_log: 0
+  pubintensitygray: 0
+  showpath: 1
+  showcamerapose: 0
+
+  # ---- 模式：2 = 重定位 ----
+  custom_map_mode: 2
+  custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+  custom_init_pose_search_radius: 4.0
+  custom_init_pose_max_rot_deg: 180.0
+  relocalization_map_abs_path: "/home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin"
+
+  mapping_result_dest_dir: ""
+  mapping_result_file_name: ""
+
+  sendimagemask: 0
+  image_mask_abs_path: ""
+  resetalgo: 0
+
+--- End of file ---
+Found 44 keys in config
+Loaded key: strict_usb3.0_check = 0
+Loaded key: use_host_ros_time = 0
+Loaded key: streamctrl = 1
+Loaded key: sendrgbcompressed = 0
+Loaded key: sendrgb = 0
+Loaded key: sendrgbundistort = 0
+Loaded key: rgb_format = 1
+Loaded key: rgb_width = 1600
+Loaded key: rgb_height = 1296
+Loaded key: rgb_fps = 100
+Loaded key: sendimu = 1
+Loaded key: enable_imu_smooth = 0
+Loaded key: imu_smooth_frequency = 400
+Loaded key: sendodom = 1
+Loaded key: send_odom_baselink_tf = 1
+Loaded key: tf_extra_publish_rate = 50
+Loaded key: senddtof = 0
+Loaded key: cloud_raw_confidence_threshold = 35
+Loaded key: dtof_fps = 100
+Loaded key: sendcloudslam = 1
+Loaded key: sendcloudrender = 0
+Loaded key: senddepth = 0
+Loaded key: sendreprojection = 0
+Loaded key: sendoverlay = 0
+Loaded key: overlay_reprojected_topic = /odin1/reprojected_image
+Loaded key: overlay_camera_topic = /odin1/image/undistorted
+Loaded key: overlay_output_topic = /odin1/overlay_image
+Loaded key: overlay_alpha = 0.6
+Loaded key: recorddata = 0
+Loaded key: devstatuslog = 1
+Loaded key: save_log = 0
+Loaded key: pubintensitygray = 0
+Loaded key: showpath = 1
+Loaded key: showcamerapose = 0
+Loaded custom parameter (int): map_mode = 2
+Loaded custom parameter (float array): init_pos = [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000]
+Loaded custom parameter (float): init_pose_search_radius = 4.0000
+Loaded custom parameter (float): init_pose_max_rot_deg = 180.0000
+Loaded key: relocalization_map_abs_path = /home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin
+Loaded key: mapping_result_dest_dir = 
+Loaded key: mapping_result_file_name = 
+Loaded key: sendimagemask = 0
+Loaded key: image_mask_abs_path = 
+Loaded key: resetalgo = 0
+Configuration Keys:
+  cloud_raw_confidence_threshold: 35
+  devstatuslog: 1
+  dtof_fps: 100
+  enable_imu_smooth: 0
+  imu_smooth_frequency: 400
+  pubintensitygray: 0
+  recorddata: 0
+  resetalgo: 0
+  rgb_format: 1
+  rgb_fps: 100
+  rgb_height: 1296
+  rgb_width: 1600
+  save_log: 0
+  send_odom_baselink_tf: 1
+  sendcloudrender: 0
+  sendcloudslam: 1
+  senddepth: 0
+  senddtof: 0
+  sendimagemask: 0
+  sendimu: 1
+  sendodom: 1
+  sendoverlay: 0
+  sendreprojection: 0
+  sendrgb: 0
+  sendrgbcompressed: 0
+  sendrgbundistort: 0
+  showcamerapose: 0
+  showpath: 1
+  streamctrl: 1
+  strict_usb3.0_check: 0
+  tf_extra_publish_rate: 50
+  use_host_ros_time: 0
+  image_mask_abs_path: 
+  mapping_result_dest_dir: 
+  mapping_result_file_name: 
+  overlay_camera_topic: /odin1/image/undistorted
+  overlay_output_topic: /odin1/overlay_image
+  overlay_reprojected_topic: /odin1/reprojected_image
+  relocalization_map_abs_path: /home/sunrise/car_ws/maps/venue2/odin_map/map_20261026_200055.bin
+Custom Parameters:
+  init_pos: (size=28 bytes) = [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000]
+  init_pose_max_rot_deg: (size=4 bytes) = [180.0000]
+  init_pose_search_radius: (size=4 bytes) = [4.0000]
+  map_mode: (size=4 bytes) = 2
+custom_map_mode = 2
+[2026:11:02:20:48:43][DEBUG][logger.cpp:log_config:29]: init loglevel 3.
+[2026:11:02:20:48:43][DEBUG][lib_usb.cpp:xfer_init:396]: registerd hotplug_callback for device 2207:0019 on ARRIVED and LEFT
+[2026:11:02:20:48:43][INFO][lib_usb.cpp:event_monitor_routine:195]: enter event monitor.
+[2026:11:02:20:48:43][INFO][lib_usb.cpp:event_monitor_routine:201]: check if devcie 2207:0019 already attached.
+[2026:11:02:20:48:43][DEBUG][lib_usb.cpp:enumerate_usb_status:788]: find usb device 2207:0019 attach.
+[2026:11:02:20:48:43][WARN][api.cpp:setup_realtime_thread:391]: [IMU RT] Failed to set SCHED_FIFO (errno=1). Run as root for real-time. Falling back to SCHED_RR.
+[2026:11:02:20:48:43][INFO][api.cpp:lidar_system_init:1076]: Publisher threads started (main + dedicated IMU + dedicated Odom HF)
+[2026:11:02:20:48:43][WARN][api.cpp:setup_realtime_thread:395]: [IMU RT] Failed to set SCHED_RR (errno=1). Using default scheduler.
+[2026:11:02:20:48:43][WARN][api.cpp:setup_realtime_thread:391]: [IMU RT] Failed to set SCHED_FIFO (errno=1). Run as root for real-time. Falling back to SCHED_RR.
+[2026:11:02:20:48:43][WARN][api.cpp:setup_realtime_thread:395]: [IMU RT] Failed to set SCHED_RR (errno=1). Using default scheduler.
+[2026:11:02:20:48:43][INFO][api.cpp:lidar_system_init:1180]: SLAM synchronizer started (cloud=REQUIRED, odom/wiwc=OPTIONAL_LATEST)
+[2026:11:02:20:48:43][INFO][api.cpp:lidar_system_init:1186]: IMU smooth sender disabled by default (call lidar_enable_imu_smooth_sending(1) to enable)
+[INFO] [1793623723.194828441] [lydros_node]: SDK IMU smooth sending disabled
+[2026:11:02:20:48:43][DEBUG][lib_usb.cpp:open_device:836]: device 2207:0019 configuration: 1
+[2026:11:02:20:48:43][INFO][lib_usb.cpp:open_device:923]: Flushed 16 stale packets from ep 0x81
+[2026:11:02:20:48:43][DEBUG][protocol.cpp:dxfer_evt_cb:208]: [dxfer_evt_cb] device usb connect.
+[2026:11:02:20:48:43][DEBUG][protocol.cpp:dxfer_evt_cb:219]: [dxfer_evt_cb] send CMD_CODE_SENDER_ATTACH to cmd_data_deal.
+[2026:11:02:20:48:43][DEBUG][api.cpp:cmd_data_deal:787]: device attach.
+[2026:11:02:20:48:43][INFO][lib_usb.cpp:event_monitor_routine:213]: start listening usb event. further connection should be handled by hotplug_callback.
+[2026:11:02:20:48:43][DEBUG][api.cpp:cmd_data_deal:802]: device soft attach.
+[INFO] [1793623723.290891723] [device_cb]: Hardware connected, starting software connection...
+[INFO] [1793623723.313913653] [usb_check]: Detected USB version: 3.2
+[INFO] [1793623723.314027152] [usb_check]: Strict USB3.0 check disabled
+[INFO] [1793623723.314226068] [device_cb]: ========== [CALIB] SAVE DIR (primary): /home/sunrise/.ros/odin_ros_driver | BACKUP DIR: /home/sunrise/odin_ws/src/odin_ros_driver/config ==========
+[INFO] [1793623723.757002577] [lidar_device_callback]: ros_driver_version:0.14.4, recommended_firmware_version:0.13.0
+[INFO] [1793623723.757133660] [lidar_device_callback]: get version success.
+[INFO] [1793623723.757171868] [lidar_device_callback]: kernel_version: V5.10.209
+[INFO] [1793623723.757205534] [lidar_device_callback]: mcu_version: V1.5.2
+[INFO] [1793623723.757237117] [lidar_device_callback]: soc_version: V0.14.1
+[INFO] [1793623723.757267992] [lidar_device_callback]: Daemon_proc_version: V0.6.1
+[INFO] [1793623723.757297950] [lidar_device_callback]: slam_version: V0.13.0
+[INFO] [1793623723.757328242] [device_cb]: Encrypted device log disabled via configuration
+[INFO] [1793623723.757357367] [device_cb]: Device state: not initialized, performing full setup
+[2026:11:02:20:48:47][DEBUG][api.cpp:lidar_open_device:1374]: open device success....
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:sender_get_calib_file_handler:2253]: opened file /home/sunrise/.ros/odin_ros_driver/calib.yaml for writing
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:sender_get_calib_file_handler:2263]: get factory calib cmd sent.
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2162]: total size:740; chunk size:740; offset:0
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2180]: recv file closed.
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2182]: recv file pointer reset.
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2189]: md5: f6d6ff3bb98e7cbf08de88dce721877f for file /home/sunrise/.ros/odin_ros_driver/calib.yaml.
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2198]: [recv small file]:MD5 verification successful!!
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:recv_small_file_handler:2201]: recv file finish, ok response send.
+[2026:11:02:20:48:47][DEBUG][protocol.cpp:sender_get_calib_file_handler:2281]: get factory calib success.
+[INFO] [1793623727.870996146] [device_cb]: ========== [CALIB] SAVED -> /home/sunrise/.ros/odin_ros_driver/calib.yaml ==========
+[INFO] [1793623727.871124645] [device_cb]: Successfully retrieved calibration files
+[INFO] [1793623727.872618305] [device_cb]: ========== [CALIB] BACKUP -> /home/sunrise/odin_ws/src/odin_ros_driver/config/calib.yaml ==========
+=== Camera Calibration Parameters ===
+Intrinsics:
+  fx: 732.733, fy: 732.937, cx: 785.684, cy: 640.298
+Distortion: k2=-0.00092648, k3=-0.0117839
+Extrinsics:
+  Translation: [0.04041, 0.00028, 0.00847]
+  Rotation (euler angles):  89.6849 0.205693  90.5122°
+[INFO] [1793623727.876568911] [device_cb]: Point cloud renderer initialized
+[INFO] [1793623727.892811415] [ros[host_sdk_sample]]: DTOF sensor frame rate set to 10.0 fps
+[2026:11:02:20:48:47][DEBUG][api.cpp:lidar_set_mode:1467]: set device mode success....
+Setting custom parameter: init_pos (size=28 bytes)
+[2026:11:02:20:48:47][INFO][api.cpp:lidar_set_custom_parameter:2441]: set custom parameter success: init_pos (length: 28)
+Successfully set custom parameter init_pos
+Setting custom parameter: init_pose_max_rot_deg (size=4 bytes)
+[2026:11:02:20:48:47][INFO][api.cpp:lidar_set_custom_parameter:2441]: set custom parameter success: init_pose_max_rot_deg (length: 4)
+Successfully set custom parameter init_pose_max_rot_deg
+Setting custom parameter: init_pose_search_radius (size=4 bytes)
+[2026:11:02:20:48:47][INFO][api.cpp:lidar_set_custom_parameter:2441]: set custom parameter success: init_pose_search_radius (length: 4)
+Successfully set custom parameter init_pose_search_radius
+Setting custom parameter: map_mode (size=4 bytes)
+[2026:11:02:20:48:47][INFO][api.cpp:lidar_set_custom_parameter:2441]: set custom parameter success: map_mode (length: 4)
+Successfully set custom parameter map_mode
+[INFO] [1793623727.927757119] [device_cb]: Custom map mode: 2
+[2026:11:02:20:48:50][DEBUG][protocol.cpp:send_file_handler:1101]: file md5: 9895f628621db480a69e426c3c3925c8.
+[2026:11:02:20:48:50][DEBUG][protocol.cpp:send_file_handler:1114]: base name: map_merged.bin, device path: /userdata/common/slamrunlog/.
+[2026:11:02:20:48:50][DEBUG][protocol.cpp:send_file_handler:1151]: start cmd sent with md5: 9895f628621db480a69e426c3c3925c8. waiting for remote to prepare & reply.
+[2026:11:02:20:48:51][INFO][protocol.cpp:send_file_handler:1163]: file already up to date on device, skip transfer.
+[INFO] [1793623731.098580235] [device_cb]: Relocalization map set successfully
+[2026:11:02:20:48:52][DEBUG][api.cpp:lidar_start_stream:1514]: dtof_subframe_odr: 328500
+[2026:11:02:20:48:52][DEBUG][api.cpp:lidar_start_stream:1517]: start stream mode success....
+[INFO] [1793623732.932246370] [device_cb]: Stream config: RGB=0, IMU=1, ODOM=1, DTOF=0, CLOUD_SLAM=1
+[INFO] [1793623732.948499457] [imu_thread]: IMU dedicated thread created
+[INFO] [1793623732.949000163] [imu_thread]: IMU dedicated thread started (priority: 70)
+[INFO] [1793623732.949502494] [device_cb]: Command interface ready. Use: echo 'set save_map 1' > /tmp/odin_command.txt
+[INFO] [1793623732.949742201] [device_cb]: ========== [CALIB] READ <- /home/sunrise/.ros/odin_ros_driver/calib.yaml ==========
+Tcl: -0.00894 -0.99995  0.00359  0.04041
+ 0.00547 -0.00364 -0.99998  0.00028
+ 0.99995 -0.00892   0.0055  0.00847
+       0        0        0        1
+[INFO] [1793623732.954979050] [device_cb]: Software connection successful in 9 seconds
+[INFO] [1793623732.955023258] [device_cb]: Device ready and streams activated
+[INFO] [1793623737.644268444] [odom]: relocalization success!
+[INFO] [1793623757.995615861] [signal_handler]: Received signal 2, shutting down...
+[INFO] [1793623758.010231414] [imu_thread]: IMU dedicated thread exiting
+[INFO] [1793623758.010655954] [imu_thread]: IMU dedicated thread stopped
+[INFO] [1793623758.960832421] [device_cb]: Wrote cam_in_ex.txt to: image/cam_in_ex.txt
+[INFO] [1793623758.962723745] [device_cb]: pose_index: 0
+[INFO] [1793623758.962889786] [device_cb]: cloud_index: 0
+[INFO] [1793623758.963023119] [device_cb]: image_index: 0
+[INFO] [1793623758.963155160] [signal_handler]: Closing device...
+[2026:11:02:20:49:21][DEBUG][api.cpp:lidar_stop_stream:1563]: stop device stream success....
+[INFO] [1793623761.986206337] [signal_handler]: Deinitializing lidar system...
+[2026:11:02:20:49:21][INFO][api.cpp:lidar_system_deinit:1224]: SLAM synchronizer stopped
+[2026:11:02:20:49:21][INFO][api.cpp:imu_publisher_thread_routine:283]: [IMU Publisher] Thread exiting
+[2026:11:02:20:49:21][INFO][api.cpp:odom_hf_publisher_thread_routine:324]: [Odom HF Publisher] Thread exiting
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:xfer_deinit:469]: [xfer_deinit] cancelling transfer on channel 1
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:xfer_deinit:469]: [xfer_deinit] cancelling transfer on channel 2
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:transfer_cb:71]: transfer cancel.
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:xfer_deinit:469]: [xfer_deinit] cancelling transfer on channel 3
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:transfer_cb:71]: transfer cancel.
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:xfer_deinit:469]: [xfer_deinit] cancelling transfer on channel 4
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:transfer_cb:71]: transfer cancel.
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:xfer_deinit:483]: [xfer_deinit] waiting for transfer cancellation
+[2026:11:02:20:49:21][DEBUG][lib_usb.cpp:transfer_cb:71]: transfer cancel.
+[2026:11:02:20:49:21][INFO][lib_usb.cpp:event_monitor_routine:278]: event_monitor_routine thread exit.
+[2026:11:02:20:49:21][DEBUG][protocol.cpp:sender_deinit:413]: Sender helper thread destroyed
+sdk deinit complete

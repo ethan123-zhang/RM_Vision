@@ -1,0 +1,4 @@
+{"phase": "zero_takeover", "speed_units": 0, "status": 119, "flags": ["can_ok", "link_ok", "rc_ok", "can_ack", "uart2_rx", "dbus_frame"], "src": "serial", "sent": 45}
+{"phase": "low_speed_1_second", "speed_units": 100, "status": 119, "flags": ["can_ok", "link_ok", "rc_ok", "can_ack", "uart2_rx", "dbus_frame"], "src": "serial", "sent": 91}
+{"phase": "zero_stop", "speed_units": 0, "status": 119, "flags": ["can_ok", "link_ok", "rc_ok", "can_ack", "uart2_rx", "dbus_frame"], "src": "serial", "sent": 137}
+{"phase": "stopped_sending", "flags": ["can_ok", "rc_ok", "can_ack", "uart2_rx", "dbus_frame"], "src": "rc", "watchdog_link_dropped": true, "crc_errors": 0, "wheel_response_requires_human_observation": true}

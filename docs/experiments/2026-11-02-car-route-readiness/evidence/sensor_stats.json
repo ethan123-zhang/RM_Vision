@@ -1,0 +1,15 @@
+{
+  "messages": 4209,
+  "odometry_count": 107,
+  "odom_receipt_gap_max_s": 0.160317552,
+  "odom_receipt_gap_median_s": 0.098132917,
+  "device_stamp_gap_max_s": 0.097561177,
+  "device_stamp_nonadvancing": 0,
+  "invalid_pose_count": 0,
+  "tf_edges": {
+    "odom -> imu": 1657,
+    "imu -> lidar": 1445,
+    "odom -> camera_0": 935,
+    "odom -> map": 65
+  }
+}
