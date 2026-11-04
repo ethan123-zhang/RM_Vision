@@ -335,16 +335,18 @@ void chassis_bringup_speed_loop(chassis_move_t *chassis) {
 }
 
 /* 固定电流开环测试：用于观察轮子"每转顿一下"是否来自机械侧。
- * 固定 CAN ID 4，KEY 按 N 次（1..4）选电流档，停手 3 s 后恒定输出 12 s；
- * 没有速度环，只有超时/掉线/超速保护，运行中再按 KEY 立即取消。
+ * 固定 CAN ID 4，KEY 按 N 次（1..4）选保持电流档，停手 3 s 后开始；
+ * 先给 1500 起转脉冲（4号轮静摩擦很大，250~700 顶不动），
+ * |rpm| 达到 100 后切到所选的恒定保持电流 8 s；全程没有速度环。
+ * 运行中再按 KEY 立即取消；掉线/超速/起转超时同样取消。
  * 0x1F2 字段沿用速度模式：[0]=CAN ID，[1]=状态，[2:3]=电流指令，
- * [4:5]=实测 rpm，[6:7]=实测电流反馈。 */
+ * [4:5]=实测 rpm，[6:7]=实测电流反馈；起转段/保持段用指令值区分。 */
 void chassis_bringup_open_loop_loop(chassis_move_t *chassis) {
   chassis_key_state_t selection;
   chassis_key_gpio_t gpio = {1, 1, 0};
   TickType_t start = xTaskGetTickCount();
-  uint32_t run_start = 0, last_debug = 0;
-  uint8_t active = 0, fault = 0, level = 0;
+  uint32_t run_start = 0, hold_start = 0, last_debug = 0;
+  uint8_t active = 0, fault = 0, level = 0, in_hold = 0;
   int16_t cmd = 0, measured = 0, measured_current = 0;
   const uint8_t motor_index = (uint8_t)(CHASSIS_OPEN_LOOP_MOTOR - 1u);
 
@@ -377,6 +379,7 @@ void chassis_bringup_open_loop_loop(chassis_move_t *chassis) {
         if (!toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + motor_index))) {
           level = requested;
           active = 1;
+          in_hold = 0;
           run_start = now;
           fault = 0;
         } else {
@@ -388,21 +391,37 @@ void chassis_bringup_open_loop_loop(chassis_move_t *chassis) {
     if (active) {
       const motor_measure_t *motor =
           get_chassis_motor_measure_point(motor_index);
-      uint32_t elapsed = now - run_start;
 
       measured = motor->speed_rpm;
       measured_current = motor->given_current;
-      if (!chassis_open_loop_running(elapsed)) {
-        active = 0; /* 到时正常释放，不算故障 */
-      } else if (toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + motor_index))) {
+      if (toe_is_error((uint8_t)(CHASSIS_MOTOR1_TOE + motor_index))) {
         fault = 2;
         active = 0;
       } else if (chassis_open_loop_overspeed(measured)) {
         fault = 3;
         active = 0;
+      } else if (!in_hold) {
+        /* 起转段：恒流 1500，转速达标即切保持段；超时则判未起转 */
+        if (chassis_open_loop_breakaway_ok(measured)) {
+          in_hold = 1;
+          hold_start = now;
+          cmd = chassis_open_loop_hold_current(level);
+          currents[motor_index] = cmd;
+        } else if (!chassis_open_loop_kick_running(now - run_start)) {
+          fault = 4; /* 起转脉冲超时：轮子没脱开，别继续顶 */
+          active = 0;
+        } else {
+          cmd = CHASSIS_OPEN_LOOP_KICK_CURRENT;
+          currents[motor_index] = cmd;
+        }
       } else {
-        cmd = chassis_open_loop_current(level);
-        currents[motor_index] = cmd;
+        /* 保持段：恒定电流，无速度反馈 */
+        if (!chassis_open_loop_hold_running(now - hold_start)) {
+          active = 0; /* 到时正常释放，不算故障 */
+        } else {
+          cmd = chassis_open_loop_hold_current(level);
+          currents[motor_index] = cmd;
+        }
       }
       if (!active) {
         chassis_key_reset(&selection);

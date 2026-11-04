@@ -259,8 +259,8 @@ int16_t chassis_speed_target(uint32_t elapsed_ms) {
   return 0;
 }
 
-/* 固定电流开环测试（机械诊断）：KEY 次数选档，档位电流固定。 */
-int16_t chassis_open_loop_current(uint8_t level) {
+/* 固定电流开环测试（机械诊断）：KEY 次数选保持电流档，起转脉冲固定。 */
+int16_t chassis_open_loop_hold_current(uint8_t level) {
   switch (level) {
     case 1:
       return CHASSIS_OPEN_LOOP_I1;
@@ -275,14 +275,26 @@ int16_t chassis_open_loop_current(uint8_t level) {
   }
 }
 
+uint8_t chassis_open_loop_breakaway_ok(int16_t rpm) {
+  if (rpm >= CHASSIS_OPEN_LOOP_BREAKAWAY_RPM ||
+      rpm <= -CHASSIS_OPEN_LOOP_BREAKAWAY_RPM) {
+    return 1;
+  }
+  return 0;
+}
+
+uint8_t chassis_open_loop_kick_running(uint32_t elapsed_ms) {
+  return (elapsed_ms < CHASSIS_OPEN_LOOP_KICK_MAX_MS) ? 1u : 0u;
+}
+
+uint8_t chassis_open_loop_hold_running(uint32_t elapsed_ms) {
+  return (elapsed_ms < CHASSIS_OPEN_LOOP_HOLD_MS) ? 1u : 0u;
+}
+
 uint8_t chassis_open_loop_overspeed(int16_t rpm) {
   if (rpm > CHASSIS_OPEN_LOOP_RPM_LIMIT ||
       rpm < -CHASSIS_OPEN_LOOP_RPM_LIMIT) {
     return 1;
   }
   return 0;
-}
-
-uint8_t chassis_open_loop_running(uint32_t elapsed_ms) {
-  return (elapsed_ms < CHASSIS_OPEN_LOOP_DURATION_MS) ? 1u : 0u;
 }
