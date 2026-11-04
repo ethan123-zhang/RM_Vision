@@ -563,3 +563,41 @@ ros2 run car_bridge follow_path --ros-args \
 
 > 本节的脚本与离线测试只验证软件流程；地图定位精度、TF 真实时序、跨重启一致性和整车
 > 导航仍需板端实车验收。
+
+### 14.4 演示当天全流程（建图 → 重定位 → 示教 → 回放）
+
+完整操作手册见 [docs/demo-runbook.md](docs/demo-runbook.md)（含时间预算与故障速查）。
+要点：
+
+```bash
+# 1) 建图（遥控开 5–10 min）
+bash x5/scripts/start_mapping.sh demo_YYYYmmdd
+bash x5/scripts/save_map.sh && bash x5/scripts/stop_mapping.sh
+
+# 2) 重定位
+bash x5/scripts/start_relocal.sh ~/car_ws/maps/demo_YYYYmmdd
+
+# 3) 示教（先停 bridge，示教必须遥控；末段一路向前开过起点 0.3–0.5 m 再停）
+pgrep -f "lib/car_bridge/bridge_node$" | xargs -r kill
+bash x5/scripts/teach_map_route.sh ~/car_ws/maps/demo_YYYYmmdd   # 开车，Ctrl-C 收尾
+
+# 4) 回放（参数是 2026-11-04 实测的演示值）
+ros2 run car_bridge bridge_node &
+VMAX=0.15 W_MAX=0.35 RETURN_W_MAX=0.30 \
+BASE_OFFSET_X=0.2626 BASE_OFFSET_Y=-0.0471 \
+START_MAX_OFFSET_M=2.0 RETURN_TIMEOUT_S=150 MAX_TIME_S=320 \
+bash x5/scripts/drive_lap.sh ~/car_ws/maps/demo_YYYYmmdd
+```
+
+`drive_lap.sh` 现在透传 `W_MAX`（跟踪段角速度，默认 0.35——`follow_path` 内建 1.2，
+实车"转弯太猛"）、`RETURN_W_MAX`、`BASE_OFFSET_X/Y`、`START_MAX_OFFSET_M`、
+`RETURN_TIMEOUT_S`、`MAX_TIME_S`，并把数值统一补成浮点（写 `280` 会被 ROS 2 推断成
+INTEGER，而 `max_time_s` 是 DOUBLE，会直接抛 `InvalidParameterTypeException`）。
+
+**终点判据的力臂修正（2026-11-04 实车暴露）**：`align` 的位置判据、末段收口目标都已
+改用**转心**位姿（原地转正时转心不动、传感器点绕它扫弧）；末段收口是"先对准转心
+方向再低速直行"，不用纯追踪（单点目标会让车绕着终点兜圈）；最终对齐超时按初始角度
+自适应（`max(5 s, 1.5·|Δyaw|/(0.8·w_max))`），避免慢速下 176° 掉头被 5 s 误判失败。
+
+**示教规范**：回放只前进不倒退；示教末段若"倒着蹭"进终点，回放抵达时会有约 176°
+朝向差必须原地掉头。末段应**一路向前开过起点 0.3–0.5 m 再停**。
