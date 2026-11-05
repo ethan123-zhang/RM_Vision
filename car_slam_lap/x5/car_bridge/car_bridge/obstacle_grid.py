@@ -251,8 +251,10 @@ class GridView:
                 px = x + v / w * (math.sin(yaw + w * t) - math.sin(yaw))
                 py = y - v / w * (math.cos(yaw + w * t) - math.cos(yaw))
                 pyaw = yaw + w * t
-            # 转心不得进入未观测格；车体矩形不得压到任何真实占据格。
-            if not self.free((px, py), require_known=True, planning=True):
+            # 转心只要求"该格已观测"；避障由下面的车身矩形负责。用规划膨胀掩码
+            # 检查逐拍位置，会把"车身没碰但离障碍 0.41 m"的合法位置判成不可走。
+            ix, iy = self._cell((px, py))
+            if not (0 <= ix < self.size and 0 <= iy < self.size and self.known[ix, iy]):
                 return False
             if self._rectangle_hits((px, py, pyaw), margin=.02):
                 return False
