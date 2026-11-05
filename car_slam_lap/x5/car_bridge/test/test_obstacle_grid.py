@@ -76,6 +76,35 @@ class GridTest(unittest.TestCase):
         for a, b in zip(path, path[1:]):
             self.assertTrue(view.segment_free(a, b))
 
+    def test_rectangle_body_passes_123cm_gap_that_circle_cannot(self):
+        """run4 场地实测通道 1.23 m：车体矩形过得去，外接圆过不去。
+
+        这也是改几何的全部理由：圆要 0.526 净空 + 约一格跟踪余量 ≈1.27 m。
+        """
+        pts = [(x, 1.38) for x in np.arange(-2, 2.51, .04)]
+        pts += [(x, -1.12) for x in np.arange(-2, 2.51, .04)]
+        for x in np.arange(.75, 1.251, .04):
+            pts += [(x, -.45), (x, .15)]
+        for y in np.arange(-.45, .151, .04):
+            pts += [(.75, y), (1.25, y)]
+        pts = np.asarray(pts)
+        body = (.65, .55, .325, .10)
+        rectangle = LocalGrid(.10, .53, 4., body=body)
+        circle = LocalGrid(.10, .53, 4.)
+        for grid in (rectangle, circle):
+            grid.observe(pts, (0., 0.), (0., 0.), 1.)
+        start, goal = (-.26, .03), (2.2, .75)
+        view = rectangle.view(start, 1.)
+        path = view.plan(start, goal, budget_s=1., allow_partial=True)
+        self.assertIsNotNone(path, '车体矩形必须能通过 1.23 m 通道')
+        self.assertGreater(math.dist(path[-1], start), .8, '必须实打实穿过这段 1.23 m 通道')
+        for point in path[1:]:
+            self.assertTrue(view.free(point, planning=True), '路径中心必须在已观测的空闲格内')
+        circle_path = circle.view(start, 1.).plan(start, goal, budget_s=1., allow_partial=True)
+        advance = 0. if circle_path is None else math.dist(circle_path[-1], start)
+        self.assertLess(advance, .7,
+                        '外接圆模型只能挤进 0.7 m 就地卡死——这就是换矩形的原因，不是随便改阈值')
+
     def test_blocked_passage_has_no_path(self):
         self.observe_room(blocked=True)
         self.assertIsNone(self.grid.view((0., 0.), 1.).plan((0., 0.), (2., 0.), budget_s=1.))

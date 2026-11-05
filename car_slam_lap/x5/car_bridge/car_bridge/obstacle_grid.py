@@ -277,8 +277,10 @@ class GridView:
         if direct is not None:
             return direct
         a, b = self._cell(start), self._cell(goal)
-        # 起点可以落在规划缓冲内，但绝不能在碰撞区；允许从该格向外脱离。
-        if not self.free(start, require_known=False) or (not allow_partial and not self.free(goal, require_known=False)):
+        # 起点/终点不得在碰撞区；矩形车队里用横向净空判据，否则"车身没碰"
+        # 的开始位姿会被外接圆判死、连规划都不许起（仿真实测）。
+        # 允许从该格向外脱离；实际运动仍由 motion_free 逐拍按车身矩形审查。
+        if not self.free(start, require_known=False, planning=self.body is not None) or (not allow_partial and not self.free(goal, require_known=False, planning=self.body is not None)):
             return None
         known = self.known.copy()
         known[a] = True

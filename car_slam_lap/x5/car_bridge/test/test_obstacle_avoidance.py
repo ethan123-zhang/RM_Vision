@@ -412,20 +412,19 @@ class IntegrationTest(unittest.TestCase):
         self.assertEqual(n._outcome, 'failed')
         self.h._assert_tail_zero(n)
 
-    def test_occupied_collision_circle_refuses_stationary_scan(self):
+    def test_body_rectangle_judges_rotation_near_obstacle(self):
         n = self.node()
         self.h._feed(n, 10.)
-        # 点在车体过滤框外、外接碰撞圆内，真实点云必须阻止原地转动。
+        # 点在车体过滤框外、外接碰撞圆内：小角度扫掠矩形没碰到车身时允许做观察性转动，
+        # 但大角度转向（>90°，可能扫满一圈）仍必须按外接圆拒绝。
         self.cloud(n, 10., [[.45, .35, 0.]] * 40)
         a = n._obstacles
         a.set_pose()
         self.assertFalse(a.view.free(a.control_pose, require_known=False))
-        a.pending = True
-        a.next_plan = self.h.clock() + 100.
-        a.tick(self.h.clock())
-        self.h._assert_all_zero(n)
-        self.assertFalse(n._done)
-        self.assertEqual(n._idx, 0)
+        self.assertTrue(a.view.motion_free(a.control_pose, 0., .15),
+                        '小车距 0.5 m 以上、真实车身没碰到时应允许限速观察转动')
+        self.assertFalse(a.view.motion_free(a.control_pose, 0., 1.),
+                         '大角度转向可能扫满一圈，仍必须按外接圆拒绝')
 
     def test_real_tick_stops_started_scan_when_cloud_stales_despite_fresh_odom(self):
         n = self.node()
@@ -471,7 +470,9 @@ class IntegrationTest(unittest.TestCase):
         self.cloud(n, 10., [[1., 0., -.08]] * 40)
         self.h._feed(n, 10.1)
         self.cloud(n, 10.1, [[3., 0., .47]] * 40)
-        self.assertFalse(n._obstacles.view.motion_free((.4, 0., 0.), .1, 0.),
+        # 探针从 0.4 m 移到 0.7 m：矩形车队里 0.4 m 处本来就该能走（车头 0.725 < 箱 1.0），
+        # 旧断言只是靠外接圆 0.667 顺带成立；0.7 m 处车头越过箱面，必须仍然拦停。
+        self.assertFalse(n._obstacles.view.motion_free((.7, 0., 0.), .1, 0.),
                          '越过低箱顶部的高墙射线不能证明箱子已消失')
 
     def test_real_rejoin_advances_progress_without_faking_actual_distance(self):
