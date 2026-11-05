@@ -1,0 +1,25 @@
+# 2026-11-05：实车约长 65 cm、宽 55 cm、Odin1 高 23 cm。
+# 修改安装位置后需重新测高度/力臂；外接圆规划偏保守，窄通道可能停车。
+/**:
+  ros__parameters:
+    obstacle_avoidance: true
+    robot_length_m: 0.65
+    robot_width_m: 0.55
+    # 履带式车体暂按转心居中；只对已确认随车运动的三维回波做独立掩码。
+    robot_front_m: 0.325
+    robot_self_mask_file: ~/car_ws/config/odin1_self_mask.npz
+    sensor_height_m: 0.23
+    obstacle_margin_m: 0.10
+    obstacle_min_height_m: 0.06
+    obstacle_max_height_m: 0.80
+    obstacle_resolution_m: 0.10
+    # 同一10cm格至少8个回波，滤掉实测近场稀疏噪点；首次检出立即锁存保护。
+    obstacle_min_points_per_cell: 8
+    cloud_processing_period_s: 0.20
+    obstacle_range_m: 4.0
+    obstacle_cloud_topic: /odin1/cloud_raw
+    cloud_timeout_s: 0.60
+    obstacle_wait_timeout_s: 35.0
+    detour_timeout_s: 90.0
+    detour_rejoin_ahead_m: 3.0
+    detour_v_max: 0.12

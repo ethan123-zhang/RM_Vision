@@ -36,7 +36,9 @@ ls -lh "$MAP_BIN"
 GEN="$CAR_CONFIG/generated"
 mkdir -p "$GEN"
 CFG="$GEN/control_command.relocal.yaml"
-sed "s|__MAP_ABS_PATH__|$MAP_BIN|" "$CAR_CONFIG/control_command.relocal.yaml" > "$CFG"
+RELOCAL_CONFIG_TEMPLATE="${RELOCAL_CONFIG_TEMPLATE:-$CAR_CONFIG/control_command.relocal.yaml}"
+require_file "$RELOCAL_CONFIG_TEMPLATE"
+sed "s|__MAP_ABS_PATH__|$MAP_BIN|" "$RELOCAL_CONFIG_TEMPLATE" > "$CFG"
 if grep -q "__MAP_ABS_PATH__" "$CFG"; then
   echo "✗ 替换地图路径失败（模板里 __MAP_ABS_PATH__ 没被替换）"
   exit 1

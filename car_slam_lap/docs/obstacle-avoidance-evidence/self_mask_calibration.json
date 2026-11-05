@@ -1,0 +1,35 @@
+{
+  "purpose": "confirmed body-fixed near-field return voxels; not a full near-range exclusion",
+  "resolution_m": 0.015,
+  "confirmed_voxel_count": 1898,
+  "sample_counts": [
+    4980,
+    5108,
+    4965
+  ],
+  "actual_turn_rad": 0.2960984809083139,
+  "body_frame_overlap_fraction": 0.9972781709308656,
+  "world_frame_overlap_fraction": 0.2000544365813827,
+  "robot_front_m_assumption": 0.325,
+  "robot_length_m": 0.65,
+  "robot_width_m": 0.55,
+  "sensor_height_m": 0.23,
+  "raw_candidate_planar_range_m": 0.8,
+  "candidate_height_band_m": [
+    0.025,
+    0.35
+  ],
+  "mask_bounds_lidar_m": [
+    [
+      0.075,
+      -0.57,
+      -0.255
+    ],
+    [
+      0.585,
+      0.645,
+      -0.03
+    ]
+  ],
+  "confirmation": "matched before-or-returned and rotated capture within 30 mm voxel tolerance"
+}

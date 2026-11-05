@@ -145,16 +145,26 @@ SMO="$(num_float "$SMO" START_MAX_OFFSET_M)"
 RTO="$(num_float "$RTO" RETURN_TIMEOUT_S)"
 MX="$(num_float "$MX" MAX_TIME_S)"
 
+# 独立避障入口通过参数文件启用；未指定时沿用原有跟踪行为。
+EXTRA_ROS_ARGS=()
+if [ -n "${NAV_PARAMS_FILE:-}" ]; then
+  require_file "$NAV_PARAMS_FILE"
+  EXTRA_ROS_ARGS+=(--params-file "$NAV_PARAMS_FILE")
+fi
+NAV_MODE="${NAV_MODE:-先回起点再跟踪；限起点附近空旷通道，无自动绕障。}"
+SAVE_ACTUAL="$MAP_DIR/${ACTUAL_NAME:-lap_actual.yaml}"
+
 cat <<EOF
 
 == 5 s 后开始，Ctrl-C 随时停 ==
-   先回起点再跟踪；限起点附近空旷通道，无自动绕障。
+   $NAV_MODE
    手工起 bridge 的方式不变，本脚本不会自动启动底盘。
    v_max=$VMAX  w_max=$WMAX  return_w_max=$RWMAX
    base_offset=($OFFX, $OFFY)  起点范围=${SMO} m  回起点超时=${RTO} s  总时限=$MX
 
 EOF
 ros2 run car_bridge follow_path --ros-args \
+  "${EXTRA_ROS_ARGS[@]}" \
   -p path_file:="$PATH_FILE" \
   -p map_file:="$MAP_BIN" \
   -p base_frame:="$BASE_FRAME" \
@@ -166,9 +176,9 @@ ros2 run car_bridge follow_path --ros-args \
   -p start_max_offset_m:="$SMO" \
   -p return_timeout_s:="$RTO" \
   -p max_time_s:="$MX" \
-  -p save_actual:="$MAP_DIR/lap_actual.yaml" \
+  -p save_actual:="$SAVE_ACTUAL" \
   -p start_delay_s:=5.0
 
 echo
-echo "== 实际轨迹: $MAP_DIR/lap_actual.yaml"
+echo "== 实际轨迹: $SAVE_ACTUAL"
 echo "== 想对比看两条线，用 CloudCompare 打开 map.pcd，或直接看 follow_path 打印的横向误差"

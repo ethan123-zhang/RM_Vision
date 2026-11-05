@@ -198,6 +198,8 @@ class FollowPath(Node):
         # 默认 0 = 不补偿（判据直接用传感器点，与任务05 B 行为一致）。
         self.declare_parameter("base_offset_x", 0.0)
         self.declare_parameter("base_offset_y", 0.0)
+        # 默认关闭以保留既有流程；独立的避障启动脚本加载实车外形和点云配置。
+        self.declare_parameter("obstacle_avoidance", False)
 
         self.return_to_start = bool(self.get_parameter("return_to_start").value)
         self.start_max_offset_m = _finite_param(
@@ -319,6 +321,10 @@ class FollowPath(Node):
 
         self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer, self)
+        self._obstacles = None
+        if bool(self.get_parameter("obstacle_avoidance").value):
+            from .obstacle_avoidance import ObstacleAvoidance
+            self._obstacles = ObstacleAvoidance(self)
         self._pub = self.create_publisher(Twist, "cmd_vel", 10)
         self.create_subscription(String, "car/status", self._on_status, 10)
         # 必须是 sensor data QoS（best effort）：Odometry 发布者常用它，
@@ -332,6 +338,8 @@ class FollowPath(Node):
         self._tf_fail_since: Optional[float] = None
         self._tf_invalid_reason = ""
         self._idx = 0
+        # 实际绕行到达指定重接点后，单独记被合法绕过的路线弧长；不伪造里程。
+        self._route_progress_credit = 0.0
         # return/align_start/run/track_align/align
         self._state = "return" if self.return_to_start else "run"
         self._start_checked = False
@@ -449,6 +457,9 @@ class FollowPath(Node):
 
     # ---------------------------------------------------------- 控制
     def _publish(self, v: float, w: float) -> None:
+        if (v or w) and self._obstacles is not None:
+            if not self._obstacles.guard(v, w):
+                v, w = 0.0, 0.0
         msg = Twist()
         msg.linear.x = float(v)
         msg.angular.z = float(w)
@@ -545,6 +556,17 @@ class FollowPath(Node):
             return
         self._tf_fail_since = None
 
+        if self._obstacles is not None:
+            reason = self._obstacles.ready_reason(now)
+            if reason:
+                self._stop(f"避障安全门：{reason}")
+                return
+            try:
+                self._obstacles.set_pose()
+            except Exception as exc:
+                self._stop(f"避障控制位姿 TF 失败：{exc}")
+                return
+
         x, y, yaw = pose
         if self._t0 is None:
             self._t0 = now
@@ -571,13 +593,23 @@ class FollowPath(Node):
                     "诊断模式：跳过自动回起点与起始对齐，直接从路线首段开始"
                 )
 
+        # 绕行仍然逐拍经过上面的底盘/定位/点云安全门；只冻结原路线索引。
+        # 绕行的实际行驶距离可以累计，回起点距离仍不能计入路线进度。
+        if self._state not in ("return", "align_start"):
+            if self._last_pose is not None:
+                self._traveled += math.hypot(x - self._last_pose[0], y - self._last_pose[1])
+            self._last_pose = (x, y)
+        if self._obstacles is not None:
+            try:
+                if self._obstacles.tick(now):
+                    return
+            except Exception as exc:
+                self._stop(f"局部绕行异常，失败停车：{exc}")
+                return
+
         if self._state in ("return", "align_start"):
             self._tick_start(now, x, y, yaw)
             return
-
-        if self._last_pose is not None:
-            self._traveled += math.hypot(x - self._last_pose[0], y - self._last_pose[1])
-        self._last_pose = (x, y)
 
         raw_idx, _ = self._nearest(x, y)
         idx = self._limit_progress(raw_idx)
@@ -831,6 +863,7 @@ class FollowPath(Node):
     def _reset_route_tracking(self, x: float, y: float) -> None:
         """回起点走过的距离不能算进路线完成进度。"""
         self._idx = 0
+        self._route_progress_credit = 0.0
         self._idx_prev = -1
         self._traveled = 0.0
         self._last_pose = (x, y)
@@ -846,7 +879,8 @@ class FollowPath(Node):
         横向偏差和拐角。
         """
         return limit_progress_index(
-            self.s, self._idx, candidate, self._traveled, PROGRESS_SLACK_M)
+            self.s, self._idx, candidate,
+            self._traveled + self._route_progress_credit, PROGRESS_SLACK_M)
 
     # ---------------------------------------------------------- 记录
     def _record_actual(self, x: float, y: float, yaw: float, now: float) -> None:
@@ -878,6 +912,8 @@ class FollowPath(Node):
         rms = math.sqrt(self._err_sq / self._err_n) if self._err_n else 0.0
         dur = 0.0 if not self._actual else self._actual[-1][3]
         route_dur = max(0.0, dur - self._start_elapsed)
+        obstacle_text = (f"\n实时避障: {json.dumps(self._obstacles.summary(), ensure_ascii=False)}"
+                         if self._obstacles is not None else "")
         return (
             f"结果: {outcome_text}\n"
             f"结束原因: {self._reason or '未开始'}\n"
@@ -888,7 +924,7 @@ class FollowPath(Node):
             f"横向误差 max={self._err_max:.3f} m  rms={rms:.3f} m\n"
             f"原始里程计: 接受 {self._odom_guard.accepted} 帧 / "
             f"拒绝 {self._odom_guard.rejected} 帧\n"
-            f"实际轨迹 {len(self._actual)} 点"
+            f"实际轨迹 {len(self._actual)} 点{obstacle_text}"
         )
 
     def save_actual(self) -> None:
@@ -905,6 +941,11 @@ class FollowPath(Node):
         with open(self._save_actual_path, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")
         self.get_logger().info(f"实际轨迹写到 {self._save_actual_path}")
+        if self._obstacles is not None:
+            try:
+                self._obstacles.save_snapshot(self._save_actual_path + '.obstacles.npz')
+            except Exception as exc:
+                self.get_logger().warn(f"避障诊断快照保存失败：{exc}")
 
 
 def main(args=None) -> int:

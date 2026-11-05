@@ -14,6 +14,7 @@ echo "== 1/5 依赖"
 need_apt=0
 python3 -c "import serial" 2>/dev/null || need_apt=1
 python3 -c "import yaml"   2>/dev/null || need_apt=1
+python3 -c "import numpy"  2>/dev/null || need_apt=1
 if [ "$need_apt" = 1 ]; then
   # 校园网 IPv6 黑洞会让 apt 挂死，x5_odin 里也是这么绕的
   sudo tee /etc/apt/apt.conf.d/99ipv4 >/dev/null <<'EOF'
@@ -22,7 +23,7 @@ Acquire::http::Timeout "20";
 Acquire::https::Timeout "20";
 EOF
   sudo apt-get update
-  sudo apt-get install -y python3-serial python3-yaml
+  sudo apt-get install -y python3-serial python3-yaml python3-numpy
 else
   echo "python3-serial / python3-yaml 已就绪"
 fi
@@ -36,6 +37,9 @@ echo "== 3/5 源码与配置"
 rm -rf "$CAR_WS/src/car_bridge"
 cp -a "$CAR_SRC/car_bridge" "$CAR_WS/src/car_bridge"
 cp -a "$CAR_SRC"/config/*.yaml "$CAR_CONFIG/"
+if [ -f "$CAR_SRC/config/odin1_self_mask.npz" ]; then
+  cp -a "$CAR_SRC/config/odin1_self_mask.npz" "$CAR_CONFIG/"
+fi
 ls -1 "$CAR_CONFIG"
 
 echo "== 4/5 udev 规则（USB-TTL 固定成 /dev/car_link）"

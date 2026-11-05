@@ -20,6 +20,7 @@
   <depend>tf2_ros</depend>
   <depend>python3-serial</depend>
   <depend>python3-yaml</depend>
+  <depend>python3-numpy</depend>
 
   <test_depend>python3-pytest</test_depend>
 

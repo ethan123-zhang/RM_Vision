@@ -1,0 +1,21 @@
+[INFO] [1793849271.044831737] [follow_path]: 力臂补偿：base_frame 相对转心 (+0.263, -0.047) m，起始判据与回起点目标改用转心位姿
+[INFO] [1793849273.380694810] [follow_path]: 地图路线 bundle 校验通过：303 点，base_frame=imu，map_sha256=b44ed4fe862a9de9...
+[INFO] [1793849273.671738010] [follow_path]: 已加载经转动验证的自身回波掩码：~/car_ws/config/odin1_self_mask.npz
+[INFO] [1793849273.681802173] [follow_path]: 实时避障已启用：车身 0.65×0.55 m，外接圆+余量半径 0.53 m，点云 /odin1/cloud_raw
+[INFO] [1793849273.698005518] [follow_path]: 轨迹 route_map.yaml: 303 点 / 14.99 m / 坐标系 map；v_max=0.1 m/s，前视 0.35-0.8 m
+[INFO] [1793849273.700272424] [follow_path]: 原始里程计 /odin1/odometry（sensor data QoS），停更阈值 0.50 s
+[INFO] [1793849273.702595831] [follow_path]: 自动回起点已启用：范围 2.00 m，位置容差 0.10 m，朝向容差 0.10 rad，限速 0.08 m/s / 0.20 rad/s，总超时 150.0 s
+[INFO] [1793849273.730104291] [follow_path]: 原始里程计已就绪（时间戳开始严格递增）
+[INFO] [1793849276.699854311] [follow_path]: 开始跟随
+[WARN] [1793849287.868364649] [follow_path]: 运动预测范围遇到障碍或未知区域：停车并尝试局部绕行
+[INFO] [1793849287.902200206] [follow_path]: 侧面可见空间不足：限速原地观察左右，再尝试规划
+[INFO] [1793849323.067548662] [follow_path]: 实际轨迹写到 /home/sunrise/car_ws/logs/obstacle-20261105/live_run4_actual.yaml
+结果: 失败
+结束原因: 障碍/未知区域持续阻塞，无安全可行局部路径
+回起点/起始对齐 46.3 s  （补位往返 0 次）  路线跟踪 0.0 s
+跟踪点数: 0  用时 14.5 s  行驶 0.00 m
+横向误差 max=0.000 m  rms=0.000 m
+原始里程计: 接受 505 帧 / 拒绝 0 帧
+实际轨迹 13 点
+实时避障: {"cloud_frames": 224, "obstacle_points": 8133, "local_plans": 0, "rejoins": 0, "cloud_max_processing_s": 0.1183}
+[ros2run]: Process exited with failure 1
