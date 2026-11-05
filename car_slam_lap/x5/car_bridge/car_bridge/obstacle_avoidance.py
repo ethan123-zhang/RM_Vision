@@ -190,6 +190,7 @@ class ObstacleAvoidance:
         self.scan_step = 0
         self.scan_started = None
         self.last_heal = float('-inf')
+        self.motion_rejects = 0
         self._last_cloud_log = 0.
         self._cloud_queue = deque(maxlen=4)
         node.create_subscription(PointCloud2, p['obstacle_cloud_topic'], self._on_cloud, qos_profile_sensor_data)
@@ -428,16 +429,29 @@ class ObstacleAvoidance:
                 self.next_plan = now
             elif self.view.motion_free(self.control_pose, v, w):
                 n._publish(v, w)
+                self.motion_rejects = 0
                 if v > 0:
                     self.wait_since = None
                 elif self.wait_since is None:
                     self.wait_since = now
                 return True
             else:
+                # 反活锁：同一条候选路径连续多拍都执行不了一动（典型是路径第一拍就
+                # 撞上未观测格），重规划只会得到同一条路。实车 run6 就是这样原地
+                # 循环 30 次规划、舵轮不动的。此时换下一个候选，全部换完再由等待超时兜底。
                 self.path = None
                 self.pending = True
+                self.motion_rejects += 1
+                if self.motion_rejects >= 3:
+                    self.motion_rejects = 0
+                    self.goal_cursor += 1
+                    self.goal_xy = None
+                    self.goal_idx = None
+                    self.next_plan = now
+                    n.get_logger().warn('同一条局部路径连续执行失败，换下一个候选接回点')
+                else:
+                    self.next_plan = now + .3
                 self.wait_since = self.wait_since or now
-                self.next_plan = now + .3
         n._publish(0., 0.)
         if now < self.next_plan:
             self._observe_sides(now)
