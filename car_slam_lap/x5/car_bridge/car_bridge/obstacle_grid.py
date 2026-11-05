@@ -28,7 +28,8 @@ def _unique_keys(keys, min_count=1):
 
 
 class LocalGrid:
-    def __init__(self, resolution=.10, radius=.53, half_extent=4.):
+    def __init__(self, resolution=.10, radius=.53, half_extent=4., body=None):
+        """body=(length, width, front, margin) 时按车体矩形判定平移；None 退回外接圆。"""
         for value in (resolution, radius, half_extent):
             if not math.isfinite(value) or value <= 0:
                 raise ValueError("网格分辨率、车身半径和窗口必须是有限正数")
@@ -38,6 +39,16 @@ class LocalGrid:
         self.radius = radius
         self.half_extent = half_extent
         self.cells = {}  # (ix, iy) -> occupied；有界窗口，未知格不存在。
+        if body is None:
+            self.body = None
+            self.travel = radius
+        else:
+            length, width, front, margin = (float(v) for v in body)
+            if not (0 < front < length and 0 < width and margin >= 0):
+                raise ValueError("车身尺寸非法")
+            self.body = (length, width, front, margin)
+            # 平移时车体长轴与路径一致，横向只需要车宽一半 + 余量。
+            self.travel = width / 2 + margin
 
     def _cell(self, point):
         return tuple(np.floor(np.asarray(point[:2]) / self.resolution).astype(int))
@@ -117,6 +128,8 @@ class GridView:
     def __init__(self, grid, center):
         self.resolution = grid.resolution
         self.radius = grid.radius
+        self.travel = grid.travel
+        self.body = grid.body
         self.origin = np.floor((np.asarray(center[:2]) - grid.half_extent) / self.resolution).astype(int)
         self.size = int(math.ceil(2 * grid.half_extent / self.resolution)) + 1
         self.known = np.zeros((self.size, self.size), dtype=bool)
@@ -129,12 +142,17 @@ class GridView:
             keys = keys[valid]
             self.known[keys[:, 0], keys[:, 1]] = True
             occupied[keys[:, 0], keys[:, 1]] = values[valid]
-        # 中心离障碍要留外接圆半径，并多留一格对角量覆盖栅格量化误差。
-        self.blocked = self._dilate(occupied, grid.radius + math.sqrt(2) * self.resolution)
-        # 路径中心再多留一格：折线格心与跟踪圆弧的连续位置之间还差这一格，
-        # 不留会把"能过但贴边"的通道判成不可跟踪。
-        self.planning_blocked = self._dilate(
-            occupied, grid.radius + (1 + math.sqrt(2)) * self.resolution)
+        if self.body is None:
+            # 圆模型：中心留外接圆半径，并多留一格对角量覆盖栅格量化误差。
+            self.blocked = self._dilate(occupied, grid.radius + math.sqrt(2) * self.resolution)
+            self.planning_blocked = self._dilate(
+                occupied, grid.radius + (1 + math.sqrt(2)) * self.resolution)
+        else:
+            # 矩形模型：`free()` 仍报"转心是否已进入碰撞圈"，供既有安全约束使用；
+            # 路径中心只留横向净空（车宽一半 + 余量）+ 半格量化，车体真实形状
+            # 由 motion_free 逐拍按矩形审查。1.23 m 的通道只有这样才过得去。
+            self.blocked = self._dilate(occupied, grid.radius + math.sqrt(2) * self.resolution)
+            self.planning_blocked = self._dilate(occupied, grid.travel + .5 * self.resolution)
 
     def _dilate(self, occupied, clearance):
         out = occupied.copy()
@@ -168,25 +186,77 @@ class GridView:
         return all(self.free((a[0] + (b[0] - a[0]) * i / count,
                               a[1] + (b[1] - a[1]) * i / count), planning=planning) for i in range(count + 1))
 
-    def motion_free(self, pose, v, w, horizon_s=2.):
-        """检验实际 Twist 的圆弧扫掠；原地转同样检查外接圆净空。
+    def _rectangle_hits(self, pose, margin=None):
+        """车体矩形是否压到真实占据格；不依赖任何膨胀近似。
 
-        当前转心已被机器人占据，允许它尚未被前向雷达射线标空；一旦向前
-        行驶，预测位置必须已观测。此处不宣称能检测雷达盲区的新障碍。
+        margin 默认取标定余量（平移用）；原地旋转传 0，用真实车体轮廓，
+        因为旋转不改变转心位置，余量在这里只剩过度保守。
+        """
+        if self.body is None:
+            x, y = self._cell(pose)
+            return 0 <= x < self.size and 0 <= y < self.size and bool(self.blocked[x, y])
+        length, width, front, extra = self.body
+        if margin is None:
+            margin = extra
+        x, y, yaw = pose
+        ahead = front + margin
+        behind = (length - front) + margin
+        half = width / 2 + margin
+        c, s = math.cos(yaw), math.sin(yaw)
+        ix, iy = self._cell(pose)
+        span = int(math.ceil(max(ahead, behind, half) / self.resolution)) + 1
+        xs = np.arange(max(0, ix - span), min(self.size, ix + span + 1))
+        ys = np.arange(max(0, iy - span), min(self.size, iy + span + 1))
+        if not len(xs) or not len(ys):
+            return False
+        gx, gy = np.meshgrid((xs + self.origin[0] + .5) * self.resolution,
+                             (ys + self.origin[1] + .5) * self.resolution, indexing="ij")
+        bx = c * (gx - x) + s * (gy - y)
+        by = -s * (gx - x) + c * (gy - y)
+        inside = (bx <= ahead) & (bx >= -behind) & (np.abs(by) <= half)
+        if not inside.any():
+            return False
+        return bool((self.occupied[np.ix_(xs, ys)] & inside).any())
+
+    def _rotation_free(self, pose, w, horizon_s):
+        """原地旋转：按实际扫掠的矩形审查；超过 90° 的转向仍按外接圆（可能扫满一圈）。"""
+        if self.body is None or abs(w) * horizon_s >= math.pi / 2:
+            return self.free(pose, require_known=False)
+        count = max(2, int(math.ceil(abs(w) * horizon_s / .10)))
+        return not any(self._rectangle_hits((pose[0], pose[1], pose[2] + w * t), margin=0.)
+                       for t in np.linspace(0, horizon_s, count + 1))
+
+    def motion_free(self, pose, v, w, horizon_s=2.):
+        """检验实际 Twist 的扫掠：平移用车体矩形，原地旋转用扫掠矩形/外接圆。
+
+        判据是"车身矩形现在/待会儿会不会压到障碍"，而不是"转心离障碍够不够远"：
+        后者会把车宽一半当成半径，1.23 m 的可行通道被算成死路（run4）。
+        此处不宣称能检测雷达盲区的新障碍。
         """
         if not all(math.isfinite(t) for t in (*pose, v, w)) or v < 0:
             return False
-        if not self.free(pose, require_known=False):
+        if abs(v) < 1e-6:
+            # 原地旋转只看真实车体的扫掠；含余量的矩形在这里会把"能转身"判成不能。
+            return self._rotation_free(pose, w, horizon_s)
+        # 逐拍审查用真实车身（+2 cm 复位余量）：10 cm 标定余量交给路径膨胀
+        # planning_blocked 保证，否则车一旦滑进余量带就开不出来（控制器没有倒车）。
+        if self._rectangle_hits(pose, margin=.02):
             return False
         x, y, yaw = pose
-        steps = max(1, int(math.ceil(abs(v) * horizon_s / (self.resolution * .4))))
+        steps = max(1, int(math.ceil(v * horizon_s / (self.resolution * .4))))
         for t in np.linspace(0, horizon_s, steps + 1)[1:]:
             if abs(w) < 1e-6:
-                px, py = x + v * t * math.cos(yaw), y + v * t * math.sin(yaw)
+                px, py, pyaw = x + v * t * math.cos(yaw), y + v * t * math.sin(yaw), yaw
             else:
                 px = x + v / w * (math.sin(yaw + w * t) - math.sin(yaw))
                 py = y - v / w * (math.cos(yaw + w * t) - math.cos(yaw))
-            if not self.free((px, py), require_known=abs(v) > 1e-6):
+                pyaw = yaw + w * t
+            # 转心只要求"该格已观测"；避障由下面的车身矩形负责。用规划膨胀掩码
+            # 检查逐拍位置，会把"车身没碰但离障碍 0.41 m"的合法位置判成不可走。
+            ix, iy = self._cell((px, py))
+            if not (0 <= ix < self.size and 0 <= iy < self.size and self.known[ix, iy]):
+                return False
+            if self._rectangle_hits((px, py, pyaw), margin=.02):
                 return False
         return True
 
@@ -207,8 +277,10 @@ class GridView:
         if direct is not None:
             return direct
         a, b = self._cell(start), self._cell(goal)
-        # 起点可以落在规划缓冲内，但绝不能在碰撞区；允许从该格向外脱离。
-        if not self.free(start, require_known=False) or (not allow_partial and not self.free(goal, require_known=False)):
+        # 起点/终点不得在碰撞区；矩形车队里用横向净空判据，否则"车身没碰"
+        # 的开始位姿会被外接圆判死、连规划都不许起（仿真实测）。
+        # 允许从该格向外脱离；实际运动仍由 motion_free 逐拍按车身矩形审查。
+        if not self.free(start, require_known=False, planning=self.body is not None) or (not allow_partial and not self.free(goal, require_known=False, planning=self.body is not None)):
             return None
         known = self.known.copy()
         known[a] = True

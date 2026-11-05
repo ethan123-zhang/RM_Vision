@@ -146,7 +146,9 @@ class ObstacleAvoidance:
             raise ValueError('避障要求 map 路线和已核实的 imu 车体参考系')
         extent = max(p['robot_front_m'], p['robot_length_m'] - p['robot_front_m'])
         self.radius = math.hypot(extent, p['robot_width_m']/2) + p['obstacle_margin_m']
-        self.grid = LocalGrid(p['obstacle_resolution_m'], self.radius, p['obstacle_range_m'])
+        self.grid = LocalGrid(p['obstacle_resolution_m'], self.radius, p['obstacle_range_m'],
+                              body=(p['robot_length_m'], p['robot_width_m'],
+                                    p['robot_front_m'], p['obstacle_margin_m']))
         node.declare_parameter('cloud_processing_period_s', 0.0)
         self.processing_period = float(node.get_parameter('cloud_processing_period_s').value)
         if not math.isfinite(self.processing_period) or not 0 <= self.processing_period <= p['cloud_timeout_s']/2:
