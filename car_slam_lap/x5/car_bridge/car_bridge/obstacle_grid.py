@@ -235,10 +235,13 @@ class GridView:
         """
         if not all(math.isfinite(t) for t in (*pose, v, w)) or v < 0:
             return False
-        if self._rectangle_hits(pose):
-            return False
         if abs(v) < 1e-6:
+            # 原地旋转只看真实车体的扫掠；含余量的矩形在这里会把"能转身"判成不能。
             return self._rotation_free(pose, w, horizon_s)
+        # 逐拍审查用真实车身（+2 cm 复位余量）：10 cm 标定余量交给路径膨胀
+        # planning_blocked 保证，否则车一旦滑进余量带就开不出来（控制器没有倒车）。
+        if self._rectangle_hits(pose, margin=.02):
+            return False
         x, y, yaw = pose
         steps = max(1, int(math.ceil(v * horizon_s / (self.resolution * .4))))
         for t in np.linspace(0, horizon_s, steps + 1)[1:]:
@@ -251,7 +254,7 @@ class GridView:
             # 转心不得进入未观测格；车体矩形不得压到任何真实占据格。
             if not self.free((px, py), require_known=True, planning=True):
                 return False
-            if self._rectangle_hits((px, py, pyaw)):
+            if self._rectangle_hits((px, py, pyaw), margin=.02):
                 return False
         return True
 
