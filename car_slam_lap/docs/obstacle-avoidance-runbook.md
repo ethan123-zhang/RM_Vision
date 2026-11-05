@@ -83,8 +83,10 @@ bash ~/car_slam_lap/x5/scripts/drive_lap_obstacles.sh ~/car_ws/maps/venue2-20261
 软件 215 项单元测试全部通过，X5 构建通过。
 实车 run2、run3 均完成回起点与起始对齐，但发现箱体后 `local_plans=0`、`rejoins=0`，
 最终安全失败停车；这两次结果不能作为绕行通过证据。
-run4 正在使用同一算法、仅增加完整诊断快照重现，结果未定。
-实车整圈绕行、实际接回与最终完成验收仍待通过。
+run4 已结束：同样 `local_plans=0` 失败停车。离线复算已定位到两个死锁——
+自身回波锁存把车自己判进碰撞区、膨胀半径大于箱体左侧实际空隙所需——
+见 [obstacle-avoidance-diagnosis-20261105.md](obstacle-avoidance-diagnosis-20261105.md)。
+实车整圈绕行、实际接回与最终完成验收仍待通过；修复后需重新部署并复测。
 
 ## 回到原流程
 

@@ -1,7 +1,11 @@
 """实时二维观测网格与局部绕行几何（无 ROS 依赖）。
 
 所有坐标属于同一次运行的 odom。只清除被新射线观测到的障碍，离开视野
-不会清除；规划中心不进入未知格。用车身外接圆保证转向时也有相同净空。
+不会清除；规划中心不进入未知格。
+用车身外接圆保证转向时也有相同净空。
+
+膨胀只用外接圆半径本身：早先额外叠的 `√2·res` 与"规划再加一格"把
+1.23 m 的可行通道算成了 1.53 m 的死路（见 diagnosis-20261105）。
 """
 from __future__ import annotations
 
@@ -91,7 +95,10 @@ class LocalGrid:
         return GridView(self, center)
 
     def mark_footprint(self, center, yaw, length, width, front_extent=None):
-        """当前车体内部已由实体车占据，可作为已知起步空间；不扩展至车外盲区。"""
+        """车体内部已由实体车占据：这里不可能真有障碍，陈旧占据格允许清掉。
+
+        只清车身矩形本身，不外扩到车外盲区；车外占据仍按"离开视野不清除"保留。
+        """
         c, s = math.cos(yaw), math.sin(yaw)
         front = length/2 if front_extent is None else front_extent
         rear = length - front
@@ -103,16 +110,18 @@ class LocalGrid:
                 dx = (ix + .5) * self.resolution - center[0]
                 dy = (iy + .5) * self.resolution - center[1]
                 if -rear <= c*dx+s*dy <= front and abs(-s*dx+c*dy) <= width/2:
-                    self.cells.setdefault((ix, iy), False)
+                    self.cells[(ix, iy)] = False
 
 
 class GridView:
     def __init__(self, grid, center):
         self.resolution = grid.resolution
+        self.radius = grid.radius
         self.origin = np.floor((np.asarray(center[:2]) - grid.half_extent) / self.resolution).astype(int)
         self.size = int(math.ceil(2 * grid.half_extent / self.resolution)) + 1
         self.known = np.zeros((self.size, self.size), dtype=bool)
         occupied = np.zeros_like(self.known)
+        self.occupied = occupied
         if grid.cells:
             keys = np.asarray(list(grid.cells), dtype=int) - self.origin
             values = np.fromiter(grid.cells.values(), dtype=bool)
@@ -120,9 +129,15 @@ class GridView:
             keys = keys[valid]
             self.known[keys[:, 0], keys[:, 1]] = True
             occupied[keys[:, 0], keys[:, 1]] = values[valid]
-        self.blocked = occupied.copy()
-        # 多留一格对角量，覆盖点云/栅格的量化和控制离散误差。
-        clearance = grid.radius + math.sqrt(2) * self.resolution
+        # 中心离障碍要留外接圆半径，并多留一格对角量覆盖栅格量化误差。
+        self.blocked = self._dilate(occupied, grid.radius + math.sqrt(2) * self.resolution)
+        # 路径中心再多留一格：折线格心与跟踪圆弧的连续位置之间还差这一格，
+        # 不留会把"能过但贴边"的通道判成不可跟踪。
+        self.planning_blocked = self._dilate(
+            occupied, grid.radius + (1 + math.sqrt(2)) * self.resolution)
+
+    def _dilate(self, occupied, clearance):
+        out = occupied.copy()
         n = int(math.ceil(clearance / self.resolution))
         for dx in range(-n, n + 1):
             for dy in range(-n, n + 1):
@@ -132,16 +147,8 @@ class GridView:
                 sy = slice(max(0, -dy), min(self.size, self.size - dy))
                 tx = slice(max(0, dx), min(self.size, self.size + dx))
                 ty = slice(max(0, dy), min(self.size, self.size + dy))
-                self.blocked[tx, ty] |= occupied[sx, sy]
-        # 规划额外留一格，避免跟踪圆弧和离散采样贴着碰撞判据走。
-        self.planning_blocked = self.blocked.copy()
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                sx = slice(max(0, -dx), min(self.size, self.size - dx))
-                sy = slice(max(0, -dy), min(self.size, self.size - dy))
-                tx = slice(max(0, dx), min(self.size, self.size + dx))
-                ty = slice(max(0, dy), min(self.size, self.size + dy))
-                self.planning_blocked[tx, ty] |= self.blocked[sx, sy]
+                out[tx, ty] |= occupied[sx, sy]
+        return out
 
     def _cell(self, point):
         return tuple(np.floor(np.asarray(point[:2]) / self.resolution).astype(int) - self.origin)
@@ -183,11 +190,25 @@ class GridView:
                 return False
         return True
 
+    def _direct_path(self, start, goal, max_len=.5):
+        """贴身目标（例如回起点最后 0.2 m）不值得走 A*：直接两点路径。
+
+        只要求目标不在碰撞区、整段格都空闲；实际发送的运动仍由 motion_free 逐拍审查。
+        """
+        if math.dist(start[:2], goal[:2]) > max_len:
+            return None
+        if not self.segment_free(start, goal, planning=True):
+            return None
+        return [tuple(start[:2]), tuple(goal[:2])]
+
     def plan(self, start, goal, budget_s=.06, allow_partial=False):
         """8 邻接 A*；禁止穿角、未知格；有时间预算，失败返回 None。"""
+        direct = self._direct_path(start, goal)
+        if direct is not None:
+            return direct
         a, b = self._cell(start), self._cell(goal)
-        # 起点可以落在额外规划缓冲内，但绝不能在碰撞区；允许从该格向外脱离。
-        if not self.free(start, require_known=False) or (not allow_partial and not self.free(goal, planning=True)):
+        # 起点可以落在规划缓冲内，但绝不能在碰撞区；允许从该格向外脱离。
+        if not self.free(start, require_known=False) or (not allow_partial and not self.free(goal, require_known=False)):
             return None
         known = self.known.copy()
         known[a] = True

@@ -187,6 +187,7 @@ class ObstacleAvoidance:
         self.scan_origin = None
         self.scan_step = 0
         self.scan_started = None
+        self.last_heal = float('-inf')
         self._last_cloud_log = 0.
         self._cloud_queue = deque(maxlen=4)
         node.create_subscription(PointCloud2, p['obstacle_cloud_topic'], self._on_cloud, qos_profile_sensor_data)
@@ -263,7 +264,18 @@ class ObstacleAvoidance:
                 return
             # 3D 高回波投影的二维射线可能越过低矮箱体。首版处理静止障碍：
             # 已检测占据格锁存到移出窗口/重启，不用这类射线证明旧箱已消失。
-            self.grid.observe(pts, sensor[:2, 3], center, now, clear_occupied=False, min_points=self.min_points)
+            # 车被陈旧占据格冻住时自愈：连续 2 s 所有运动都被拒绝，且当前帧在
+            # 碰撞半径内没有任何真实回波 → 判定位姿历史留下的陈旧格，按当前
+            # 射线重建。有真实近距回波时绝不重建，盲区障碍不会被当成不存在。
+            near = float(np.min(np.linalg.norm(pts - center, axis=1))) if len(pts) else float('inf')
+            heal = (self.wait_since is not None and now - self.wait_since > 2.
+                    and now - self.last_heal > 5. and near > self.radius + .05)
+            if heal:
+                self.last_heal = now
+                self.n.get_logger().warn(
+                    f'碰撞半径内无回波但运动持续被拒：按当前点云重建局部网格（最近回波 {near:.2f} m）')
+            self.grid.observe(pts, sensor[:2, 3], center, now, clear_occupied=heal,
+                              min_points=self.min_points)
             self.grid.mark_footprint(center, yaw, p['robot_length_m'], p['robot_width_m'], p['robot_front_m'])
             self.view = self.grid.view(center, now)
             self.cloud_frames += 1
@@ -440,11 +452,25 @@ class ObstacleAvoidance:
             self.goal_cursor += 1
         goals = [(self.goal_xy, self.goal_idx)] if self.goal_xy is not None else self._goals()
         self.last_candidates = list(goals)
-        goals = [g for g in goals if self.view.free(g[0], require_known=False, planning=True)]
+        free_goals = [g for g in goals if self.view.free(g[0], require_known=False, planning=True)]
+        # 只被"未知"挡住的候选仍值得走到观测边界再观察；被已知障碍挡住的候选不能这么处理，
+        # 否则车会沿着障碍横向漂移。run4 的 local_plans=0 属于前一类（箱子挡住了路线后段）。
+        occluded = [g for g in goals if self.view.free(g[0], require_known=False, planning=True)
+                    and not self.view.free(g[0], require_known=True, planning=True)]
+        goals = free_goals
+        if not goals and self.scan_step >= 3:
+            # 侧向原地观察已经做完仍没有自由候选：退回未过滤候选，靠 plan(allow_partial)
+            # 先走到观测边界、停车续规划（run4 的 local_plans=0 正是这里直接放弃）。
+            goals = list(self.last_candidates)
         # 本拍只搜索一个候选，限制计算总时间，不挤占原始里程计安全回调。
         if goals:
             target, index = goals[self.goal_cursor % len(goals)]
             path = self.view.plan(self.control_pose[:2], target, budget_s=.035, allow_partial=True)
+            if (path is not None and self.scan_step < 3
+                    and math.dist(path[-1], target) > .10
+                    and math.dist(self.control_pose[:2], path[-1]) < .6):
+                # 只够推进不到 0.6 m 的部分路径不值得放弃侧向观察：先转起来看清楚。
+                path = None
             if path is not None:
                 self.path, self.path_index = path, 0
                 self.goal_xy, self.goal_idx = target, index
