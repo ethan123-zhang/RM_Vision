@@ -1,0 +1,7 @@
+# RMUL2027 3V3 场地（带 0.30 m 围挡）的 Nav2 地图，由 make_nav_map.py 生成
+image: rmul2027_3v3_fenced.pgm
+resolution: 0.025
+origin: [-6.4, -4.4, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196

@@ -57,7 +57,11 @@ tb3_gazebo_nav2/**/*.stl
 tb3_gazebo_nav2/**/build/
 tb3_gazebo_nav2/logs/
 tb3_gazebo_nav2/rm_field/logs/
+# 围栏验收每次重跑都会重写这批探针 SDF，可再生成
+tb3_gazebo_nav2/rm_field/results/probe_sdf/
 # rm_field/shots 只保留证据图，其余调试截图不入库
 tb3_gazebo_nav2/rm_field/shots/*.png
 !tb3_gazebo_nav2/rm_field/shots/height_*.png
 !tb3_gazebo_nav2/rm_field/shots/gui_fenced_view*.png
+!tb3_gazebo_nav2/rm_field/shots/nav_topdown.png
+!tb3_gazebo_nav2/rm_field/shots/nav_map_overlay.png

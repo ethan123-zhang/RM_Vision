@@ -1,0 +1,174 @@
+{
+  "field": {
+    "len": 12.6,
+    "wid": 8.6,
+    "fence_inner_half": [
+      6.25,
+      4.25
+    ],
+    "margin": 0.15
+  },
+  "goals": [
+    [
+      4.0,
+      2.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "params_hint": {
+    "vx_max": 0.5,
+    "params_file": "/opt/ros/jazzy/share/nav2_bringup/params/nav2_params.yaml"
+  },
+  "sim_time_ok": true,
+  "tf_ready": true,
+  "rates": {
+    "scan_hz": 5.0,
+    "odom_hz": 29.0
+  },
+  "nav_results": [
+    {
+      "goal": [
+        4.0,
+        2.0,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 12.2,
+      "sim_s": 11.6,
+      "rtf_mean": 0.95,
+      "path_len_m": 4.335,
+      "mean_speed_mps": 0.374,
+      "cmd_v_max_mps": 0.496,
+      "cmd_w_max_rps": 0.453,
+      "cmd_samples": 243,
+      "tf_samples": 122,
+      "end_xy": [
+        3.875,
+        1.873
+      ],
+      "end_dist_to_goal_m": 0.179,
+      "max_abs_x": 3.875,
+      "max_abs_y": 1.873,
+      "recoveries": 0
+    },
+    {
+      "goal": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 29.15,
+      "sim_s": 26.99,
+      "rtf_mean": 0.926,
+      "path_len_m": 4.824,
+      "mean_speed_mps": 0.179,
+      "cmd_v_max_mps": 0.279,
+      "cmd_w_max_rps": 0.791,
+      "cmd_samples": 583,
+      "tf_samples": 290,
+      "end_xy": [
+        0.037,
+        0.0
+      ],
+      "end_dist_to_goal_m": 0.037,
+      "max_abs_x": 3.875,
+      "max_abs_y": 1.877,
+      "recoveries": 0
+    }
+  ],
+  "whole_run": {
+    "tf_samples": 487,
+    "path_len_m": 9.194,
+    "sim_s": 45.98,
+    "wall_s": 48.86,
+    "mean_speed_mps": 0.2,
+    "global_rtf": 0.941,
+    "max_abs_x": 3.875,
+    "max_abs_y": 1.877,
+    "gz_z_min": 0.01,
+    "gz_z_max": 0.01,
+    "limit": [
+      6.1,
+      4.1
+    ],
+    "amcl_samples": 42,
+    "cmd_samples": 836,
+    "cmd_v_max_mps": 0.496,
+    "cmd_w_max_rps": 0.791
+  },
+  "checks": {
+    "sim_time": {
+      "ok": true
+    },
+    "tf_available": {
+      "ok": true
+    },
+    "topics": {
+      "ok": true,
+      "scan_hz": 5.0,
+      "odom_hz": 29.0
+    },
+    "goals_succeeded": {
+      "ok": true,
+      "per_goal": [
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "wall_s": 12.2
+        },
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "wall_s": 29.15
+        }
+      ]
+    },
+    "inside_field": {
+      "ok": true,
+      "max_abs_x": 3.875,
+      "max_abs_y": 1.877,
+      "limit": [
+        6.1,
+        4.1
+      ]
+    },
+    "no_fall": {
+      "ok": true,
+      "gz_z_min": 0.01
+    },
+    "reached_goal": {
+      "ok": true,
+      "end_dist_to_goal_m": [
+        0.179,
+        0.037
+      ],
+      "tol": 0.3
+    },
+    "speed_sane": {
+      "ok": true,
+      "vx_max_from_params": 0.5,
+      "cmd_v_max_mps": [
+        0.496,
+        0.279
+      ],
+      "mean_speed_mps": [
+        0.374,
+        0.179
+      ],
+      "note": "vx_max 读自 velocity_smoother；TB3 底盘自身不限速"
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}

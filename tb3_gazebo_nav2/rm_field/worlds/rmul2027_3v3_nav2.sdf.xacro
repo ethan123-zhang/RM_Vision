@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<!-- Nav2 用的场地世界（xacro 版）：RMUL2027 3V3 场地 + 0.30 m 围挡 + 传感器子系统。
+     为什么要 xacro：nav2_bringup 的 tb3_simulation_launch.py 会用
+     `xacro -o <tmp> headless:=<bool> <world>` 生成临时 SDF 再交给 `gz sim -r -s`，
+     所以 world 必须是能接受 headless 参数的 xacro（这里 headless 只影响 GUI，不影响仿真）。
+     机器人与桥接由 nav2_minimal_tb3_sim 的 spawn_tb3.launch.py + bridge 配置负责：
+       gz 侧 /scan /odom /cmd_vel /tf /joint_states /imu ←→ ROS 侧同名话题。
+     用法见 nav2_field.sh。 -->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="headless" default="true"/>
+
+  <world name="rmul2027_3v3">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+
+    <scene>
+      <ambient>0.35 0.35 0.35 1</ambient>
+      <background>0.035 0.04 0.055 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.12 0.12 0.12 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.60 0.62 0.68 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.503 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material><ambient>0.08 0.085 0.10 1</ambient><diffuse>0.08 0.085 0.10 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field</uri>
+      <name>rmul2027_3v3_field</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+    <include>
+      <uri>model://rmul2027_3v3_fence</uri>
+      <name>rmul2027_3v3_fence</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <gui fullscreen="false">
+      <camera name="user_camera">
+        <pose>-8.5 7.5 2.6 0 0.226 -0.723</pose>
+      </camera>
+    </gui>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+  </world>
+</sdf>

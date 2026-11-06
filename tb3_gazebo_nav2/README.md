@@ -11,6 +11,12 @@
 > 1:1 图纸世界仍是不带围挡的 `rm_field/worlds/rmul2027_3v3_field.sdf`；观感改造过程见 §10。
 > 起 GUI：`bash rm_field/gui_final.sh`；跑验收：`bash rm_field/start_server.sh` +
 > `python3 rm_field/verify_field.py`；台面高度：`bash rm_field/capture_height.sh`。
+>
+> **场地已接进 Nav2（2026-11-06）**：地图 `rm_field/maps/rmul2027_3v3_fenced.{pgm,yaml}`
+> 按 CAD 几何生成、用顶视渲染独立校核（自由区 12.50 × 8.50 m = 106.25 m²，8/8 判据通过）；
+> `bash rm_field/nav2_field.sh` 拉起后 `python3 rm_field/verify_nav2_field.py` 跑两点往返闭环
+> （两个目标均 SUCCEEDED、0 次恢复、全程 z 恒定 0.010、不越界）。围挡碰撞也已补测
+> （0.7 m/s 撞墙停在 6.1819 m，误差 0.4 mm）。细节见 `rm_field/README.md` §11。
 
 **日期**：2026-11-01　**机器**：Windows `10.0.22631.4751` + WSL `3.0.1.0`（WSLg 1.0.79，内核 `6.18.40.1-microsoft-standard-WSL2`）
 **主机 GPU**：NVIDIA GeForce RTX 4060 Laptop（驱动 616.56，24 vCPU / WSL 内 7.6 GiB 内存）
@@ -30,6 +36,7 @@
 | 仿真实时因子 | **RTF ≈ 0.90**（软件渲染下基本实时） |
 | 关键话题 | `/scan` 4.0 Hz、`/odom` 25.5 Hz、`/tf` 42.7 Hz |
 | Nav2 端到端 | ✅ `/navigate_to_pose` 导航目标 **SUCCEEDED**（error_code 0，无恢复动作） |
+| 场地 → Nav2 | ✅ **RMUL 2027 3V3 场地接进 Nav2**（2026-11-06）：自建地图 12.50×8.50 m 自由区、512×352 @0.025 m/px；两点往返均 SUCCEEDED、0 恢复、RTF 0.94、`/scan` 4.3–5.0 Hz；围挡 0.7 m/s 撞击不越界（停位误差 0.4 mm） |
 | 现场 | 验收时在跑：Gazebo Sim 1000×845、RViz 1610×893 两个窗口都开在 WSLg 里。**会话结束前（17:50）已正常关闭**，用 `bringup.sh` 一条命令可原样重启 |
 
 ---

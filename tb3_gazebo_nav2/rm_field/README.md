@@ -19,6 +19,9 @@
 | 机器人比例 | 正俯视图中机器人 13×14 px → **0.278 × 0.299 m**（TB3 底盘 0.281 × 0.306 m） | `analyze_topdown.py` |
 | 碰撞体方案 | box 与 CAD 网格两种碰撞体结果一致；box 省内存（148 vs 215 MB），**默认用 box** | `results/report_field_test_mesh.json` |
 | 台面高度（可测可见） | 正立面亮带 **1734 × 69 px** → 墙高 **501.3 mm**（焦距换算）/ **494.1 mm**（12.6 m 宽度做标尺），宽高比 25.50 vs 图纸 25.05；墙面近景墙高占画面 **62.6%** | `results/report_height.json`、§9 |
+| 围栏验收 | 围挡顶落体探针 **4/4 落在 z=0.300**（偏差 0）、围挡外侧 2 个探针落到 **-0.503**；TB3 以 **0.7 m/s** 撞东/北围挡，停在 **x=6.1819 / y=4.1820**（离内侧面 6.8 cm = 车头半长 + 围挡厚），全程 **z 恒定 0.010**、`crossed_inner=false`、末 3 s 漂移 **0** | `results/report_fence.json`、§11.1 |
+| Nav2 地图 | 顶视渲染 ↔ 几何生成地图互相校核：渲染受光台面 **12.500 × 8.500 m**、围挡中心线 **12.549 × 8.547**（图纸 12.550/8.550）、红顶沿环心偏差 **4.9 mm**；地图自由区 **106.25 m² = 12.50 × 8.50**，8/8 判据通过 | `results/report_nav_map.json`、§11.2 |
+| Nav2 导航 | 场地世界 + 自建地图闭环：到 (4,2) 与回 (0,0) 两个目标均 **SUCCEEDED**（`error_code 0`，恢复 0 次），/scan **4.3–5.0 Hz**、/odom **27–29 Hz**、RTF **0.94**；全程 `cmd_vel` 峰值 **0.496 m/s**（参数 vx_max 0.5）、机器人 z 恒定 **0.010**、8/8 判据通过 | `results/report_nav2_field.json`、§11.3 |
 
 > **注意**：这张 STEP 图纸里**只有场地地板/平台本身**（台面 + 0.503 m 高的下部结构），
 > **没有围挡、护栏、坡道、立柱等高于台面的物体**。所以"撞墙/绕障"这类测试在图纸范围内
@@ -54,7 +57,8 @@ models/rmul2027_3v3_field/meshes/field_zup.stl   (12.6 × 8.6 × 0.503 m，台�
 > 克隆后先跑一次重建（需要 WSL 里装 gmsh）：
 > `python3 step2mesh.py && FIELD_ROOT=$PWD python3 make_field_assets.py`，
 > 产出 `build/field.stl` 与 `models/rmul2027_3v3_field/meshes/field_zup.stl`。
-> 只保留证据图入库：`shots/height_*.png`、`shots/gui_fenced_view*.png`。
+> 只保留证据图入库：`shots/height_*.png`、`shots/gui_fenced_view*.png`、
+> `shots/nav_topdown.png`、`shots/nav_map_overlay.png`。
 
 | 文件 | 作用 |
 |---|---|
@@ -81,6 +85,13 @@ models/rmul2027_3v3_field/meshes/field_zup.stl   (12.6 × 8.6 × 0.503 m，台�
 | `compare_perf.sh` | box vs 网格碰撞的启动时间/RTF/CPU/内存对比 |
 | `gui_cam.py` / `make_gui_config.sh` | GUI 相机位姿（`/gui/camera/pose` 回读、`gui.config` 覆盖） |
 | `show_gazebo.ps1` / `list_windows.ps1` / `grab.ps1` | Windows 侧抓 WSLg 窗口（焦点会还原） |
+| `verify_fence.py` / `run_fence_test.sh` | **围栏验收**：围挡顶落体探针 + TB3 0.7 m/s 撞围挡不越界（§11.1） |
+| `worlds/nav_map_capture.sdf` | 顶视取证世界：围挡场地 + 20 m 正俯视相机（1600×1100） |
+| `capture_nav_map.sh` / `make_nav_map.py` | 出顶视图 → 按几何生成 Nav2 地图 → 渲染↔地图互相校核（§11.2） |
+| `maps/rmul2027_3v3_fenced.{pgm,yaml}` | **Nav2 地图**：512×352 @ 0.025 m/px，自由区 = 围挡内侧面以内 12.50×8.50 m |
+| `worlds/rmul2027_3v3_nav2.sdf.xacro` | Nav2 用世界（围挡场地 + Sensors/IMU 系统，接受 `headless` 参数） |
+| `nav2_field.sh` / `stop_nav2_field.sh` | 起/停 Nav2 + 场地；`--gui` 带 Gazebo GUI + RViz |
+| `verify_nav2_field.py` / `run_nav2_verify.sh` | **Nav2 导航验收**：两个目标闭环 + 不出界/不掉落/速度合规（§11.3） |
 
 ## 4. 怎么跑
 
@@ -202,9 +213,9 @@ bash gui_final.sh                                             # 默认：带围�
 WORLD=$PWD/worlds/rmul2027_3v3_field.sdf bash gui_final.sh     # 1:1 无围挡世界
 ```
 
-**还没做**（原 TODO 的三条验收）：`verify_field.py` 的边缘探针判据要改成"被围栏挡住"，
-以及"机器人 0.7 m/s 撞边不越界"的测试项 —— 这两条下一轮补（现在围栏只有 visual+collision，
-没有专门测过挡得住）。
+**验收**（2026-11-06 已补，见 §11.1）：`verify_fence.py` —— 围挡顶 4 个落体探针全部停在
+z=0.300，围挡外侧 2 个探针落到 −0.503；TB3 以 0.7 m/s 连续顶东/北围挡 16 s，停在
+x=6.1819 / y=4.1820（离内侧面 6.8 cm，正好是车头半长 + 围挡厚），不越界、不掉落、末段无漂移。
 
 ### 8.3 TODO 2：把"平台高度"讲清楚（GUI 视角 + 取证图）—— ✅ 2026-11-01 已完成
 
@@ -212,10 +223,23 @@ WORLD=$PWD/worlds/rmul2027_3v3_field.sdf bash gui_final.sh     # 1:1 无围挡�
 补了正立面/墙面近景/低机位斜视三台取证相机，并把"墙高 = 0.503 m"做成可复跑的像素验收
 （`verify_height.py`，已全部通过）。
 
-### 8.4 TODO 3（可选）：接 Nav2
+### 8.4 TODO 3（可选）：接 Nav2 —— ✅ 2026-11-06 已完成
 
-正俯视渲染图 → 二值化 → `map.pgm/map.yaml`；围栏必须在代价地图里体现（否则规划器会把
-机器人规划到场地外）。
+做法与数字见 **§11.2 / §11.3**。要点（有一处和原计划不同）：
+
+- **地图不是"渲染图二值化"出来的**，而是**按 CAD 几何直接生成**（`make_nav_map.py`）：
+  自由区 = 围挡内侧面以内（|x|<6.25、|y|<4.25），界外一律 0（障碍）→ 规划器永远不会把车
+  规划到台子外。顶视渲染图只用来做**独立校核**（渲染实测受光台面 12.500×8.500 m，
+  与地图自由区一致到 0.1%）。
+- 为什么不用 1:1（无围挡）场地跑 Nav2：0.503 m 的台沿在 lidar 平面（z≈0.11）**之下**，
+  AMCL 扫不到任何特征，只能纯里程计；加了 0.30 m 围挡后，AMCL 在 ±6.25/±4.25 有真实墙面。
+
+```bash
+bash nav2_field.sh              # 起 Nav2（headless），自动发初始位姿 (0,0)
+python3 verify_nav2_field.py    # 两个导航目标闭环验收 → results/report_nav2_field.json
+bash stop_nav2_field.sh
+bash nav2_field.sh --gui        # 想亲眼看：Gazebo GUI + RViz
+```
 
 ### 8.5 复跑命令
 
@@ -226,6 +250,9 @@ bash start_server.sh && FIELD_ROOT=$PWD python3 verify_field.py
 FIELD_ROOT=$PWD python3 map_surface.py models/rmul2027_3v3_field/meshes/field_zup.stl 0.05
 bash capture_height.sh                              # 台面高度三张取证图 + 像素验收
 python3 annotate_height.py                          # 生成带标注的证据图
+bash run_fence_test.sh                              # 围栏验收（探针 + 0.7 m/s 撞墙）
+bash capture_nav_map.sh                             # 顶视图 → 地图 pgm/yaml → 互相校核
+bash nav2_field.sh && python3 verify_nav2_field.py && bash stop_nav2_field.sh   # Nav2 闭环
 ```
 
 ---
@@ -429,6 +456,99 @@ bash capture_height.sh                                # 0.503 m 的既有验收�
 
 ### 10.8 还没验证的
 
-1. **围栏碰撞没测**：现在只有 visual + collision 定义；"机器人 0.7 m/s 撞边不越界"要补测。
+1. ~~**围栏碰撞没测**~~ → ✅ 2026-11-06 已补测，见 §11.1（探针落在 z=0.300、0.7 m/s 撞墙不越界）。
 2. 围栏高度 0.30 m 是"TB3 爬不上去"的工程估计，赛规若有明确数值需按赛规改。
 3. 1:1 图纸世界（无围栏）仍是验收基线；带围挡世界只用于交互与观感。
+
+---
+
+## 11. 第三轮：围挡验收 → Nav2 地图 → Nav2 闭环（2026-11-06）
+
+这一轮把 §8.2 欠的两条验收补齐，并把场地正式接进 Nav2。三块各自有独立的验收脚本，
+判据全是读数（探针 z、坐标、动作状态、话题频率），没有"看着像"。
+
+### 11.1 围挡挡不挡得住（`verify_fence.py` → `results/report_fence.json`）
+
+| 测试 | 做法 | 实测 | 判据 |
+|---|---|---|---|
+| A 围挡顶是不是实体 | 4 个探针从 z=0.70 落在东/西/南/北围挡**中心线**上 | 4/4 停在 **z = 0.300**，最大偏差 **0.0** | 落体停在围挡顶面 (= 0.30) |
+| B 围挡外面是不是空的 | 2 个探针放在 (6.40,0)/(0,4.40)，即围挡外侧 | 2/2 落到 **z = −0.503** | 直接落到地面（没有隐形平台） |
+| C-x 撞东围挡 | `/cmd_vel` 给 0.7 m/s 连续 16 s，正面顶墙 | 停在 **x = 6.1819**（理论 6.1815，误差 **0.4 mm**），`crossed_inner = false`，**z 恒定 0.010**，末 3 s 漂移 **0.0** | 不超过内侧面 6.25、不掉落、停住后无抖动 |
+| C-y 撞北围挡 | 同上，朝 +y | 停在 **y = 4.1820**（理论 4.1815，误差 **0.5 mm**），其余同上 | 同上 |
+
+**为什么停在 6.1815 而不是 6.25**：TB3 碰撞盒 0.265×0.265 m，模型里盒心比 base 原点
+后移 0.064 m，所以车头前表面在中心前 **0.0685 m**；围挡内侧面 6.250，减去 0.0685 = **6.1815**。
+实测 6.1819 → 误差 0.4 mm，说明"车头贴住围挡内侧面"这件事是能量出来的，不是目测。
+
+**踩过的坑**：第一版把"最后 3 s 位移"当抖动判据，得到 0.63 m（≡ 12.6 m/s，物理不可能）——
+是 Gazebo pose 采样的一次性瞬跳，不是车在抖。改成先按步长 >0.15 m 剔除跳变再算漂移，
+重跑 `jumps = 0`、漂移 0.0，连续两次一致。
+
+```bash
+bash run_fence_test.sh      # 起服务器 → 探针 + 撞墙 → 停服务器，~70 s
+```
+
+### 11.2 顶视渲染 → Nav2 地图（`capture_nav_map.sh` + `make_nav_map.py`）
+
+**关键决定：地图按几何生成，渲染图只做独立校核。**
+
+- 地图（`maps/rmul2027_3v3_fenced.pgm/yaml`）：512×352 px @ **0.025 m/px**，origin **(−6.40, −4.40)**，
+  覆盖 12.80×8.80 m；自由区 = **|x| < 6.25 且 |y| < 4.25**（围挡内侧面以内），其余全 0。
+  0.025 m/px 是特意选的：12.5/0.025 = 500、8.5/0.025 = 340 正好整数像素，自由区面积可精确断言。
+- 为什么不做"渲染图二值化"：渲染有阴影（东/南侧台面边缘一条 0.15 m 暗带）、透视（围挡红顶沿
+  在 z=+0.33，投影比台面边界外扩 ~0.15 m）、抗锯齿，二值化后边界会带 1~3 px 系统偏差；
+  而 CAD 几何给出的内侧面位置是定义值，不该被渲染噪声污染。
+- 渲染图的作用变成**独立交叉校验**（`nav_map_capture.sdf`，20 m 正俯视 1600×1100，f=2000 px）：
+
+| 校核项 | 实测 | 图纸/几何 | 偏差 |
+|---|---|---|---|
+| 受光台面 bbox（= 围挡内侧面以内） | **12.500 × 8.500 m**（1250×850 px） | 12.500 × 8.500 | **0.0** |
+| 围挡红顶沿中心线间距（z=+0.33 透视改正） | **12.5492 × 8.5465 m** | 12.550 / 8.550 | 0.8 / 3.5 mm |
+| 红顶沿环中心 | (−0.0049, +0.0049) m | (0, 0) | 4.9 mm |
+| 红顶沿宽度 | 0.0787 / 0.0688 m | 0.070 | 8.7 / 1.2 mm |
+| 地图自由区面积 | **106.25 m²** | 12.50 × 8.50 = 106.25 | **0.0** |
+| 地图自由区 bbox | **12.500 × 8.500 m** | 12.500 × 8.500 | **0.0** |
+
+8 条判据全过（`results/report_nav_map.json` → `summary.ok = true`）。叠加图
+`shots/nav_map_overlay.png`：绿框 = 地图自由区边界，青框 = 图纸 12.6×8.6 场地边界。
+
+**为什么 Nav2 必须用带围挡的场地，不能用 1:1 基线世界**：0.503 m 的台沿在 lidar 扫描平面
+（z≈0.11）**以下**，1:1 世界对 AMCL 来说是一片空场，只有里程计；0.30 m 围挡正好横在扫描平面
+上，±6.25/±4.25 有真实墙面可用于定位。
+
+### 11.3 Nav2 闭环（`nav2_field.sh` + `verify_nav2_field.py` → `results/report_nav2_field.json`）
+
+链路：`nav2_bringup/tb3_simulation_launch.py`（`world:=` 我们的 xacro、`map:=` 我们的地图、
+`params_file:=` nav2 默认参数、`headless:=True`）+ `nav2_minimal_tb3_sim` 的机器人/桥接。
+起点 (0,0)，AMCL 初始位姿发三次。
+
+| 判据 | 实测 |
+|---|---|
+| 仿真链路 | /scan **4.3–5.0 Hz**、/odom **27–29 Hz**、仿真时钟与 TF `map→base_footprint` 可用、RTF **0.94** |
+| 目标 1 (4.0, 2.0) | **SUCCEEDED**，`error_code 0`，恢复 **0** 次，11.6 s 仿真时长，路程 4.335 m，平均 0.374 m/s，终点距目标 **0.179 m** |
+| 目标 2 (0.0, 0.0) | **SUCCEEDED**，`error_code 0`，恢复 **0** 次，27.0 s，路程 4.824 m，平均 0.179 m/s，终点距目标 **0.037 m** |
+| 不出界 | 全程 max\|x\| = **3.875 m**、max\|y\| = **1.877 m**（围挡内侧面 6.25/4.25，留 0.15 m 车身余量后限值 6.10/4.10） |
+| 不掉落 | 全程机器人 z = **0.010 ~ 0.010**（Gazebo 实测，未掉下 0.503 m 台子） |
+| 速度合规 | `cmd_vel` 峰值 **0.496 m/s** ≤ 参数 `vx_max 0.5`；角速度峰值 0.791 rad/s |
+
+**踩过的坑（两条，都是判据本身错了，不是系统错）**：
+
+1. 一开始用 `/amcl_pose` 算终点和时长，得到"11.4 s 走完 4.47 m"→ 平均 0.39 m/s。原因是 AMCL
+   只在"移动 >0.25 m 或转 >0.2 rad"时才发布，用它算终点会滞后半米、算时长会丢时间。
+   改成直接采样 TF `map→base_footprint`（导航栈真正在用的位姿），并区分 wall/sim 时间。
+2. 判速度时凭印象写了"TB3 上限 0.26 m/s"，实测 0.38 m/s 直接判失败。查 `nav2_params.yaml`
+   发现 `vx_max: 0.5`（TB3 底盘本身不限速，快慢完全由这份参数决定）。改成**从参数文件读
+   `vx_max`** 再用 `/cmd_vel` 实测峰值对比 → 0.496 vs 0.5，合规。
+
+```bash
+bash nav2_field.sh                  # ~40 s 拉起，打印 7 个节点生命周期状态
+python3 verify_nav2_field.py        # ~60 s，两个目标闭环，落 report_nav2_field.json
+bash stop_nav2_field.sh
+bash nav2_field.sh --gui            # Gazebo GUI + RViz（窗口已确认可开：Gazebo Sim / RViz）
+```
+
+**还没验证的**：
+
+1. 只测了无障碍的"两点往返"；障碍物绕行、动态避障、多目标巡逻没测（场地现在是空矩形）。
+2. 参数用 nav2 默认值，没为 12.6×8.6 场地调过（inflation 0.55 m 会吃掉一部分通道宽度）。
+3. 围挡高度 0.30 m 与赛规一致性未核对（见 §10.8 第 2 条）。

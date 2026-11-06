@@ -1,0 +1,196 @@
+{
+  "render": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/shots/nav_topdown.png",
+  "camera": {
+    "width": 1600,
+    "height": 1100,
+    "hfov": 0.761,
+    "focal_px": 2000.04,
+    "cam_z": 20.0,
+    "m_per_px_at_z0": 0.01
+  },
+  "thresholds": {
+    "otsu": 152,
+    "p99_lum": 215.19,
+    "lit_ratio": 0.78,
+    "lit": 167.85
+  },
+  "bbox_px": {
+    "lit_top": [
+      175,
+      1424,
+      125,
+      974
+    ]
+  },
+  "rail_measure": {
+    "runs_row": [
+      [
+        158,
+        165
+      ],
+      [
+        1434,
+        1441
+      ]
+    ],
+    "runs_col": [
+      [
+        112,
+        118
+      ],
+      [
+        981,
+        987
+      ]
+    ],
+    "center_x_m": [
+      -6.2795,
+      6.2697
+    ],
+    "center_y_m": [
+      4.2781,
+      -4.2683
+    ],
+    "sep_x_m": 12.5492,
+    "sep_y_m": 8.5465,
+    "ring_center_m": [
+      -0.0049,
+      0.0049
+    ],
+    "width_x_m": 0.0787,
+    "width_y_m": 0.0688
+  },
+  "map": {
+    "pgm": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_fenced.pgm",
+    "yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_fenced.yaml",
+    "free_px": 170000,
+    "occupied_px": 10224
+  },
+  "checks": {
+    "render_lit_top_m": {
+      "_what": "受光台面 bbox（边界 = 围挡内侧面）→ 应 12.50 x 8.50 m",
+      "measured": [
+        12.5,
+        8.5
+      ],
+      "expected": [
+        12.5,
+        8.5
+      ],
+      "dev": [
+        0.0,
+        0.0
+      ],
+      "tol": 0.03,
+      "ok": true
+    },
+    "render_rail_sep_m": {
+      "_what": "红顶沿中心线间距（z=+0.33 透视改正）→ 应 2*6.275 / 2*4.275",
+      "measured": [
+        12.5492,
+        8.5465
+      ],
+      "expected": [
+        12.55,
+        8.55
+      ],
+      "dev": [
+        0.001,
+        0.003
+      ],
+      "tol": 0.03,
+      "ok": true
+    },
+    "render_rail_ring_center_m": {
+      "_what": "红顶沿环的中心 → 应 (0,0)（场地与相机都对中）",
+      "measured": [
+        -0.0049,
+        0.0049
+      ],
+      "expected": [
+        0.0,
+        0.0
+      ],
+      "tol": 0.02,
+      "ok": true
+    },
+    "render_rail_width_m": {
+      "_what": "红顶沿在画面里的宽度 → 应 0.070 m（模型 12.66/8.6 长的顶沿，宽 7 cm）",
+      "measured": [
+        0.0787,
+        0.0688
+      ],
+      "expected": [
+        0.07,
+        0.07
+      ],
+      "tol": 0.02,
+      "ok": true
+    },
+    "map_free_area_m2": {
+      "_what": "地图自由区像素数换算成面积（= 围挡内侧面以内）",
+      "measured": 106.25,
+      "expected": 106.25,
+      "dev": 0.0,
+      "tol": 0.05,
+      "ok": true
+    },
+    "map_free_rect_m": {
+      "_what": "地图自由区 bbox（像素离散化后）→ 应 12.50 x 8.50 m",
+      "measured": [
+        12.5,
+        8.5
+      ],
+      "expected": [
+        12.5,
+        8.5
+      ],
+      "dev": [
+        0.0,
+        0.0
+      ],
+      "tol": 0.025,
+      "ok": true
+    },
+    "map_meta": {
+      "_what": "地图尺寸/origin 与配置一致（12.80 x 8.80 m，origin -6.40/-4.40）",
+      "image": "rmul2027_3v3_fenced.pgm",
+      "width_px": 512,
+      "height_px": 352,
+      "resolution": 0.025,
+      "origin": [
+        -6.4,
+        -4.4
+      ],
+      "extent_m": [
+        12.8,
+        8.8
+      ],
+      "expected_extent_m": [
+        12.8,
+        8.8
+      ],
+      "ok": true
+    },
+    "map_vs_render_boundary": {
+      "_what": "地图自由区边界 ↔ 渲染实测受光台面边界（同一件东西的两条独立证据）",
+      "measured": [
+        12.5,
+        8.5
+      ],
+      "map_inner_half": [
+        6.249999999999999,
+        4.249999999999999
+      ],
+      "render_rail_inner_half": [
+        6.2396,
+        4.2382
+      ],
+      "tol": 0.03,
+      "ok": true
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}
