@@ -87,8 +87,11 @@
 
 **仓库（本机 `E:\RM\car_slam_lap`）**
 
-- 分支 `codex/car-local-obstacle-avoidance`，本次提交包含：力臂/限速/倒车三拍代码与测试、
-  三份演示文档、重置脚本、录制器、视频合成脚本、`.gitignore` 忽略大媒体。
+- 分支 `codex/car-local-obstacle-avoidance`，已推送 GitHub：
+  提交 `4f813e9`（94 个文件，+14886/−33）→ 远端同名分支；
+  PR 入口：https://github.com/ethan123-zhang/RM_Vision/pull/new/codex/car-local-obstacle-avoidance
+- 本次提交包含：力臂/限速/倒车三拍代码与测试、三份演示文档、重置脚本、录制器、
+  视频合成脚本、`PROGRESS.md`、本交接文档、`.gitignore` 忽略大媒体。
 - 演示素材：`demo/venue3-20261106b/`（地图 png、路线 yaml、日志）入库；
   **mp4 / bin / pcd / 帧序列按 `.gitignore` 不入库**（单文件最大 239 MB，GitHub 拒收），
   本机 `E:\RM\car_slam_lap\demo\` 与板端 `~/car_ws/maps/` 留有原件。
