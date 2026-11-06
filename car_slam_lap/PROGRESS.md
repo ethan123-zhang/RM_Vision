@@ -12,7 +12,8 @@ Odin1 小车「建图→示教→自主巡线」演示的**第一轮全链路已
 **重定位之后的示教与自主尚未做**；`x5/scripts/reset_run.sh` 未在板端验证。
 
 离开前交付：三份现场文档（[指令单](docs/demo-command-sheet.md)、[明天全流程](docs/demo-day-fresh.md)、
-[断了怎么重来](docs/reset-and-restart.md)）与完整交接（[handoff](docs/handoffs/2026-11-06-odin1-demo-closeout.md)）。
+[断了怎么重来](docs/reset-and-restart.md)）、[操作知识速查](docs/knowledge/odin1-demo-operations.md)
+与完整进度总结（[handoff](docs/handoffs/2026-11-06-odin1-demo-closeout.md)）。
 
 **下一步（按序）**
 
