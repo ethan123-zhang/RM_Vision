@@ -11,3 +11,12 @@ firmware/C8T6_DT7_car/MDK-ARM/startup_stm32f103xb.lst
 
 # VSCode / Keil Assistant 的本地状态与编译日志
 .vscode/
+
+# 演示素材：视频/原始地图/点云/帧序列体积大，只在本机与板端留档，不入库。
+# 需要给观众看的缩略图与小图（*.png）、路线与日志（*.yaml/*.json/*.log/*.txt）仍然入库。
+demo/**/*.mp4
+demo/**/*.bin
+demo/**/*.pcd
+demo/**/frames/
+demo/**/odin_map/
+demo/venue3-20261106/

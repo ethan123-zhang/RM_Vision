@@ -25,6 +25,7 @@ stop_pat() {
 
 echo "== 停上层节点"
 stop_pat "[t]eleop_keys" teleop_keys
+stop_pat "[r]ecord_odin_rgb" record_odin_rgb
 stop_pat "[r]ecord_path" record_path
 stop_pat "[m]ap_from_cloud" map_from_cloud
 stop_pat "[b]ridge_node" car_bridge

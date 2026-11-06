@@ -894,6 +894,46 @@ class FollowPathSafetyTest(unittest.TestCase):
                          follow.START_RETURN_ROUNDTRIP_MAX + 1)
         self._assert_tail_zero(node)
 
+    def test_return_reverse_maneuver_backs_up_and_converges(self) -> None:
+        # 倒车三拍：方位差大时不允许原地搓半圈，必须出现倒退指令（v < 0），
+        # 且倒车靠近后仍要满足起点位置判据、收敛进 run。
+        node, entered_run, sensor, theta, trace = self._simulate_start_flow(
+            r=0.0, along=-0.45, yaw_deg=140.0, seconds_budget=90.0,
+            return_reverse=True, return_w_max=0.6,
+            return_reverse_enter_rad=1.05, return_reverse_v_max=0.08)
+        self.assertTrue(
+            entered_run,
+            f"没进 run，状态 {node._state}，原因 {node._reason} | "
+            + "\n".join(trace[-25:]),
+        )
+        linear = [v for v, _ in self._commands(node)]
+        self.assertTrue(any(v < 0.0 for v in linear),
+                        "倒车模式没发出倒退指令")
+        self.assertLessEqual(math.hypot(sensor[0], sensor[1]),
+                             node.start_pos_tol_m + 1e-6)
+        self.assertLessEqual(abs(follow.wrap_pi(-theta)),
+                             node.start_yaw_tol_rad + 1e-6)
+
+    def test_return_reverse_off_never_reverses(self) -> None:
+        # 默认关闭时行为不变：全程只前进或原地转。
+        node, entered_run, _, _, trace = self._simulate_start_flow(
+            r=0.0, along=-0.45, yaw_deg=140.0, return_reverse=False)
+        self.assertTrue(entered_run, "\n".join(trace[-25:]))
+        for linear, _ in self._commands(node):
+            self.assertGreaterEqual(linear, 0.0)
+
+    def test_return_w_accel_limits_angular_step(self) -> None:
+        # 角速度变化率限幅：相邻控制拍的角速度变化不得超过 accel*dt。
+        node = self._node_default_start(LINE, return_w_accel=0.5, return_w_max=0.6)
+        stamp = 1.0
+        for _ in range(20):
+            self._tick_pose(node, stamp, (0.4, 0.0, 3.0))
+            stamp += 0.1
+        ws = [w for _, w in self._commands(node)]
+        self.assertGreater(len(ws), 3)
+        for prev, cur in zip(ws, ws[1:]):
+            self.assertLessEqual(abs(cur - prev), 0.5 * 0.1 + 1e-6)
+
     def _simulate_start_flow(self, r: float, along: float, yaw_deg: float,
                              seconds_budget: float = 90.0, **node_overrides):
         """用"转心 + 传感器偏置"的差速车运动学跑一遍起始流程。

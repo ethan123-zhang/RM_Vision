@@ -193,6 +193,14 @@ class FollowPath(Node):
         self.declare_parameter("return_v_max", 0.08)
         self.declare_parameter("return_w_max", 0.4)
         self.declare_parameter("return_timeout_s", 30.0)
+        # 回起点倒车策略（三拍）：方位差大时不在窄处原地搓 180°——
+        # ① 原地转到车尾对准目标 ② 直线倒车靠近 ③ 再转回起始朝向。
+        # 默认 False：保持旧的“只向前”行为。
+        self.declare_parameter("return_reverse", False)
+        self.declare_parameter("return_reverse_enter_rad", 1.05)
+        self.declare_parameter("return_reverse_v_max", 0.08)
+        # 起始阶段角速度变化率上限（rad/s^2）；0 = 不限（旧行为）。
+        self.declare_parameter("return_w_accel", 0.0)
         # 力臂补偿：base_frame（位姿来源）相对转心的位置，车体系，单位 m。
         # 约定 传感器位姿 = 转心 + R(yaw)·(base_offset_x, base_offset_y)。
         # 默认 0 = 不补偿（判据直接用传感器点，与任务05 B 行为一致）。
@@ -214,10 +222,33 @@ class FollowPath(Node):
             "return_w_max", self.get_parameter("return_w_max").value, allow_zero=True)
         self.return_timeout_s = _finite_param(
             "return_timeout_s", self.get_parameter("return_timeout_s").value)
+        self.return_reverse = bool(self.get_parameter("return_reverse").value)
+        self.return_reverse_enter_rad = _finite_param(
+            "return_reverse_enter_rad",
+            self.get_parameter("return_reverse_enter_rad").value)
+        self.return_reverse_v_max = _finite_param(
+            "return_reverse_v_max",
+            self.get_parameter("return_reverse_v_max").value, allow_zero=True)
+        self.return_w_accel = _finite_param(
+            "return_w_accel", self.get_parameter("return_w_accel").value,
+            allow_zero=True)
+        self._rev_phase = ""
+        self._w_cmd_prev = 0.0
+        self._ctrl_t_prev = None
         self.base_offset_x = _finite_signed_param(
             "base_offset_x", self.get_parameter("base_offset_x").value)
         self.base_offset_y = _finite_signed_param(
             "base_offset_y", self.get_parameter("base_offset_y").value)
+        if self.return_to_start:
+            if self.return_reverse:
+                self.get_logger().info(
+                    f"回起点策略：倒车三拍（方位差 > "
+                    f"{self.return_reverse_enter_rad:.2f} rad 时先转车尾再倒车）"
+                    f"，倒车速度 {self.return_reverse_v_max:.2f} m/s，"
+                    f"角速度变化率限幅 {self.return_w_accel:.2f} rad/s^2"
+                )
+            else:
+                self.get_logger().info("回起点策略：只向前（不倒车）")
         if not self.return_to_start:
             self.get_logger().warn(
                 "return_to_start=False：跳过自动回起点与起始对齐，仅供已人工对齐的"
@@ -454,6 +485,22 @@ class FollowPath(Node):
                 f"忽略原始里程计：{self._odom_guard.last_reject}"
                 f"（累计 {self._odom_rejects} 次）"
             )
+
+    def _slew_w(self, now: float, w_target: float) -> float:
+        """角速度变化率限幅（return_w_accel），0 表示不限。
+
+        原地起步/停转时指令阶跃会让小车“弹一下”，按固定变化率爬到
+        目标值，转速看起来才稳。
+        """
+        dt = 0.0 if self._ctrl_t_prev is None else now - self._ctrl_t_prev
+        self._ctrl_t_prev = now
+        if self.return_w_accel <= 0.0:
+            self._w_cmd_prev = w_target
+            return w_target
+        step = self.return_w_accel * min(max(dt, 0.0), 0.2)
+        w = self._w_cmd_prev + max(-step, min(step, w_target - self._w_cmd_prev))
+        self._w_cmd_prev = w
+        return w
 
     # ---------------------------------------------------------- 控制
     def _publish(self, v: float, w: float) -> None:
@@ -796,14 +843,51 @@ class FollowPath(Node):
                 # 进入对齐前先发零，别把上一状态的残余速度带进去。
                 self._publish(0.0, 0.0)
                 self._state = "align_start"
+                self._rev_phase = ""
                 self.get_logger().info(
                     f"已到起点位置（误差 {dist:.2f} m），开始对齐起始朝向"
                 )
                 return
 
-            heading_err = wrap_pi(math.atan2(dy, dx) - yaw)
+            bearing = math.atan2(dy, dx)
+            heading_err = wrap_pi(bearing - yaw)
+            if (self.return_reverse
+                    and abs(heading_err) > self.return_reverse_enter_rad):
+                # 倒车三拍：先把车尾转到对准起点，再直线倒车靠近，
+                # 最后在 align_start 里转回起始朝向。窄处原地搓半圈又
+                # 慢又抽，倒车把大角度转身拆成三段。
+                away = wrap_pi(bearing + math.pi)
+                away_err = wrap_pi(away - yaw)
+                if abs(away_err) > START_HEADING_TOL_RAD:
+                    phase = "turn_away"
+                    v = 0.0
+                    w = max(-self.return_w_max,
+                            min(self.return_w_max, 1.5 * away_err))
+                else:
+                    phase = "backup"
+                    scale = max(0.2, min(
+                        1.0, dist / max(self.start_max_offset_m, 1e-9)))
+                    v = -self.return_reverse_v_max * scale
+                    w_cap = min(self.return_w_max,
+                                max(0.15, abs(v) / RETURN_MIN_RADIUS_M))
+                    w = max(-w_cap, min(w_cap, 1.5 * away_err))
+                if phase != self._rev_phase:
+                    self._rev_phase = phase
+                    if phase == "turn_away":
+                        self.get_logger().info(
+                            f"回起点改用倒车：先把车尾转向起点"
+                            f"（需转 {abs(away_err):.2f} rad）"
+                        )
+                    else:
+                        self.get_logger().info(
+                            f"车尾已对准起点（误差 {abs(away_err):.2f} rad），"
+                            f"倒车靠近（剩余 {dist:.2f} m）"
+                        )
+                self._publish(v, self._slew_w(now, w))
+                return
+
             if abs(heading_err) > START_HEADING_TOL_RAD:
-                # 方位差大就先原地转，绝不倒车。
+                # 方位差大就先原地转；未开启 return_reverse 时仍不倒车。
                 v = 0.0
                 w = max(-self.return_w_max, min(self.return_w_max, 1.5 * heading_err))
             else:
@@ -813,7 +897,7 @@ class FollowPath(Node):
                 # 边走边转时按转弯半径下限压角速度，别绕着目标点打转。
                 w_cap = min(self.return_w_max, v / RETURN_MIN_RADIUS_M)
                 w = max(-w_cap, min(w_cap, 1.5 * heading_err))
-            self._publish(v, w)
+            self._publish(v, self._slew_w(now, w))
             return
 
         # align_start：只负责朝向。
@@ -823,7 +907,7 @@ class FollowPath(Node):
         yaw_err = wrap_pi(self.pyaw[0] - yaw)
         if abs(yaw_err) > self.start_yaw_tol_rad:
             w = max(-self.return_w_max, min(self.return_w_max, 1.5 * yaw_err))
-            self._publish(0.0, w)
+            self._publish(0.0, self._slew_w(now, w))
             return
 
         if dist <= self.start_pos_tol_m:

@@ -1,0 +1,13 @@
+{
+  "base_frame": "imu",
+  "frame_id": "map",
+  "map_sha256": "43a841ea30d03a58b69a1db918f8a21cb97132751ee0e55652012512c5671c24",
+  "path_sha256": "763caac2a490b104c7236739fb290fd54424c7c6f8198d2d79c3285e68e4ff3b",
+  "point_count": 322,
+  "schema_version": 1,
+  "start": {
+    "x": -0.103,
+    "y": 0.0987,
+    "yaw": -0.0049
+  }
+}

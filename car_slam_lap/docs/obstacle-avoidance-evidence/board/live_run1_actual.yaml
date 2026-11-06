@@ -1,0 +1,4 @@
+# 实际走过的轨迹（follow_path.py 生成）
+frame_id: map
+points:
+  - {x: -0.0494, y: 0.0325, yaw: 0.0263, t: 0.000}

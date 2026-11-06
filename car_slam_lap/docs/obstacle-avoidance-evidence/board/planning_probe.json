@@ -1,0 +1,60 @@
+{
+  "pose": [
+    -0.2593379440116831,
+    0.034395551774756256,
+    0.1889447959999069
+  ],
+  "start_clear": true,
+  "start_planning_clear": true,
+  "goals": [
+    {
+      "target": [
+        1.780801182170621,
+        0.030942456135113858
+      ],
+      "index": 42,
+      "target_known": false,
+      "target_clear": false,
+      "path_points": null,
+      "end": null,
+      "planning_s": 0.0031495260000156122
+    },
+    {
+      "target": [
+        1.361117918722944,
+        0.04486352012193062
+      ],
+      "index": 34,
+      "target_known": false,
+      "target_clear": false,
+      "path_points": null,
+      "end": null,
+      "planning_s": 0.0028786530001525534
+    },
+    {
+      "target": [
+        0.910383267960358,
+        0.04257631817597038
+      ],
+      "index": 26,
+      "target_known": false,
+      "target_clear": false,
+      "path_points": null,
+      "end": null,
+      "planning_s": 0.0028940279999005725
+    },
+    {
+      "target": [
+        0.4704446244510981,
+        0.044519724823750745
+      ],
+      "index": 18,
+      "target_known": false,
+      "target_clear": false,
+      "path_points": null,
+      "end": null,
+      "planning_s": 0.002836069000295538
+    }
+  ],
+  "health": "\u539f\u59cb\u70b9\u4e91\u505c\u66f4 0.95 s\uff0c\u505c\u8f66"
+}

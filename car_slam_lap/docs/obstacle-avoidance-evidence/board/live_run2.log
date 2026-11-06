@@ -1,0 +1,43 @@
+== 车身和感知参数: /home/sunrise/car_slam_lap/x5/scripts/../config/obstacle_avoidance.yaml
+== Odin1 前向约 129°：侧后方盲区保持空旷；无路/点云失效会停车。
+== 路线: /home/sunrise/car_ws/maps/venue2-20261104/route_map.yaml
+# car_slam_lap 轨迹（record_path.py 生成，follow_path.py 读取）
+# 录制于 2026-11-04 21:15:06
+# 点数 303  长度 14.99 m  时长 208.0 s
+frame_id: map
+points:
+== 地图: /home/sunrise/car_ws/maps/venue2-20261104/odin_map/map_20261104_204330.bin
+== 校验地图/路线 bundle 内容...
+ok: schema=1 frame=map base_frame=imu points=303 start=(0.091, 0.019, 0.105)
+== 检查 car_bridge
+== 检查重定位（map -> imu）
+✓ 定位可用（TF 只是必要条件，原始里程计新鲜度由 follow_path 继续检查）
+
+== 5 s 后开始，Ctrl-C 随时停 ==
+   实时点云避障：回起点 → 跟踪 → 遇障局部绕行 → 接回原路线。
+   手工起 bridge 的方式不变，本脚本不会自动启动底盘。
+   v_max=0.10  w_max=0.25  return_w_max=0.20
+   base_offset=(0.2626, -0.0471)  起点范围=2.0 m  回起点超时=150.0 s  总时限=320.0
+
+[INFO] [1793847542.121633653] [follow_path]: 力臂补偿：base_frame 相对转心 (+0.263, -0.047) m，起始判据与回起点目标改用转心位姿
+[INFO] [1793847544.444714657] [follow_path]: 地图路线 bundle 校验通过：303 点，base_frame=imu，map_sha256=b44ed4fe862a9de9...
+[INFO] [1793847544.651623261] [follow_path]: 已加载经转动验证的自身回波掩码：~/car_ws/config/odin1_self_mask.npz
+[INFO] [1793847544.662115877] [follow_path]: 实时避障已启用：车身 0.65×0.55 m，外接圆+余量半径 0.53 m，点云 /odin1/cloud_raw
+[INFO] [1793847544.678850882] [follow_path]: 轨迹 route_map.yaml: 303 点 / 14.99 m / 坐标系 map；v_max=0.1 m/s，前视 0.35-0.8 m
+[INFO] [1793847544.681157204] [follow_path]: 原始里程计 /odin1/odometry（sensor data QoS），停更阈值 0.50 s
+[INFO] [1793847544.683447276] [follow_path]: 自动回起点已启用：范围 2.00 m，位置容差 0.10 m，朝向容差 0.10 rad，限速 0.08 m/s / 0.20 rad/s，总超时 150.0 s
+[INFO] [1793847544.828439090] [follow_path]: 原始里程计已就绪（时间戳开始严格递增）
+[INFO] [1793847549.685261627] [follow_path]: 开始跟随
+[INFO] [1793847551.481638489] [follow_path]: 已到起点位置（误差 0.10 m），开始对齐起始朝向
+[INFO] [1793847553.031756099] [follow_path]: 起始位置/朝向已达标（yaw 误差 0.07 rad，位置误差 0.09 m），开始跟踪路线
+[WARN] [1793847553.083115855] [follow_path]: 运动预测范围遇到障碍或未知区域：停车并尝试局部绕行
+[INFO] [1793847573.195401927] [follow_path]: 实际轨迹写到 /home/sunrise/car_ws/maps/venue2-20261104/lap_actual_obstacles.yaml
+结果: 失败
+结束原因: 障碍/未知区域持续阻塞，无安全可行局部路径
+回起点/起始对齐 3.3 s  （补位往返 0 次）  路线跟踪 0.3 s
+跟踪点数: 1  用时 3.6 s  行驶 0.05 m
+横向误差 max=0.087 m  rms=0.087 m
+原始里程计: 接受 290 帧 / 拒绝 0 帧
+实际轨迹 2 点
+实时避障: {"cloud_frames": 128, "obstacle_points": 9613, "local_plans": 0, "rejoins": 0, "cloud_max_processing_s": 0.1086}
+[ros2run]: Process exited with failure 1

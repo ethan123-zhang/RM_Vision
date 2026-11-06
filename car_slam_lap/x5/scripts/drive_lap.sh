@@ -13,6 +13,9 @@
 #   BASE_OFFSET_X/Y=...    力臂补偿（m，车体系；标定见 calibrate_lever_arm）
 #   START_MAX_OFFSET_M=... 允许距离起点多远（m，默认 0.5；放大时同步放大下面的超时）
 #   RETURN_TIMEOUT_S=...   回起点+起始对齐总超时（s，默认 30）
+#   RETURN_REVERSE=1        回起点改用倒车三拍（车尾对准→倒车→转正），默认 0
+#   RETURN_W_ACCEL=...     起始阶段角速度变化率上限 rad/s^2（默认 0=不限）
+#   RETURN_REVERSE_V_MAX=... 倒车速度 m/s（默认 0.06）
 #   MAX_TIME_S=...         总时限（s，默认 0 = 不限）
 #
 # 前置检查（不满足直接退出，不会带着车乱跑）：
@@ -121,6 +124,9 @@ RWMAX="${RETURN_W_MAX:-0.30}"
 SMO="${START_MAX_OFFSET_M:-0.5}"
 # 回起点+起始对齐总超时（s）：范围放大时必须同步放大（实测 1.5 m 约需 54 s）。
 RTO="${RETURN_TIMEOUT_S:-30.0}"
+RREV="${RETURN_REVERSE:-0}"
+RVMAX="${RETURN_REVERSE_V_MAX:-0.06}"
+RWACC="${RETURN_W_ACCEL:-0.0}"
 # 总时限（s），0 = 不限。14 m 路线 @0.15 m/s 约需 100 s 跟踪 + 起点阶段。
 MX="${MAX_TIME_S:-0.0}"
 
@@ -143,6 +149,14 @@ OFFX="$(num_float "$OFFX" BASE_OFFSET_X)"
 OFFY="$(num_float "$OFFY" BASE_OFFSET_Y)"
 SMO="$(num_float "$SMO" START_MAX_OFFSET_M)"
 RTO="$(num_float "$RTO" RETURN_TIMEOUT_S)"
+RWACC="$(num_float "$RWACC" RETURN_W_ACCEL)"
+RVMIN="$(num_float "$RVMAX" RETURN_REVERSE_V_MAX)"
+# RETURN_TO_START=0：跳过回起点与起始对齐（车已人工摆正时用，避免原地转 180° 打滑）
+if [ "${RETURN_TO_START:-1}" = "0" ]; then RTS=false; else RTS=true; fi
+if [ "$RREV" = "0" ]; then RREV_B=false; else RREV_B=true; fi
+# 回起点的位置容差：放宽到 0.2 m 可减少"对齐→补位→再对齐"的来回抽搐
+SPT="${START_POS_TOL_M:-0.10}"
+SPT="$(num_float "$SPT" START_POS_TOL_M)"
 MX="$(num_float "$MX" MAX_TIME_S)"
 
 # 独立避障入口通过参数文件启用；未指定时沿用原有跟踪行为。
@@ -175,7 +189,12 @@ ros2 run car_bridge follow_path --ros-args \
   -p base_offset_y:="$OFFY" \
   -p start_max_offset_m:="$SMO" \
   -p return_timeout_s:="$RTO" \
+  -p return_reverse:="$RREV_B" \
+  -p return_reverse_v_max:="$RVMIN" \
+  -p return_w_accel:="$RWACC" \
   -p max_time_s:="$MX" \
+  -p return_to_start:="$RTS" \
+  -p start_pos_tol_m:="$SPT" \
   -p save_actual:="$SAVE_ACTUAL" \
   -p start_delay_s:=5.0
 
