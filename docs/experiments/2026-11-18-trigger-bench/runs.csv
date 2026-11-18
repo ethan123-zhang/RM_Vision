@@ -1,0 +1,11 @@
+run,test,level,target_disc_rpm,target_feed_per_s,cycle,planned_balls,delivered_balls,jam,over_feed_balls,stop_time_s,supply_V,notes,operator
+1,continuous,1,10,3.0,1,10,,,,24.0,,
+2,continuous,1,10,3.0,2,10,,,,24.0,,
+3,continuous,1,10,3.0,3,10,,,,24.0,,
+4,overfeed,1,10,3.0,1,,, ,,,24.0,,
+5,poweroff,1,10,3.0,1,,,,,,24.0,,
+6,continuous,2,20,6.0,1,10,,,,24.0,,
+7,continuous,2,20,6.0,2,10,,,,24.0,,
+8,continuous,2,20,6.0,3,10,,,,24.0,,
+9,overfeed,2,20,6.0,1,,, ,,,24.0,,
+10,poweroff,2,20,6.0,1,,,,,,24.0,,

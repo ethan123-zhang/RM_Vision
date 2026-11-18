@@ -715,6 +715,16 @@
               <FilePath>..\application\chassis_bringup_map.c</FilePath>
             </File>
             <File>
+              <FileName>trigger_bench.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\trigger_bench.c</FilePath>
+            </File>
+            <File>
+              <FileName>trigger_bench_logic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\trigger_bench_logic.c</FilePath>
+            </File>
+            <File>
               <FileName>detect_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\detect_task.c</FilePath>

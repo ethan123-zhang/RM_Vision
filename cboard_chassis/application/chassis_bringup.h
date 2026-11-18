@@ -31,15 +31,19 @@
  *    2 = 按键验 ID（按 KEY N 次，停 3 s 后驱动 N 号电调）
  *    3 = 单轮速度闭环（KEY 选 ID，8/1/8/1 秒正/零/反/零，再按取消）
  *    4 = 固定电流开环（KEY 选电流档，固定驱动 CAN ID 4，无速度环）
+ *    5 = 拨弹盘台架（C610 ID7 / CAN1，KEY 选盘轴 50/100/150/200 rpm）
  * ========================================================================== */
 #define CHASSIS_BRINGUP_MODE_NORMAL 0
 #define CHASSIS_BRINGUP_MODE_SWEEP 1
 #define CHASSIS_BRINGUP_MODE_KEY_ID 2
 #define CHASSIS_BRINGUP_MODE_SPEED_TEST 3
 #define CHASSIS_BRINGUP_MODE_OPEN_LOOP 4
+#define CHASSIS_BRINGUP_MODE_TRIGGER_BENCH 5
 
+/* 2026-11-17：当前待烧写构建 = 拨弹盘台架（C610 ID7 接 CAN1）。
+   测完拨弹盘要回底盘调车或跑车时，把下面改成 SPEED_TEST 或 NORMAL 重烧。 */
 #ifndef CHASSIS_BRINGUP_MODE
-#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_SPEED_TEST
+#define CHASSIS_BRINGUP_MODE CHASSIS_BRINGUP_MODE_TRIGGER_BENCH
 #endif
 
 /* C 板 KEY 按键：PA0，按下为低（官方 6.key_exit 例程同款） */

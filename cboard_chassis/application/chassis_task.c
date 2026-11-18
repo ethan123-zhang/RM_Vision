@@ -28,6 +28,7 @@
 #include "detect_task.h"
 #include "INS_task.h"
 #include "chassis_bringup.h" // [BRINGUP] 调车层：标定表 / 扫描模式 / 调试帧
+#include "trigger_bench.h"   // [BRINGUP] 拨弹盘台架模式（模式 5）
 
 #define rc_deadband_limit(input, output, dealine)        \
     {                                                    \
@@ -143,7 +144,8 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     // [BRINGUP] 调车模式入口（编译期选择）：
     //   0 正常 / 1 单电机扫描 / 2 按键验 ID / 3 单轮速度闭环 / 4 固定电流开环
-    // 阶段 0/1/3/4 都不依赖遥控器整定；标定完后改成 NORMAL 就不再走这里。
+    //   5 拨弹盘台架（C610 ID7 / CAN1，KEY 选盘轴 50/100/150/200 rpm）
+    // 阶段 0/1/3/4/5 都不依赖遥控器整定；标定完后改成 NORMAL 就不再走这里。
 #if CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_KEY_ID
     chassis_bringup_key_id_loop(&chassis_move);
 #elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_SWEEP
@@ -152,6 +154,8 @@ void chassis_task(void const *pvParameters)
     chassis_bringup_speed_loop(&chassis_move);
 #elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_OPEN_LOOP
     chassis_bringup_open_loop_loop(&chassis_move);
+#elif CHASSIS_BRINGUP_MODE == CHASSIS_BRINGUP_MODE_TRIGGER_BENCH
+    trigger_bench_loop(&chassis_move);
 #endif
 
     // [BRINGUP] 官方这里是死等"4 个电机 + 遥控器全部在线"，任何一个没通就
