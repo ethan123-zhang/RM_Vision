@@ -143,6 +143,10 @@ gz topic -t /cmd_vel -m gz.msgs.Twist -p 'linear: {x: 0.15}'
 gz topic -t /cmd_vel -m gz.msgs.Twist -p 'linear: {x: 0.0}, angular: {z: 0.0}'
 gz topic -e -t /world/drive/pose/info -n 1 | grep -A6 'name: "waffle"'
 
+# 2) 手动开车（键盘遥控；起 GUI 世界 + 键盘 WASD）
+bash drive_teleop.sh
+python3 keyboard_teleop.py --selftest      # 已经在跑世界时，验证"真能开/真能停"
+
 # 3) 碰撞回归（box 拼块；会自动起 headless 世界、跑五项读数、收尾）
 bash verify_box_collisions.sh
 
@@ -187,6 +191,8 @@ bash debug/render_drive_preview.sh
 - `debug/make_flipped_meshes.py`（翻转+分色+碰撞网格，**必跑**）
 - `debug/make_box_collisions.py`（**碰撞修复**：高度图 → 48 块 box，写回 model.sdf）
 - `verify_box_collisions.py` / `verify_box_collisions.sh`（五项碰撞验收）
+- `keyboard_teleop.py`（**键盘遥控**：WASD/方向键 → gz `/cmd_vel`，含 `--selftest`）
+- `drive_teleop.sh`（一键：GUI 世界 + 小车 + 键盘遥控）
 - `debug/box_collisions.json`（生成的几何：box 列表、墙内侧面、候选平台）
 - `debug/probe_drive_issue.sh`（bug 判别，历史保留）
 - `debug/render_drive_preview.sh`、`debug/render_under.sh`、`debug/render_top_bottom.sh`、`debug/render_back_side.sh`
