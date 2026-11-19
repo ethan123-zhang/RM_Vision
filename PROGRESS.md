@@ -22,7 +22,9 @@
 > 要在新场地上跑 Nav2 需改 `make_nav_map.py` 自由区为"地面多边形减高台/墙"→ 重建 pgm/yaml → 重定起点 → 重跑验收。
 > ⑦**手动开车（新增）**：`bash rm_field/drive_teleop.sh` 一条命令起 GUI 世界+小车+键盘遥控（w/s/a/d，松开 0.5 s 自动停；
 > 自检 `python3 keyboard_teleop.py --selftest` 实测 1.5 s 前进 0.361 m、左转 1.157 rad、无指令漂移 0），见 README §14。
-> 详情与可直接执行的入口：[HANDOFF 2026-11-19](docs/handoffs/2026-11-19-3v3-field-flip-and-colors.md)、`rm_field/README.md` §12/§13。
+> 详情与可直接执行的入口：[HANDOFF 翻转+配色](docs/handoffs/2026-11-19-3v3-field-flip-and-colors.md)、
+> [HANDOFF 碰撞+键盘遥控](docs/handoffs/2026-11-19-collision-box-and-keyboard-teleop.md)、`rm_field/README.md` §12/§13/§14。
+> 提交：`80bf37f`（碰撞）→ `496f905`（键盘遥控），已 push `origin/codex/car-local-obstacle-avoidance`。
 
 > **✅ 2026-11-18（拨弹盘台架）：模式 5 改成"按住转/松开停"并上板通过；测试口径按用户决定降级为比赛可用性四项，T3 最高转速取消。**
 > ①**口径变更（用户否决）**：比赛是固定送弹速率、按住才送；3V3 冷却优先每发 +10 热量、冷却 24/s → 持续射速上限 **2.4 发/秒（≈盘轴 8 rpm）**，测"最高空载转速"没有意义，手机 240 fps 复核一项取消（handoff 里只留历史标注）。
