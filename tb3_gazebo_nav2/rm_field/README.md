@@ -92,6 +92,9 @@ models/rmul2027_3v3_field/meshes/field_zup.stl   (12.6 × 8.6 × 0.503 m，台�
 | `worlds/rmul2027_3v3_nav2.sdf.xacro` | Nav2 用世界（围挡场地 + Sensors/IMU 系统，接受 `headless` 参数） |
 | `nav2_field.sh` / `stop_nav2_field.sh` | 起/停 Nav2 + 场地；`--gui` 带 Gazebo GUI + RViz |
 | `verify_nav2_field.py` / `run_nav2_verify.sh` | **Nav2 导航验收**：两个目标闭环 + 不出界/不掉落/速度合规（§11.3） |
+| `debug/make_box_collisions.py` | **翻转场地的碰撞**：structures.stl → 0.05 m 高度图 → 48 块 box，写回 model.sdf（§13）|
+| `verify_box_collisions.py` / `verify_box_collisions.sh` | **box 碰撞验收**：静置 z / 直行 / 撞东墙 / 撞北墙 / 撞绿平台（§13.2）|
+| `debug/box_collisions.json` | box 列表 + 墙内侧面 + 候选平台（验收脚本从这里读几何，不写死） |
 
 ## 4. 怎么跑
 
@@ -565,9 +568,56 @@ bash nav2_field.sh --gui            # Gazebo GUI + RViz（窗口已确认可开�
   出图世界 `worlds/drive_colored_preview.sdf`（相机话题 `/hero/image`、`/view_top/image`、`/view_under/image`）。
 - 为什么翻：用户判断 —— 2027 赛季 3V3 场地**没有斜坡**，且官方图 3-4/3-5 显示场地含围挡、两块高台、隧道、工作台。
   因此本文档 §9/§10/§11 的"0.503 m 平整台面"判定**作废**（保留作历史）。
-- **已知 bug（下次先修）**：把 `structures.stl`（113,080 面三角网格）当碰撞体时，机器人被垫高到 z=0.0158、
-  **轮子空转、车不走**（2 s 内 x 只动 1.4e-5 m）；注释掉该网格碰撞后立刻恢复（2 s 前进 0.42 m、z=0.0100）。
-  当前该碰撞**临时停用**（车能开，但绿凸台/红外墙可穿过）。修复方案与验收见
-  [HANDOFF 2026-11-19](../../docs/handoffs/2026-11-19-3v3-field-flip-and-colors.md)。
+- **已修复（2026-11-19 晚）**：把 `structures.stl`（113,080 面三角网格）当碰撞体时，机器人被垫高到 z=0.0158、
+  **轮子空转、车不走**（2 s 内 x 只动 1.4e-5 m）；改成 48 块 box 拼块后恢复（z=0.0100，2 s 前进 0.276 m），
+  撞墙/撞台停车位置误差 0.1 mm。做法与验收见 §13。
 - §11 的 2D 导航地图（`maps/rmul2027_3v3_fenced.pgm`）与 Nav2 验收数据基于翻转前模型，**对当前场地已失效**，
   要在新场地上跑 Nav2 需重建地图、重定起点、重跑验收。
+
+---
+
+## 13. 2026-11-19 晚：box 拼块碰撞（修掉"轮子转车不走"）
+
+**结论**：三角网格做碰撞会让 dartsim 把机器人垫高 6 mm、轮子失去摩擦；
+用**高度图生成的 48 块 box** 替代后，静置/直行/撞墙/撞台四项读数全部回到正常值，误差 0.1 mm。
+
+### 13.1 做法（`debug/make_box_collisions.py`）
+
+1. 把 `meshes/structures.stl` 光栅化成 **0.05 m 高度图**：近水平面按平面求 z、只填格心落在三角形内的格子；
+   近竖直面用包围盒覆盖取最大 z（保守，薄墙不会漏）。
+2. 高度直方图聚类成 3 层：**0.20 / 0.27 / 0.40 m**（实测就是平台顶、台沿、墙顶三档）。
+3. 每层做"行内游程 + 同游程纵向合并"压矩形，每个矩形是一个 `<collision>` box，
+   从 z=−0.10 顶到该层高度；地面仍是原来的 12.6×8.6 box（顶面 z=0）。
+4. 写回 `models/rmul2027_3v3_field_up/model.sdf` 的
+   `BOX_COLLISION_BEGIN/END` 之间（**勿手改**，改了就重跑脚本），并输出
+   `debug/box_collisions.json`（box 列表 + 墙内侧面 + 候选平台，验收脚本从这里读几何，不写死数字）。
+
+```bash
+cd /mnt/e/RM/tb3_gazebo_nav2/rm_field
+python3 debug/make_flipped_meshes.py      # 克隆后先重建网格（.stl 不入库）
+python3 debug/make_box_collisions.py      # 48 块 box，写回 model.sdf
+python3 debug/make_box_collisions.py --dry-run --ascii   # 只看统计 + 粗俯视高度图
+```
+
+**覆盖度**：占据 31.90 m²（=平台+墙在 0.05 m 栅格上的投影），高度误差 **max 0.035 / rms 0.0014 m**
+（最大误差出现在台沿的 1 格过渡上）。
+
+### 13.2 验收（`bash verify_box_collisions.sh` → `results/report_box_collisions.json`）
+
+| 项 | 判据 | 实测 |
+|---|---|---|
+| A 静置 (0,0) | z = 0.0100 ± 0.003，漂移 < 0.01 m | **z=0.0100**，漂移 0.0001（网格碰撞时是 0.0158）|
+| B 直行 0.15 m/s × 2 s | 位移 ≥ 0.24 m（旧 bug 只有 1.4e-5 m）| **0.2762 m**，z 偏移 0 |
+| C 撞东墙 x=+6.00 | 停 5.9315 ± 0.02，不越界，z 恒定 | **5.9316**（误差 0.1 mm），z=[0.0100,0.0100]，贴住 2 s 漂移 0 |
+| D 撞北墙 y=+4.00 | 停 3.9315 ± 0.02 | **3.9316**（误差 0.1 mm）|
+| E 撞绿平台 0.20 m | 停 −1.0685 ± 0.02；**不许爬上平台**（z 仍 0.010）| **−1.0684**，z=[0.0100,0.0100]，未爬台 |
+
+墙/台沿坐标不是手写死的：从 `debug/box_collisions.json` 读（东/北墙内侧面 6.00/4.00、
+平台南侧面 −1.00），重新生成碰撞后验收自动跟着更新。停车位置 = 墙面 − 0.0685 m
+（TB3 waffle 碰撞盒 0.265 m 见方、盒心后移 0.064 m → 车头外缘前伸 0.0685 m）。
+
+### 13.3 剩余
+
+- 2D Nav2 地图仍是翻转前的，**已失效**（见 §12 末条）：地面现在不是整块矩形，被平台/墙占掉约 11 m²，
+  `make_nav_map.py` 的自由区要从"整块 12.5×8.5"改成"地面多边形减去高台/墙"。
+- 碰撞是 5 cm 栅格拼块：台沿/墙角有 ≤5 cm 的量化误差，若以后要贴边行驶再提高分辨率（`--cell 0.025`）。

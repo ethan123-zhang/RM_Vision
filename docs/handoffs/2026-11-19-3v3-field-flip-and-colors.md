@@ -3,7 +3,8 @@
 **一句话**：按用户要求把 `RMUL2027_3V3_V1.0.0.stp` 导出的场地**上下翻转**（结构面朝上、平整面作台体底板），
 重新分配了配色（灰地面 / 绿凸起 / 红外墙 / 黄顶沿），跑通 Gazebo 世界并实测机器人能开；
 同时**定位到"发前进指令轮子转、车不走"的根因**：三角网格碰撞把机器人垫高了 6 mm，轮子失去摩擦。
-**临时处置**：网格碰撞已停用（车能开，但凸起结构暂时没有碰撞、能穿过去）。修碰撞是下个对话的第一件事。
+**同日 18:50 已用 48 块 box 拼块修好并验收**（见 §3.5）：静置 z=0.0100、2 s 直行 0.276 m、
+撞墙/撞台停车误差 0.1 mm。
 
 ---
 
@@ -80,20 +81,41 @@
 
 判别脚本：`debug/probe_drive_issue.sh`（headless 起世界 → spawn → 前进 2 s → 打印位姿）。
 
-### 3.3 当前临时状态
+### 3.3 已修复（同日 18:50，方案 A：box 拼块）
 
-- `structures_collision` 已停用 ⇒ **绿色凸起平台、红色外围墙暂时没有碰撞，机器人能开穿过去**；
-- 这只适合"先看配色 / 先能开"，**不能当验收状态**。
+- `debug/make_box_collisions.py`：`structures.stl` → 0.05 m 高度图 → 高度聚类 3 层（0.20 / 0.27 / 0.40 m）
+  → 行游程合并成 **48 块 box**（从 z=−0.10 顶到各层高度），写回 `models/rmul2027_3v3_field_up/model.sdf`
+  的 `BOX_COLLISION_BEGIN/END` 之间；产物 `debug/box_collisions.json`（含墙内侧面/候选平台）。
+- 覆盖度：占据 31.90 m²，高度误差 max 0.035 / rms 0.0014 m。
+- 验收 `bash verify_box_collisions.sh` → `results/report_box_collisions.json`，五项全过：
 
-### 3.4 修复候选（下次从这里挑一个）
-
-| 方案 | 做法 | 代价/风险 |
+| 项 | 判据 | 实测 |
 |---|---|---|
-| **A（推荐）** | 用 box 近似做碰撞：从高度图（0.2–0.3 m 栅格）里找高度 >5 cm 的区域，合成若干 box；或直接手写"两块高台 + 四面墙 + 隧道墙"的 box 列表 | 碰撞稳定、便宜；box 数量 10–50 个，要写生成脚本并验证撞墙位置 |
-| B | 把 `structures.stl` 降采样（2 cm 体素）后再当碰撞网格 | 改动小；dartsim 三角网格接触本身就不稳，可能仍有 1–3 mm 抬升 |
-| C | 保持无碰撞 | 只能纯驾驶练习，不能做导航/碰撞验收 |
+| A 静置 (0,0) | z=0.0100±0.003 | **0.0100**，漂移 0.0001（网格碰撞时 0.0158）|
+| B 直行 0.15 m/s×2 s | ≥0.24 m | **0.2762 m**（旧 bug 1.4e-5 m）|
+| C 撞东墙 x=6.00 | 停 5.9315±0.02，不越界，z 恒定 | **5.9316**，误差 0.1 mm，z=[0.0100,0.0100] |
+| D 撞北墙 y=4.00 | 停 3.9315±0.02 | **3.9316**，误差 0.1 mm |
+| E 撞绿平台 0.20 m | 停 −1.0685±0.02，**不许爬上台** | **−1.0684**，z=[0.0100,0.0100]，未爬台 |
 
-建议先做 A，然后用**围挡/高台的撞墙读数**验收（撞东墙停在 x≈6.0 附近、撞高台边缘停住、`z` 全程恒定 0.010）。
+- 现场几何（实测自高度图，写进 JSON）：墙内侧面 **x=±6.00 / y=±4.00**，绿平台顶 **0.20 m**（台沿 0.27、墙顶 0.40），
+  机器人可行驶地面约 91 m²（12.0×8.0 减去两块平台）。停车位置 = 墙面 − 0.0685 m（TB3 车头外缘）。
+
+### 3.4 修复候选（A 已实施，B/C 保留作备查）
+
+| 方案 | 做法 | 结果 |
+|---|---|---|
+| **A（已实施）** | 高度图 → box 拼块（48 块） | ✅ 五项验收全过，误差 0.1 mm |
+| B | `structures.stl` 降采样（2 cm 体素）后再当碰撞网格 | 未做；dartsim 三角网格接触仍可能抬升 1–3 mm |
+| C | 保持无碰撞 | 已废弃（车能开但能穿墙） |
+
+### 3.5 复跑与再生成
+
+```bash
+cd /mnt/e/RM/tb3_gazebo_nav2/rm_field
+python3 debug/make_flipped_meshes.py      # 克隆后先重建网格（.stl 不入库）
+python3 debug/make_box_collisions.py      # 重新生成 48 块 box 并写回 model.sdf
+bash verify_box_collisions.sh             # 起 drive 世界 + 五项验收 + 收尾（约 70 s）
+```
 
 ---
 
@@ -121,14 +143,19 @@ gz topic -t /cmd_vel -m gz.msgs.Twist -p 'linear: {x: 0.15}'
 gz topic -t /cmd_vel -m gz.msgs.Twist -p 'linear: {x: 0.0}, angular: {z: 0.0}'
 gz topic -e -t /world/drive/pose/info -n 1 | grep -A6 'name: "waffle"'
 
-# 3) 复现/验证 bug 的对照实验（会自动起 headless 世界并跑一次前进）
-bash debug/probe_drive_issue.sh
+# 3) 碰撞回归（box 拼块；会自动起 headless 世界、跑五项读数、收尾）
+bash verify_box_collisions.sh
 
-# 4) 出图（配色核对）
+# 4) 重新生成碰撞（改了网格/想换分辨率时）
+python3 debug/make_box_collisions.py            # 默认 0.05 m 栅格
+python3 debug/make_box_collisions.py --dry-run --ascii   # 只看统计
+
+# 5) 出图（配色核对）
 bash debug/render_drive_preview.sh
 ```
 
-要改碰撞看这里：`models/rmul2027_3v3_field_up/model.sdf`（`structures_collision` 现在是注释状态，旁边有 2026-11-19 的说明）。
+要改碰撞看这里：`models/rmul2027_3v3_field_up/model.sdf` 的 `BOX_COLLISION_BEGIN/END`
+（**由 `debug/make_box_collisions.py` 生成，勿手改**）；地面是单独一个 12.6×8.6 的 box。
 
 ---
 
@@ -139,8 +166,11 @@ bash debug/render_drive_preview.sh
 2. **出图世界与驾驶世界的相机话题不同**：预览世界用 `/hero/image`，旧脚本曾写 `/drive_view/image`，
    会导致"抓图失败但脚本照常打印 done"、留下旧图 → 改脚本时**必须同步 topic 名**。
 3. 每次 `gui_colored.sh` / `render_*.sh` 都会 `pkill -f "gz sim"`，起之前先确认没有别的仿真在跑。
-4. 本次对话**未提交任何 commit 之前**的状态：所有新文件都是 untracked；`.stl` 与 `shots/*.png` 被 .gitignore 挡住，
-   所以克隆后必须靠 `debug/*.py` 重新生成网格。
+4. 网格 `.stl` 与 `shots/*.png` 被 .gitignore 挡住：克隆后必须跑 `debug/make_flipped_meshes.py` 重建；
+   `debug/box_collisions.json` 已入库（验收脚本读它）——**重新生成碰撞后要把它一起提交**，否则验收读的是旧几何。
+5. **高度图坑（第一版生成脚本就是栽在这）**：三角形"格心是否在内部"的边函数符号写反，所有**水平面**（平台顶、墙顶沿）
+   一个格子都没填上，只剩竖直面的包围盒投影 → 0.20 m 层只覆盖 9 m²、墙内侧面算成 5.25（正确 6.00）。
+   修法是统一 `s = sign(area)` 后三条边函数都乘 `s`；竖直面仍用包围盒覆盖（投影退化成线，不能按面积判）。
 
 ---
 
@@ -155,7 +185,10 @@ bash debug/render_drive_preview.sh
 
 **脚本**
 - `debug/make_flipped_meshes.py`（翻转+分色+碰撞网格，**必跑**）
-- `debug/probe_drive_issue.sh`（bug 判别）
+- `debug/make_box_collisions.py`（**碰撞修复**：高度图 → 48 块 box，写回 model.sdf）
+- `verify_box_collisions.py` / `verify_box_collisions.sh`（五项碰撞验收）
+- `debug/box_collisions.json`（生成的几何：box 列表、墙内侧面、候选平台）
+- `debug/probe_drive_issue.sh`（bug 判别，历史保留）
 - `debug/render_drive_preview.sh`、`debug/render_under.sh`、`debug/render_top_bottom.sh`、`debug/render_back_side.sh`
 - `debug/flip_field_mesh.py`、`debug/make_solid_meshes.py`、`debug/split_field_mesh.py`、`debug/annotate_colored.py`、`debug/analyze_levels.py`、`debug/relief_map.py`（诊断/历史）
 - `gui_colored.sh`、`config/gui_drive.config`

@@ -1,0 +1,101 @@
+{
+  "world": "drive",
+  "geometry": {
+    "n_boxes": 48,
+    "occupied_area_m2": 31.903,
+    "levels": [
+      0.2,
+      0.27,
+      0.4
+    ],
+    "height_err_m": {
+      "max_abs": 0.035,
+      "rms": 0.0014
+    },
+    "east_inner_x": 6.0,
+    "north_inner_y": 4.0,
+    "platform": 0.2
+  },
+  "checks": {
+    "A_static": {
+      "spawn_ok": true,
+      "z": 0.01,
+      "z_target": 0.01,
+      "z_err": 0.0,
+      "xy_drift_m": 0.0001,
+      "ok": true
+    },
+    "B_forward": {
+      "cmd_topic": "/cmd_vel",
+      "spawn_ok": true,
+      "x0": -0.0001,
+      "x1": 0.2761,
+      "dx_m": 0.2762,
+      "z_max_dev": 0.0,
+      "jumps": [],
+      "ok": true
+    },
+    "C_east_wall": {
+      "spawn_ok": true,
+      "face": 6.0,
+      "expected_stop_center": 5.9315,
+      "final": {
+        "x": 5.9315,
+        "y": 0.0,
+        "z": 0.01
+      },
+      "jumps": [],
+      "max_coord": 5.9316,
+      "z_min": 0.01,
+      "z_max": 0.01,
+      "drift_last_2s_m": 0.0,
+      "n_samples": 140,
+      "stop_error_m": 0.0001,
+      "crossed_face": false,
+      "ok": true
+    },
+    "D_north_wall": {
+      "spawn_ok": true,
+      "face": 4.0,
+      "expected_stop_center": 3.9315,
+      "final": {
+        "x": -0.0,
+        "y": 3.9315,
+        "z": 0.01
+      },
+      "jumps": [],
+      "max_coord": 3.9316,
+      "z_min": 0.01,
+      "z_max": 0.01,
+      "drift_last_2s_m": 0.0,
+      "n_samples": 140,
+      "stop_error_m": 0.0001,
+      "crossed_face": false,
+      "ok": true
+    },
+    "E_platform": {
+      "spawn_ok": true,
+      "level": 0.2,
+      "face_y": -1.0,
+      "expected_stop_center": -1.0685,
+      "final": {
+        "x": 2.5,
+        "y": -1.0685,
+        "z": 0.01
+      },
+      "jumps": [],
+      "max_coord": -1.0684,
+      "z_min": 0.01,
+      "z_max": 0.01,
+      "drift_last_2s_m": 0.0059,
+      "n_samples": 120,
+      "stop_error_m": 0.0001,
+      "crossed_face": false,
+      "climbed_onto_platform": false,
+      "ok": true
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}
