@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!-- 验证朝向：翻转后的场地，从斜上方看（与规则手册 图3-4 的视角接近） -->
+<sdf version="1.9">
+  <world name="flipped_probe">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <scene>
+      <ambient>0.55 0.55 0.58 1</ambient>
+      <background>0.75 0.75 0.78 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <direction>-0.35 0.45 -0.82</direction>
+    </light>
+
+    <include>
+      <uri>model://probe_field_flipped</uri>
+      <name>probe_field_flipped</name>
+      <static>true</static>
+    </include>
+
+    <model name="probe_cam">
+      <static>true</static>
+      <pose>-9.5 -10.5 7.5 0 0.62 0.735</pose>
+      <link name="cam_link">
+        <sensor name="probe" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>probe/image</topic>
+          <camera name="probe">
+            <horizontal_fov>1.15</horizontal_fov>
+            <image><width>1500</width><height>850</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </world>
+</sdf>

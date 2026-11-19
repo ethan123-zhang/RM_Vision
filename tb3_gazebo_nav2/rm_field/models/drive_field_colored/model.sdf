@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!-- 驾驶用配色场地（几何 = rmul2027_3v3_field 原样，154,520 个三角面一个不少）
+       绿色 = 整个凸起的平台（台面 z=0 + 0.503 m 侧壁 + 内部结构）
+       深灰 = 平台底面（从下往上看时看到的那一面，不是场地地面）
+     碰撞体仍是 12.6 x 8.6 x 0.503 的 box，顶面 z=0，和原模型一致。
+
+     拆网格的规矩（debug/make_solid_meshes.py）：nz>=-0.7 归"主体"、nz<-0.7 归"底面"，
+     两份加起来 = 原始全部面，所以任何角度都是实心的，不会看穿。 -->
+<sdf version="1.9">
+  <model name="drive_field_colored">
+    <static>true</static>
+    <link name="field_link">
+      <collision name="field_collision">
+        <pose>0 0 -0.2515 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>12.6 8.6 0.503</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+
+      <visual name="field_body_visual">
+        <geometry>
+          <mesh>
+            <uri>model://drive_field_colored/meshes/field_main.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 绿：整个凸起的平台 -->
+          <ambient>0.04 0.32 0.09 1</ambient>
+          <diffuse>0.08 0.62 0.18 1</diffuse>
+          <specular>0.01 0.02 0.01 1</specular>
+        </material>
+      </visual>
+
+      <visual name="field_bottom_visual">
+        <geometry>
+          <mesh>
+            <uri>model://drive_field_colored/meshes/field_bottom.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 深灰：平台底面（从台子下面往上看会看到它，说明"这是台子底下"） -->
+          <ambient>0.10 0.10 0.11 1</ambient>
+          <diffuse>0.16 0.16 0.18 1</diffuse>
+          <specular>0.01 0.01 0.01 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

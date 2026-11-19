@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<!-- 颜色标注用围挡：几何与 rmul2027_3v3_fence 完全一致（4 面 0.30 m 墙 + 4 条顶沿），
+     只是把材质改成蓝色（墙体）/ 青色（顶沿）。 -->
+<sdf version="1.9">
+  <model name="debug_fence_blue">
+    <static>true</static>
+    <link name="south_link">
+      <pose>0 -4.275 0.15 0 0 0</pose>
+      <collision name="collision">
+        <geometry><box><size>12.65 0.05 0.30</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>12.65 0.05 0.30</size></box></geometry>
+        <material>
+          <ambient>0.06 0.16 0.45 1</ambient>
+          <diffuse>0.12 0.38 0.92 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="north_link">
+      <pose>0 4.275 0.15 0 0 0</pose>
+      <collision name="collision">
+        <geometry><box><size>12.65 0.05 0.30</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>12.65 0.05 0.30</size></box></geometry>
+        <material>
+          <ambient>0.06 0.16 0.45 1</ambient>
+          <diffuse>0.12 0.38 0.92 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="west_link">
+      <pose>-6.275 0 0.15 0 0 0</pose>
+      <collision name="collision">
+        <geometry><box><size>0.05 8.6 0.30</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.05 8.6 0.30</size></box></geometry>
+        <material>
+          <ambient>0.06 0.16 0.45 1</ambient>
+          <diffuse>0.12 0.38 0.92 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="east_link">
+      <pose>6.275 0 0.15 0 0 0</pose>
+      <collision name="collision">
+        <geometry><box><size>0.05 8.6 0.30</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.05 8.6 0.30</size></box></geometry>
+        <material>
+          <ambient>0.06 0.16 0.45 1</ambient>
+          <diffuse>0.12 0.38 0.92 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="south_rail">
+      <pose>0 -4.275 0.31 0 0 0</pose>
+      <visual name="visual">
+        <geometry><box><size>12.66 0.07 0.04</size></box></geometry>
+        <material>
+          <ambient>0.02 0.40 0.45 1</ambient>
+          <diffuse>0.05 0.85 0.95 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="north_rail">
+      <pose>0 4.275 0.31 0 0 0</pose>
+      <visual name="visual">
+        <geometry><box><size>12.66 0.07 0.04</size></box></geometry>
+        <material>
+          <ambient>0.02 0.40 0.45 1</ambient>
+          <diffuse>0.05 0.85 0.95 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="west_rail">
+      <pose>-6.275 0 0.31 0 0 0</pose>
+      <visual name="visual">
+        <geometry><box><size>0.07 8.6 0.04</size></box></geometry>
+        <material>
+          <ambient>0.02 0.40 0.45 1</ambient>
+          <diffuse>0.05 0.85 0.95 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <link name="east_rail">
+      <pose>6.275 0 0.31 0 0 0</pose>
+      <visual name="visual">
+        <geometry><box><size>0.07 8.6 0.04</size></box></geometry>
+        <material>
+          <ambient>0.02 0.40 0.45 1</ambient>
+          <diffuse>0.05 0.85 0.95 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

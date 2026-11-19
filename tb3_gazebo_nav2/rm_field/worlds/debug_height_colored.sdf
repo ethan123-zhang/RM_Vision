@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<!-- 颜色标注专用世界（只用于出图，不改任何已验证的模型/世界）：
+       橙色 = 场地凸起的部分（0.503 m 厚的竖直侧壁）
+       浅灰 = 台面（z = 0）
+       蓝色 = 围挡（0.30 m 高，图纸外补的）
+       青色 = 围挡顶沿
+       深灰 = 场地外的周围地面（z = -0.503）
+
+     用法: gz sim -s -r --headless-rendering worlds/debug_height_colored.sdf
+     三台相机：hero（3/4 低机位）、elevation_wide（正立面全景）、elevation_wall（墙面近景） -->
+<sdf version="1.9">
+  <world name="rmul2027_3v3_debug">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+
+    <scene>
+      <ambient>0.42 0.42 0.44 1</ambient>
+      <background>0.035 0.04 0.055 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.10 0.10 0.10 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.55 0.57 0.62 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <!-- 周围地面：z = -0.503，比台面低 0.503 m；配色故意压暗，和橙色侧壁拉开 -->
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.503 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material>
+            <ambient>0.16 0.16 0.18 1</ambient>
+            <diffuse>0.26 0.26 0.29 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://debug_field_colored</uri>
+      <name>debug_field_colored</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <include>
+      <uri>model://debug_fence_blue</uri>
+      <name>debug_fence_blue</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <!-- 3/4 低机位：同时看到台面、橙色侧壁、蓝色围挡和深灰地面 -->
+    <model name="hero_cam">
+      <static>true</static>
+      <pose>-9.0 -9.5 1.5 0 0.114 0.813</pose>
+      <link name="cam_link">
+        <sensor name="hero" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>hero/image</topic>
+          <camera name="hero">
+            <horizontal_fov>1.15</horizontal_fov>
+            <image><width>1600</width><height>900</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <!-- 正立面全景：相机在墙高一半处、水平看，台面/围挡/地面都落在同一条竖直线上 -->
+    <model name="elevation_wide_cam">
+      <static>true</static>
+      <pose>0 -25.0 -0.2515 0 0 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="elevation_wide" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>elevation_wide/image</topic>
+          <camera name="elevation_wide">
+            <horizontal_fov>0.65</horizontal_fov>
+            <image><width>1920</width><height>1080</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <!-- 墙面近景：距南立面 4.7 m，0.503 m 侧壁在 720 px 里占约 450 px -->
+    <model name="elevation_wall_cam">
+      <static>true</static>
+      <pose>2.0 -9.0 -0.2515 0 0 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="elevation_wall" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>elevation_wall/image</topic>
+          <camera name="elevation_wall">
+            <horizontal_fov>0.30</horizontal_fov>
+            <image><width>1280</width><height>720</height><format>R8G8B8</format></image>
+            <clip><near>0.05</near><far>100</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </world>
+</sdf>

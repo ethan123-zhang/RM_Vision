@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!-- RMUL2027 3V3 场地（上下翻转版，结构面朝上）
+       浅灰 = 场地地面（z = 0，机器人开在这里）
+       绿色 = 内部凸起结构（抬高 0.19 / 0.37 m 的平台与筋）
+       红色 = 外围墙墙体（一圈，到 +0.40 m）
+       黄色 = 外围墙顶沿
+     翻转规则见 debug/make_flipped_meshes.py：z -> -z，再整体 -0.10 m。
+     碰撞：地面用 box（顶面 z=0），凸起结构用网格（机器人会撞上去）。 -->
+<sdf version="1.9">
+  <model name="rmul2027_3v3_field_up">
+    <static>true</static>
+    <link name="field_link">
+      <collision name="floor_collision">
+        <pose>0 0 -0.05 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>12.6 8.6 0.1</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+
+      <!-- 2026-11-19 诊断记录：网格碰撞（structures.stl，113,080 面）会让机器人被垫高 6 mm
+           （z=0.0158 而不是 0.0100），轮子空转、车不走。先停用，改用 box 碰撞是下一步任务。
+           证据见 docs/handoffs/2026-11-19-3v3-field-flip-and-colors.md -->
+      <!-- 临时停用网格碰撞（诊断：轮子空转不走） -->
+
+
+      <visual name="floor_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field_up/meshes/floor.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 浅灰：场地地面（可行驶） -->
+          <ambient>0.55 0.55 0.57 1</ambient>
+          <diffuse>0.80 0.80 0.82 1</diffuse>
+          <specular>0.02 0.02 0.02 1</specular>
+        </material>
+      </visual>
+
+      <visual name="inner_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field_up/meshes/inner.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 绿：内部凸起的平台/结构 -->
+          <ambient>0.04 0.32 0.09 1</ambient>
+          <diffuse>0.08 0.62 0.18 1</diffuse>
+          <specular>0.01 0.02 0.01 1</specular>
+        </material>
+      </visual>
+
+      <visual name="base_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field_up/meshes/base.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 深灰：台体底板（从下面才看得到） -->
+          <ambient>0.10 0.10 0.11 1</ambient>
+          <diffuse>0.16 0.16 0.18 1</diffuse>
+          <specular>0.01 0.01 0.01 1</specular>
+        </material>
+      </visual>
+
+      <visual name="wall_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field_up/meshes/wall.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 红：外围墙墙体 -->
+          <ambient>0.52 0.03 0.03 1</ambient>
+          <diffuse>0.85 0.08 0.08 1</diffuse>
+          <specular>0.02 0.01 0.01 1</specular>
+        </material>
+      </visual>
+
+      <visual name="wall_top_visual">
+        <geometry>
+          <mesh>
+            <uri>model://rmul2027_3v3_field_up/meshes/wall_top.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 黄：外围墙顶沿 -->
+          <ambient>0.80 0.62 0.02 1</ambient>
+          <diffuse>1.0 0.85 0.08 1</diffuse>
+          <specular>0.05 0.04 0.0 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

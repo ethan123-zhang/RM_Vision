@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!-- 颜色标注用场地：几何与原模型完全相同（同一份 STL），只是拆成两个 visual 上色：
+       field_top   台面（z=0 的水平面）   浅灰
+       field_walls 侧壁（0.503 m 竖直面） 橙色
+     碰撞体仍是 12.6 x 8.6 x 0.503 的 box（顶面 z=0），与原模型一致。 -->
+<sdf version="1.9">
+  <model name="debug_field_colored">
+    <static>true</static>
+    <link name="field_link">
+      <collision name="field_collision">
+        <pose>0 0 -0.2515 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>12.6 8.6 0.503</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="field_top_visual">
+        <geometry>
+          <mesh>
+            <uri>model://debug_field_colored/meshes/field_top.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 草绿：台面（z=0 的水平面，机器人站的地方）——与驾驶配色世界同一套颜色 -->
+          <ambient>0.04 0.32 0.09 1</ambient>
+          <diffuse>0.08 0.62 0.18 1</diffuse>
+          <specular>0.01 0.02 0.01 1</specular>
+        </material>
+      </visual>
+
+      <visual name="field_walls_visual">
+        <geometry>
+          <mesh>
+            <uri>model://debug_field_colored/meshes/field_walls.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <!-- 橙色：橙色 = 场地凸起的部分（0.503 m 厚的侧壁） -->
+          <ambient>0.75 0.28 0.02 1</ambient>
+          <diffuse>0.95 0.42 0.05 1</diffuse>
+          <specular>0.05 0.02 0.0 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
