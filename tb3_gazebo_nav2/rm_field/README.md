@@ -764,6 +764,19 @@ TF 瞬时能差到 0.44 m；静止/直行段只有 **0.02~0.07 m**（`report_nav
 `whole_run.loc_err_m.series_2s` 有每 2 s 的趋势）。这是 AMCL 的正常滞后，不是地图错位
 （PGM 翻转那次是 4.8 m，量级完全不同），所以判据定在 0.50 m。
 
+**坑 4：`ros2 lifecycle get` / `ros2 node list` 在这台机器的 WSL 上不可信（"Node not found"）。**
+它们走 `ros2 daemon` 的**节点列表**，而 daemon 经常看不到 composable 容器里的节点（`ros2 node list`
+为空），于是 7 个节点全报 `Node not found` —— 但同一时刻 `ros2 service call /amcl/get_state`
+返回 `id=3`（ACTIVE）、`ros2 action list` 也能看到 `/navigate_to_pose`，栈其实是好的。
+不要拿 `lifecycle get` 当"栈没起来"的证据。修法：`nav2_field.sh` 第 5 段改成直接调
+`/<node>/get_state` 服务并把 id 翻译成状态（1 unconfigured / 2 inactive / **3 ACTIVE** / 4 finalized）；
+临时排查可以 `ros2 node list --no-daemon`。
+
+**坑 5：`stop_nav2_field.sh` 里曾有 `pkill -f 'nav2_'`，会把自己杀掉。**
+调用者的命令行里只要含 `nav2_field.sh`（例如串联命令 `bash stop_nav2_field.sh && bash nav2_field.sh`），
+这条过宽的 pattern 就命中调用者自己，表现为脚本跑一半静默退出。已删掉这条（其余 pattern 足够，
+nav2 节点都在 `component_container` 里）。
+
 ### 15.5 文件与入口
 
 | 文件 | 作用 |

@@ -84,17 +84,30 @@ for i in $(seq 1 30); do
 done
 [ "$got" = 1 ] || echo "警告: map->odom 仍不可用"
 
-echo "=== 5. 生命周期 ==="
-# 刚起完时节点发现会滞后几秒（ros2 lifecycle get 报 Node not found），这里最多重试 20 s
+echo "=== 5. 生命周期（直接调 /<node>/get_state 服务）==="
+# 不要用 `ros2 lifecycle get`：它走 ros2 daemon 的**节点列表**，而本机 WSL 上 daemon 经常看不到
+# composable 容器里的节点（`ros2 node list` 为空）→ 一律误报 "Node not found"，
+# 但同一个节点的服务/动作是能发现的。所以直接调生命周期服务，取 current_state.id：
+#   1=unconfigured  2=inactive  3=active  4=finalized
 for n in /amcl /map_server /planner_server /controller_server /bt_navigator /behavior_server /velocity_smoother; do
   printf "  %-24s " "$n"
   out=""
   for i in $(seq 1 10); do
-    out=$(timeout 5 ros2 lifecycle get "$n" 2>&1 | head -1)
-    echo "$out" | grep -qE 'active|inactive|unconfigured|finalized' && break
+    id=$(timeout 6 ros2 service call "${n}/get_state" lifecycle_msgs/srv/GetState "{}" 2>/dev/null \
+         | grep -oE 'id=[0-9]+' | head -1 | cut -d= -f2)
+    if [ -n "$id" ]; then
+      case "$id" in
+        1) out="unconfigured" ;;
+        2) out="inactive" ;;
+        3) out="ACTIVE" ;;
+        4) out="finalized" ;;
+        *) out="id=$id" ;;
+      esac
+      break
+    fi
     sleep 2
   done
-  echo "$out"
+  echo "${out:-无响应}"
 done
 
 echo "=== 5b. 等导航 action server（/navigate_to_pose）==="
