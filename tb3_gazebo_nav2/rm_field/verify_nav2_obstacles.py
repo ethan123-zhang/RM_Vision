@@ -63,8 +63,9 @@ DYN_ENC_MAX_DIST = 2.00
 # 即 ≥0.30 m。实测本轮该值是 0.35 m，且全程人-箱最小间距 0.841 m（停住后也没堵路）。
 DYN_END_CLEAR_MIN = 0.30
 DYN_WINDOW_S = 1.0             # 测速窗口（s），要大于 set_pose 的 0.1 s 量化步长
-# 未建图障碍物附近 AMCL 本来就该被带偏（扫描里有地图里没有的回波）：定位判据在这些
-# 样本上放宽/剔除，只用"离未建图障碍物 > LOC_EXCL_M"的样本来判地图-世界一致性。
+# 未建图障碍物附近 AMCL 的瞬态偏差：修复前（likelihood_field，无 beam skip）实测 0.76~1.05 m，
+# 且会被拉到错误分支不回来；现已换成 likelihood_field_prob + do_beamskip（见 make_nav2_params.py），
+# 全场 max 0.315 m。下面的 excluding_unmapped 仍保留，作为"贴障碍物那段的单独读数"（证据，不判分）。
 LOC_EXCL_M = 2.00
 
 
@@ -490,13 +491,17 @@ def main():
             "tol": OBS_MARGIN,
             "note": "场地平台/墙的 48 块碰撞 box 投影；5 cm = 碰撞体栅格粒度"},
         "localization_consistent": {
-            "ok": report["whole_run"]["loc_err_m"]["excluding_unmapped"]["max"] is not None
-                  and report["whole_run"]["loc_err_m"]["excluding_unmapped"]["max"] < LOC_ERR_MAX,
+            # 2026-11-20 深夜修复后：AMCL 换成 likelihood_field_prob + do_beamskip，
+            # 未建图障碍物回波会被当"离群束"跳过，不再把估计拉到贴墙/墙角位姿。
+            # 本轮实测全场 max 0.315 m（修复前 0.764 m）→ 判据改回全样本，不再剔除。
+            "ok": report["whole_run"]["loc_err_m"]["max"] is not None
+                  and report["whole_run"]["loc_err_m"]["max"] < LOC_ERR_MAX,
             "all_samples_max_m": report["whole_run"]["loc_err_m"]["max"],
             "excluding_unmapped": report["whole_run"]["loc_err_m"]["excluding_unmapped"],
             "tol": LOC_ERR_MAX,
-            "note": "未建图障碍物附近 AMCL 会被带偏（实测 0.9~1.05 m），判据只用在"
-                    "离未建图障碍物 >2 m 的样本上；全场最大值也照样写进报告"},
+            "note": "TF(map->base_footprint) vs Gazebo 真值，全样本；修复前未建图障碍物附近"
+                    "会带偏到 0.76~1.05 m（当时判据只能剔除 ≤2 m 样本），"
+                    "换成 likelihood_field_prob + do_beamskip 后全场 max 0.315 m"},
         "speed_sane": {
             "ok": VX_MAX is not None
                   and all(r.get("cmd_v_max_mps") is not None

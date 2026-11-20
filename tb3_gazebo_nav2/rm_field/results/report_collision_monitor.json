@@ -32,8 +32,8 @@
   "sim_time_ok": true,
   "tf_ready": true,
   "popup": {
-    "samples": 1772,
-    "pop_wall_t": 1795176467.6549811,
+    "samples": 1012,
+    "pop_wall_t": 1795185180.92691,
     "hidden_xy": [
       3.0,
       -3.0
@@ -43,22 +43,22 @@
       2.2
     ]
   },
-  "result_cancelled": false,
+  "result_cancelled": true,
   "cm_events_total": 2,
   "cm_events_all": [
     {
-      "wall_t": 1795176467.89,
+      "wall_t": 1795185181.03,
       "polygon": "FootprintApproach",
       "action_type": 3
     },
     {
-      "wall_t": 1795176468.2,
+      "wall_t": 1795185181.24,
       "polygon": "",
       "action_type": 0
     }
   ],
-  "tf_samples": 291,
-  "gz_samples": 1772,
+  "tf_samples": 158,
+  "gz_samples": 1012,
   "checks": {
     "popup_appeared": {
       "ok": true,
@@ -67,7 +67,7 @@
     },
     "robot_was_moving": {
       "ok": true,
-      "pre_pop_mean_speed_mps": 0.452,
+      "pre_pop_mean_speed_mps": 0.496,
       "min_required_mps": 0.2
     },
     "collision_monitor_engaged": {
@@ -77,41 +77,41 @@
         "0": 1,
         "3": 1
       },
-      "first_event_wall_t": 1795176467.89,
+      "first_event_wall_t": 1795185181.03,
       "note": "FootprintApproach 的 state 事件；0 次说明还没轮到安全层就停了"
     },
     "braked": {
       "ok": true,
-      "brake_latency_s": 0.791,
-      "min_speed_after_pop_mps": 0.028,
-      "stopped_cum_s": 0.1,
+      "brake_latency_s": 0.696,
+      "min_speed_after_pop_mps": 0.009,
+      "stopped_cum_s": 0.3,
       "window_s": 2.5,
       "note": "2.5 s 内速度降到 <0.05 m/s 即算刹住；随后倒车让开不算失败"
     },
     "no_contact": {
       "ok": true,
-      "min_gap_m": 0.335,
-      "min_center_dist_m": 0.614,
+      "min_gap_m": 0.397,
+      "min_center_dist_m": 0.648,
       "clear_min_m": 0.22,
       "worst": {
-        "wall_t": 1795176468.41,
+        "wall_t": 1795185181.61,
         "robot_xy": [
-          -0.186,
-          1.615
+          -0.034,
+          1.553
         ],
         "barrier_xy": [
           -0.0,
           2.2
         ],
-        "gap_m": 0.335
+        "gap_m": 0.397
       }
     },
     "safe_envelope": {
       "ok": true,
       "gz_z_min": 0.01,
       "gz_z_max": 0.01,
-      "max_abs_x": 2.195,
-      "max_abs_y": 2.274
+      "max_abs_x": 0.284,
+      "max_abs_y": 1.598
     }
   },
   "summary": {

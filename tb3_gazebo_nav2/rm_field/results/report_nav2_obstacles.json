@@ -119,7 +119,7 @@
   "tf_ready": true,
   "rates": {
     "scan_hz": 5.0,
-    "odom_hz": 29.33
+    "odom_hz": 29.0
   },
   "nav_results": [
     {
@@ -131,22 +131,22 @@
       "status": 4,
       "succeeded": true,
       "error_code": 0,
-      "wall_s": 33.36,
-      "sim_s": 33.34,
-      "rtf_mean": 0.999,
-      "path_len_m": 12.646,
-      "mean_speed_mps": 0.379,
-      "cmd_v_max_mps": 0.499,
-      "cmd_w_max_rps": 0.772,
-      "cmd_samples": 667,
-      "tf_samples": 332,
+      "wall_s": 33.8,
+      "sim_s": 33.71,
+      "rtf_mean": 0.997,
+      "path_len_m": 12.175,
+      "mean_speed_mps": 0.361,
+      "cmd_v_max_mps": 0.497,
+      "cmd_w_max_rps": 0.794,
+      "cmd_samples": 675,
+      "tf_samples": 336,
       "end_xy": [
-        4.083,
-        2.089
+        4.012,
+        2.026
       ],
-      "end_dist_to_goal_m": 0.121,
-      "max_abs_x": 5.157,
-      "max_abs_y": 3.212,
+      "end_dist_to_goal_m": 0.029,
+      "max_abs_x": 5.312,
+      "max_abs_y": 2.918,
       "recoveries": 0
     },
     {
@@ -158,22 +158,22 @@
       "status": 4,
       "succeeded": true,
       "error_code": 0,
-      "wall_s": 17.45,
-      "sim_s": 17.44,
-      "rtf_mean": 0.999,
-      "path_len_m": 5.557,
-      "mean_speed_mps": 0.319,
+      "wall_s": 16.7,
+      "sim_s": 16.66,
+      "rtf_mean": 0.998,
+      "path_len_m": 5.521,
+      "mean_speed_mps": 0.331,
       "cmd_v_max_mps": 0.499,
-      "cmd_w_max_rps": 0.808,
-      "cmd_samples": 348,
-      "tf_samples": 174,
+      "cmd_w_max_rps": 0.823,
+      "cmd_samples": 334,
+      "tf_samples": 167,
       "end_xy": [
-        3.979,
-        -2.585
+        4.002,
+        -2.491
       ],
-      "end_dist_to_goal_m": 0.088,
-      "max_abs_x": 5.182,
-      "max_abs_y": 2.585,
+      "end_dist_to_goal_m": 0.009,
+      "max_abs_x": 5.285,
+      "max_abs_y": 2.563,
       "recoveries": 0
     },
     {
@@ -185,219 +185,219 @@
       "status": 4,
       "succeeded": true,
       "error_code": 0,
-      "wall_s": 28.65,
-      "sim_s": 28.65,
-      "rtf_mean": 1.0,
-      "path_len_m": 6.807,
-      "mean_speed_mps": 0.238,
-      "cmd_v_max_mps": 0.493,
-      "cmd_w_max_rps": 0.938,
-      "cmd_samples": 573,
-      "tf_samples": 285,
+      "wall_s": 29.9,
+      "sim_s": 29.82,
+      "rtf_mean": 0.997,
+      "path_len_m": 6.542,
+      "mean_speed_mps": 0.219,
+      "cmd_v_max_mps": 0.328,
+      "cmd_w_max_rps": 0.76,
+      "cmd_samples": 598,
+      "tf_samples": 297,
       "end_xy": [
-        0.02,
+        0.027,
         0.016
       ],
-      "end_dist_to_goal_m": 0.025,
-      "max_abs_x": 3.986,
-      "max_abs_y": 2.605,
+      "end_dist_to_goal_m": 0.031,
+      "max_abs_x": 4.001,
+      "max_abs_y": 2.505,
       "recoveries": 0
     }
   ],
   "whole_run": {
-    "tf_samples": 866,
-    "path_len_m": 25.051,
-    "sim_s": 86.9,
-    "wall_s": 86.94,
-    "mean_speed_mps": 0.288,
-    "global_rtf": 0.999,
-    "max_abs_x": 5.182,
-    "max_abs_y": 3.212,
+    "tf_samples": 875,
+    "path_len_m": 24.249,
+    "sim_s": 87.59,
+    "wall_s": 87.84,
+    "mean_speed_mps": 0.277,
+    "global_rtf": 0.997,
+    "max_abs_x": 5.312,
+    "max_abs_y": 2.918,
     "gz_z_min": 0.01,
     "gz_z_max": 0.01,
-    "max_box_penetration_m": -0.5618,
+    "max_box_penetration_m": -0.512,
     "loc_err_m": {
-      "max": 0.764,
-      "mean": 0.19,
-      "samples": 866,
+      "max": 0.302,
+      "mean": 0.072,
+      "samples": 875,
       "series_2s": [
         [
           2.0,
-          0.137
+          0.112
         ],
         [
           4.0,
-          0.137
+          0.112
         ],
         [
           6.0,
-          0.137
+          0.112
         ],
         [
           8.0,
-          0.125
-        ],
-        [
-          10.1,
-          0.127
-        ],
-        [
-          12.1,
-          0.089
-        ],
-        [
-          14.1,
-          0.243
-        ],
-        [
-          16.1,
-          0.5
-        ],
-        [
-          18.1,
-          0.591
-        ],
-        [
-          20.1,
-          0.753
-        ],
-        [
-          22.1,
-          0.502
-        ],
-        [
-          24.1,
-          0.425
-        ],
-        [
-          26.1,
-          0.393
-        ],
-        [
-          28.1,
-          0.342
-        ],
-        [
-          30.2,
-          0.127
-        ],
-        [
-          32.2,
           0.116
         ],
         [
-          34.2,
-          0.225
+          10.1,
+          0.07
         ],
         [
-          36.2,
-          0.21
+          12.1,
+          0.063
         ],
         [
-          38.2,
-          0.238
+          14.1,
+          0.063
         ],
         [
-          40.2,
-          0.176
+          16.1,
+          0.122
         ],
         [
-          42.2,
-          0.174
+          18.1,
+          0.097
         ],
         [
-          44.2,
-          0.169
-        ],
-        [
-          46.2,
-          0.19
-        ],
-        [
-          48.3,
-          0.224
-        ],
-        [
-          50.3,
-          0.169
-        ],
-        [
-          52.3,
-          0.153
-        ],
-        [
-          54.3,
-          0.131
-        ],
-        [
-          56.3,
-          0.084
-        ],
-        [
-          58.3,
+          20.1,
           0.062
         ],
         [
-          60.3,
-          0.075
+          22.1,
+          0.258
         ],
         [
-          62.3,
+          24.1,
+          0.057
+        ],
+        [
+          26.1,
+          0.021
+        ],
+        [
+          28.2,
+          0.023
+        ],
+        [
+          30.2,
+          0.018
+        ],
+        [
+          32.2,
+          0.011
+        ],
+        [
+          34.2,
+          0.056
+        ],
+        [
+          36.2,
+          0.057
+        ],
+        [
+          38.2,
+          0.061
+        ],
+        [
+          40.2,
+          0.105
+        ],
+        [
+          42.2,
           0.104
         ],
         [
-          64.3,
-          0.109
+          44.2,
+          0.102
         ],
         [
-          66.3,
-          0.067
-        ],
-        [
-          68.4,
-          0.089
-        ],
-        [
-          70.4,
-          0.069
-        ],
-        [
-          72.4,
-          0.059
-        ],
-        [
-          74.4,
-          0.045
-        ],
-        [
-          76.4,
-          0.143
-        ],
-        [
-          78.4,
-          0.142
-        ],
-        [
-          80.4,
-          0.095
-        ],
-        [
-          82.4,
-          0.091
-        ],
-        [
-          84.4,
+          46.2,
           0.081
         ],
         [
+          48.2,
+          0.104
+        ],
+        [
+          50.3,
+          0.013
+        ],
+        [
+          52.3,
+          0.02
+        ],
+        [
+          54.3,
+          0.005
+        ],
+        [
+          56.3,
+          0.033
+        ],
+        [
+          58.3,
+          0.025
+        ],
+        [
+          60.3,
+          0.036
+        ],
+        [
+          62.3,
+          0.068
+        ],
+        [
+          64.3,
+          0.101
+        ],
+        [
+          66.3,
+          0.123
+        ],
+        [
+          68.3,
+          0.098
+        ],
+        [
+          70.4,
+          0.02
+        ],
+        [
+          72.4,
+          0.04
+        ],
+        [
+          74.4,
+          0.065
+        ],
+        [
+          76.4,
+          0.098
+        ],
+        [
+          78.4,
+          0.075
+        ],
+        [
+          80.4,
+          0.098
+        ],
+        [
+          82.4,
+          0.037
+        ],
+        [
+          84.4,
+          0.083
+        ],
+        [
           86.4,
-          0.047
+          0.13
         ]
       ],
       "excluding_unmapped": {
-        "max": 0.256,
-        "mean": 0.205,
-        "samples": 84,
+        "max": 0.107,
+        "mean": 0.087,
+        "samples": 71,
         "excl_m": 2.0,
         "note": "剔除离静态/动态未建图障碍物 ≤2 m 的样本；剩下的样本才用来判地图-世界一致性"
       }
@@ -421,17 +421,17 @@
   },
   "static_clearance": {
     "avoid_box_1": {
-      "min_gap_m": 0.701,
-      "min_gap_tf_m": 0.739
+      "min_gap_m": 0.735,
+      "min_gap_tf_m": 0.766
     },
     "avoid_box_2": {
-      "min_gap_m": 0.64,
-      "min_gap_tf_m": 0.486
+      "min_gap_m": 0.69,
+      "min_gap_tf_m": 0.705
     }
   },
   "dynamic": {
-    "samples": 5183,
-    "dedup_samples": 2573,
+    "samples": 5219,
+    "dedup_samples": 2611,
     "mode": "triggered_retreat",
     "segment": {
       "start": [
@@ -446,7 +446,7 @@
     },
     "travel_m": 0.59,
     "travel_expected_m": 0.59,
-    "motion_duration_s": 1.707,
+    "motion_duration_s": 1.704,
     "motion_speed_mps": 0.346,
     "window_speed_1s_median_mps": 0.293,
     "deviation_from_segment_m": 0.0,
@@ -460,32 +460,32 @@
       -1.94,
       -1.35
     ],
-    "min_center_dist_m": 1.144,
-    "min_gap_m": 0.892,
+    "min_center_dist_m": 1.062,
+    "min_gap_m": 0.807,
     "worst_gap": {
-      "wall_t": 1795174111.5,
+      "wall_t": 1795184740.6,
       "robot_xy": [
-        2.214,
-        -2.491
+        2.76,
+        -2.407
       ],
       "box_xy": [
         2.5,
         -1.35
       ],
-      "center_dist_m": 1.177,
-      "gap_m": 0.892
+      "center_dist_m": 1.088,
+      "gap_m": 0.807
     },
-    "encounter_samples": 1724,
+    "encounter_samples": 1699,
     "encounter": {
       "wall_s": [
-        1795174063.7,
-        1795174119.8
+        1795184693.7,
+        1795184749.5
       ],
-      "cmd_samples": 1130,
+      "cmd_samples": 1123,
       "cmd_v_min_mps": 0.0,
-      "cmd_v_mean_mps": 0.323,
-      "tf_speed_min_mps": 0.0,
-      "tf_speed_mean_mps": 0.328
+      "cmd_v_mean_mps": 0.321,
+      "tf_speed_min_mps": 0.004,
+      "tf_speed_mean_mps": 0.318
     }
   },
   "collision_monitor": {
@@ -500,9 +500,9 @@
         2.0,
         0.0
       ],
-      "path_len_m": 12.646,
+      "path_len_m": 12.175,
       "baseline_path_len_m": 9.143,
-      "delta_m": 3.503
+      "delta_m": 3.032
     },
     {
       "goal": [
@@ -510,9 +510,9 @@
         -2.5,
         0.0
       ],
-      "path_len_m": 5.557,
+      "path_len_m": 5.521,
       "baseline_path_len_m": 4.843,
-      "delta_m": 0.714
+      "delta_m": 0.678
     },
     {
       "goal": [
@@ -520,9 +520,9 @@
         0.0,
         0.0
       ],
-      "path_len_m": 6.807,
+      "path_len_m": 6.542,
       "baseline_path_len_m": 5.456,
-      "delta_m": 1.351
+      "delta_m": 1.086
     }
   ],
   "checks": {
@@ -535,7 +535,7 @@
     "topics": {
       "ok": true,
       "scan_hz": 5.0,
-      "odom_hz": 29.33
+      "odom_hz": 29.0
     },
     "goals_succeeded": {
       "ok": true,
@@ -543,19 +543,19 @@
         {
           "succeeded": true,
           "error_code": 0,
-          "sim_s": 33.34,
+          "sim_s": 33.71,
           "error": null
         },
         {
           "succeeded": true,
           "error_code": 0,
-          "sim_s": 17.44,
+          "sim_s": 16.66,
           "error": null
         },
         {
           "succeeded": true,
           "error_code": 0,
-          "sim_s": 28.65,
+          "sim_s": 29.82,
           "error": null
         }
       ]
@@ -563,16 +563,16 @@
     "reached_goal": {
       "ok": true,
       "end_dist_to_goal_m": [
-        0.121,
-        0.088,
-        0.025
+        0.029,
+        0.009,
+        0.031
       ],
       "tol": 0.3
     },
     "inside_field": {
       "ok": true,
-      "max_abs_x": 5.182,
-      "max_abs_y": 3.212
+      "max_abs_x": 5.312,
+      "max_abs_y": 2.918
     },
     "no_fall": {
       "ok": true,
@@ -584,30 +584,30 @@
     },
     "no_map_overlap": {
       "ok": true,
-      "max_box_penetration_m": -0.5618,
+      "max_box_penetration_m": -0.512,
       "tol": 0.05,
       "note": "场地平台/墙的 48 块碰撞 box 投影；5 cm = 碰撞体栅格粒度"
     },
     "localization_consistent": {
       "ok": true,
-      "all_samples_max_m": 0.764,
+      "all_samples_max_m": 0.302,
       "excluding_unmapped": {
-        "max": 0.256,
-        "mean": 0.205,
-        "samples": 84,
+        "max": 0.107,
+        "mean": 0.087,
+        "samples": 71,
         "excl_m": 2.0,
         "note": "剔除离静态/动态未建图障碍物 ≤2 m 的样本；剩下的样本才用来判地图-世界一致性"
       },
       "tol": 0.5,
-      "note": "未建图障碍物附近 AMCL 会被带偏（实测 0.9~1.05 m），判据只用在离未建图障碍物 >2 m 的样本上；全场最大值也照样写进报告"
+      "note": "TF(map->base_footprint) vs Gazebo 真值，全样本；修复前未建图障碍物附近会带偏到 0.76~1.05 m（当时判据只能剔除 ≤2 m 样本），换成 likelihood_field_prob + do_beamskip 后全场 max 0.315 m"
     },
     "speed_sane": {
       "ok": true,
       "vx_max_from_params": 0.5,
       "cmd_v_max_mps": [
+        0.497,
         0.499,
-        0.499,
-        0.493
+        0.328
       ]
     },
     "obstacles_on_route": {
@@ -631,12 +631,12 @@
       "ok": true,
       "per_box": {
         "avoid_box_1": {
-          "min_gap_m": 0.701,
-          "min_gap_tf_m": 0.739
+          "min_gap_m": 0.735,
+          "min_gap_tf_m": 0.766
         },
         "avoid_box_2": {
-          "min_gap_m": 0.64,
-          "min_gap_tf_m": 0.486
+          "min_gap_m": 0.69,
+          "min_gap_tf_m": 0.705
         }
       },
       "clear_min_m": 0.22,
@@ -647,7 +647,7 @@
       "config_speed_mps": 0.3,
       "window_speed_1s_median_mps": 0.293,
       "motion_speed_mps": 0.346,
-      "motion_duration_s": 1.707,
+      "motion_duration_s": 1.704,
       "travel_m": 0.59,
       "travel_expected_m": 0.59,
       "park_err_m": 0.0,
@@ -662,22 +662,22 @@
     },
     "dynamic_clearance": {
       "ok": true,
-      "min_gap_m": 0.892,
-      "min_center_dist_m": 1.144,
+      "min_gap_m": 0.807,
+      "min_center_dist_m": 1.062,
       "worst_gap": {
-        "wall_t": 1795174111.5,
+        "wall_t": 1795184740.6,
         "robot_xy": [
-          2.214,
-          -2.491
+          2.76,
+          -2.407
         ],
         "box_xy": [
           2.5,
           -1.35
         ],
-        "center_dist_m": 1.177,
-        "gap_m": 0.892
+        "center_dist_m": 1.088,
+        "gap_m": 0.807
       },
-      "encounter_samples": 1724,
+      "encounter_samples": 1699,
       "clear_min_m": 0.22,
       "encounter_max_m": 2.0,
       "note": "无接触 + 确实遭遇过（中心距 <1 m）；否则动态测试无意义"

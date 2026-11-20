@@ -5,12 +5,13 @@
 ## 1. 当前状态
 
 - 现在做什么、卡在哪、下一步：[PROGRESS.md](PROGRESS.md)（顶部区块，最新的在最前）。
-- 最近一次交接：[docs/handoffs/2026-11-20-obstacle-avoidance-acceptance.md](docs/handoffs/2026-11-20-obstacle-avoidance-acceptance.md)。
+- 最近一次交接：[docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md](docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md)。
 
 ## 2. 交接记录（docs/handoffs/）
 
 按会话追加，新文件优先于旧文件：
 
+- [2026-11-20 未建图障碍物把 AMCL 带偏（窄缝后漂走）根因+beam skip 修复+gate_deep 回归](docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md)
 - [2026-11-20 绕障+动态避障验收（副线 Gazebo）](docs/handoffs/2026-11-20-obstacle-avoidance-acceptance.md)
 - [2026-11-20 翻转后场地 Nav2 地图+三目标闭环](docs/handoffs/2026-11-20-nav2-map-on-flipped-field.md) / [2026-11-19 碰撞 box+键盘遥控](docs/handoffs/2026-11-19-collision-box-and-keyboard-teleop.md) / [场地翻转+配色](docs/handoffs/2026-11-19-3v3-field-flip-and-colors.md)
 - [2026-11-04 标定与首次实车回放收尾](docs/handoffs/2026-11-04-car-slam-lap-calibration-replay.md)

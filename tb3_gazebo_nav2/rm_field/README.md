@@ -1210,3 +1210,49 @@ Gazebo/RViz 窗口被关后 launch 随之退出），所以有一阵点击完全
 
 **操作总结**：点地图 → 走；状态栏"定位误差"变大（>0.4 m 会提示）→ 按 **T**（仿真真值重定位），
 窗口会自动把上一个目标重发出去继续走；平移到没有真值的真实场景时，双击右键给真实位置同理。
+
+## 20. 2026-11-20 深夜五补：未建图障碍物把 AMCL 带偏（"钻过缝隙后定位飘走"）——根因 + 修复 + 回归
+
+**用户报**：在场地中间摆两块障碍物，让车从 0.8 m 缝隙钻过去，钻过去后定位漂到别处。
+
+**复现**：`config/avoid_obstacles.json` 新增 `gate_deep`（两块 1.0×1.2×1.0 m，门洞仍 0.80 m，
+窄段沿行进方向 1.2 m ≈ Gazebo GUI 默认箱量级），入口 `bash nav2_gap_deep.sh`。
+修复前（`likelihood_field` + `do_beamskip:false`）实测：
+
+- 过门时 in-range 束里 **平均 70%、峰值 90%** 是地图上没有的箱体回波；
+- AMCL 自己的打分（nav2 实现是加性 `p += pz³`，`pz = z_hit·exp(−d²/2σ²) + z_rand/range_max`，
+  `range ≥ laser_max_range` 的束跳过）：真值位姿 **p≈20**，"贴着平台边/墙角"的错误位姿 **p≈50~60**；
+- 估计在 16.5 s 开始跳、17.1 s 已偏 1.54 m、**最终 2.9 m**；粒子数 2115→801（下限）→2513、
+  粒子展布 std 峰值 0.58 m；nav2 19 次恢复后 **ABORTED**，车停在门后 1.3 m 处不动（不自愈）。
+
+**机制**：地图里没有的回波落在自由区 → 每束只值 0.0032（命中地图 0.271）；门内这类束占多数后，
+真值位姿不再是最大似然，估计被拉到"所有束都能解释成障碍"的贴墙/角落位姿；AMCL 跟丢后不会自己回来
+（实测停 80 s 不变）。场地图还 **180° 点对称**（室内格 99.5% 一致），镜像分支也几乎同分 →
+所以是"飘到另一个地方"，不是偏几十厘米。
+
+**修复**（只改 2 行，由 `make_nav2_params.py` 生成，勿手改 yaml）：
+`laser_model_type: "likelihood_field_prob"` + `do_beamskip: true`——把"所有粒子都解释不了"的束
+当离群束丢掉。`config/nav2_params_rm.yaml` 已重新生成。
+
+**回归结果**（`bash nav2_gap_deep.sh` + `python3 verify_narrow_gap.py --scenario gate_deep`）：
+
+| 场景 | 修复前 | 修复后（两跑）|
+|---|---|---|
+| gate_deep（1.0×1.2 箱，深 1.2 m）| 漂 2.9 m、ABORTED | SUCCEEDED；到点 **0.293 / 0.231 m**；定位 **max 0.413 / 0.318 m**（门段 0.156 / 0.149 m）|
+| gate（0.6×0.5 箱）| 0.383 m 最大定位误差 | **0.087 m**，到点 0.075 m |
+| 绕障 15 项 | 全场定位 max 0.764 m（判据只能剔除 ≤2 m 样本）| **15/15 全过**，全场定位 max **0.315→0.302 m**，判据改回全样本 |
+
+**窄通道验收新增第 6 项判据** `localization_consistent`：TF(map->base_footprint) vs Gazebo 真值
+全局 max <0.50 m，并单独给"门线 ±0.9 m 穿门段"的 max——原来 5 项只测几何，漂了也照样全过。
+
+**同日修掉的另外两个 bug**
+
+1. `make_obstacles_world.py --only braking` 一直返回 1：`check()` 漏了 braking 分支
+   （"生成的障碍物模型数 1 != 配置 0"），`nav2_braking.sh` 第 0 步就退出、刹车验收入口是坏的。
+   已补 braking 校核（模型存在/kinematic/隐藏点与弹出点/宽度 ≥2.6 m），4 个变体现在都能生成+校核。
+2. 退出路径崩溃：`map_click.py` 收盘 `terminate called without an active exception`；
+   `goal_pose_bridge.py` SIGINT 时 `RCLError: failed to initialize wait set`。根因是
+   `rclpy.spin()`/默认信号处理会先 `rcl_shutdown`，后台循环还在 wait set 里。改成
+   `signal_handler_options=NO` + 信号只置位 + executor 轮询 + 统一收尾顺序
+   （停 spin → shutdown executor → destroy node → rclpy.shutdown），Tk 关窗也走同一路径。
+   实测：两个脚本 `kill -TERM` 后日志只有"收到退出信号…"，无 traceback/terminate。

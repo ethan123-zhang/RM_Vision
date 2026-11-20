@@ -1,9 +1,27 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-20
+> 最后更新：2026-11-20（深夜五补）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **✅ 2026-11-20 深夜五补（副线 Gazebo）："钻过窄缝后定位飘走"根因查清并修好——不是车/雷达/地图对齐坏，而是两块障碍物只在 Gazebo 世界里、不在导航静态地图里，AMCL 把它们的回波当证据，窄缝里真值位姿的似然被压到贴墙假位姿之下 → 漂 2.9 m 且不自愈。修法：AMCL 改 `likelihood_field_prob` + `do_beamskip: true`（2 行，`make_nav2_params.py` 生成）；新增第 4 个专项场景 `gate_deep`（1.0×1.2 箱、门洞 0.8 m）回归。**
+> ①**复现**：`gate_deep` 修复前过门时 in-range 束 70%（峰值 90%）是未建图箱体回波；真值位姿 p≈20，
+> "贴平台边/墙角"位姿 p≈50~60；估计 16.5 s 起跳、最终 **2.9 m**、粒子 2115→801→2513、nav2 19 次恢复后
+> **ABORTED** 停车；停 80 s 不自愈。场地图 180° 点对称（室内格 99.5%）→ 镜像分支几乎同分，所以飘几米。
+> ②**修复后**（两跑）：`gate_deep` SUCCEEDED，到点 **0.293 / 0.231 m**，定位 max **0.413 / 0.318 m**
+> （门段 0.156 / 0.149）；标准 `gate` 定位 max **0.087 m**、到点 0.075；绕障 15 项 **全过**、
+> 全场定位 max **0.315→0.302 m**（判据从"剔除 ≤2 m 样本"改回**全样本 <0.5 m**）。
+> ③**新增/改**：`config/avoid_obstacles.json` 的 `gate_deep` 段、`worlds/…_gap_deep.sdf.xacro`、
+> `nav2_gap_deep.sh`、`verify_narrow_gap.py`（`--scenario`，新增第 6 项定位一致判据，报告
+> `results/report_narrow_gap_deep.json`）、`make_nav2_params.py`（生成 beam-skip 参数）、
+> `make_obstacles_world.py`、`verify_nav2_obstacles.py`、`README.md` §20。
+> ④**同时修掉**：`make_obstacles_world.py --only braking` 一直返回 1（`check()` 漏 braking 分支，
+> 刹车世界入口 `nav2_braking.sh` 第 0 步就退出）；`map_click.py` 退出 `terminate called without an
+> active exception` 与 `goal_pose_bridge.py` SIGINT 的 `RCLError: failed to initialize wait set`
+> （改 `signal_handler_options=NO`+信号置位+executor 轮询+统一收尾顺序；实测 TERM 后无 traceback）。
+> ⑤**下次进入点**：`bash nav2_gap_deep.sh && python3 verify_narrow_gap.py --scenario gate_deep`
+> （约 90 s + 启动）；改动**未提交**。详见 `docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md`。
 
 > **✅ 2026-11-20 深夜（副线 Gazebo）：远距离导航定位漂移 + 重定位后路径不更新，两个都修了——AMCL 换成"适配本仿真"的参数（12 m 路线最大误差 0.160 m），重定位后自动重发目标让 nav2 重规划（复现测试：不重发会停在 2.59 m 外，重发后到点 0.24 m）。**
 > ①**定位**：官方 amcl 的 `laser_max_range:100`（实际雷达 3.5 m）与 `recovery_alpha_*=0`（恢复关闭）

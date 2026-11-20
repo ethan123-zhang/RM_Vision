@@ -5,6 +5,11 @@
      静态箱（static）+ 动态箱（kinematic，triggered_retreat：停在走道正中，机器人靠近后让开）
   B. worlds/rmul2027_3v3_up_nav2_braking.sdf.xacro —— 安全层（collision_monitor）刹车验收用
      只有一个"突然出现"的宽挡板（kinematic，先藏在角落，机器人进到 0.7 m 内瞬移到正前方）
+  C. worlds/rmul2027_3v3_up_nav2_gap.sdf.xacro —— 窄通道（贴边）验收用
+     两块 0.6×0.5 m 小箱，门洞 0.80 m（5 cm 栅格下能过）
+  D. worlds/rmul2027_3v3_up_nav2_gap_deep.sdf.xacro —— 窄通道 + 定位压力回归用
+     门洞同样 0.80 m，但箱子放大到 1.0×1.2 m（≈GUI 默认箱量级）：AMCL 在未建图大障碍物之间
+     会漂（修复前实测 2.9 m），用来回归 likelihood_field_prob + do_beamskip
 
 为什么要生成而不是手写：障碍物几何在**两处**被使用——
   1. 世界里的碰撞/视觉模型（Gazebo 物理 + 雷达）；
@@ -47,6 +52,7 @@ OUT = {
     "obstacles": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_obstacles.sdf.xacro"),
     "braking": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_braking.sdf.xacro"),
     "gap": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_gap.sdf.xacro"),
+    "gate_deep": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_gap_deep.sdf.xacro"),
 }
 MARK_BEGIN = "    <!-- AVOID_OBSTACLES_BEGIN（由 make_obstacles_world.py 从 config/avoid_obstacles.json 生成，勿手改）-->"
 MARK_END = "    <!-- AVOID_OBSTACLES_END -->"
@@ -101,8 +107,9 @@ def build_text(cfg, variant):
         blocks.append(box_model(pop["name"], pop["hidden"], size,
                                 pop.get("z_center", size[2] / 2.0),
                                 pop.get("color", [0.85, 0.25, 0.20]), "kinematic"))
-    else:      # gap：窄通道（两道墙之间留一个刚好能过的门）
-        for ob in cfg["gate"]["boxes"]:
+    else:      # gap / gate_deep：两道墙之间留一个刚好能过的门
+        key = "gate" if variant == "gap" else "gate_deep"
+        for ob in cfg[key]["boxes"]:
             size = ob["size"]
             blocks.append(box_model(ob["name"], ob["center"], size, size[2] / 2.0,
                                     ob.get("color", [0.30, 0.75, 0.30]), "static"))
@@ -168,8 +175,25 @@ def check(variant):
         if L < 0.40:
             errs.append(f"动态箱移动线段 {L:.2f} m < 0.40 m（1 s 窗口测不出速度）")
         summary = f"静态箱 {len(cfg['static'])} 块 + 动态箱 1 块；动态 {dyn.get('mode')} {d_start}->{d_end}（{L:.2f} m）@ {dyn['speed']} m/s"
-    elif variant == "gap":
-        gate = cfg["gate"]
+    elif variant == "braking":
+        # 刹车场景只有一个"先藏后弹"的挡板：这里校核它的存在性/尺寸/kinematic 标记，
+        # 以及"真能挡死走廊"（宽度 ≥2.6 m），否则 collision_monitor 的前提不成立。
+        pop = cfg["popup"]
+        names.append(pop["name"])
+        _check_box(text, pop["name"], pop["hidden"], pop["size"], "kinematic", errs)
+        for p, tag in ((pop["hidden"], "hidden"), (pop["appear"], "appear")):
+            if abs(p[0]) > 6.0 - 0.3 or abs(p[1]) > 4.0 - 0.3:
+                errs.append(f"挡板 {tag}={p} 太贴外墙")
+        width = pop["size"][0]
+        if width < 2.6:
+            errs.append(f"挡板宽 {width:.2f} m < 2.6 m：挡不住 3.2 m 宽的走廊")
+        if abs(pop["appear"][0]) > 0.1:
+            errs.append(f"挡板弹出点 x={pop['appear'][0]:.2f} 不在中线 x=0 附近")
+        summary = (f"刹车挡板 {width:.2f}×{pop['size'][1]:.2f}×{pop['size'][2]:.2f} m，"
+                   f"藏在 {pop['hidden']} → 弹到 {pop['appear']}（kinematic）")
+    elif variant in ("gap", "gate_deep"):
+        key = "gate" if variant == "gap" else "gate_deep"
+        gate = cfg[key]
         for ob in gate["boxes"]:
             names.append(ob["name"])
             _check_box(text, ob["name"], ob["center"], ob["size"], "static", errs)
@@ -193,8 +217,15 @@ def check(variant):
             errs.append(f"门洞 {gap:.2f} m 不在 0.60~1.20 m 的窄通道范围")
         if gate["goal"][1] <= es["center"][1]:
             errs.append("目标点必须在门北侧")
+        if variant == "gate_deep":
+            # 定位压力场景要的是"长窄段"：箱子沿行进方向要比 0.5 m 小门深得多，
+            # 否则门里待不到一个 AMCL 更新周期，复现不出漂移。
+            depth = min(ws["size"][1], es["size"][1])
+            if depth < 1.0:
+                errs.append(f"gate_deep 箱子深度 {depth:.2f} m < 1.0 m（复现不出 AMCL 漂移）")
         summary = (f"窄通道：门洞 {gap:.2f} m（车宽 0.44，两侧余量 "
-                   f"{outer_w:.2f}/{outer_e:.2f} m），目标 {gate['goal']}；"
+                   f"{outer_w:.2f}/{outer_e:.2f} m），箱子深度 "
+                   f"{min(ws['size'][1], es['size'][1]):.2f} m，目标 {gate['goal']}；"
                    f"5 cm 栅格量化 ±0.025 m")
     n = len(re.findall(r'<model name="(?:avoid_|dynamic_|popup_|gate_)', text))
     if n != len(names):
@@ -213,7 +244,7 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--only", choices=sorted(OUT), default=None)
     args = ap.parse_args()
-    variants = [args.only] if args.only else ["obstacles", "braking", "gap"]
+    variants = [args.only] if args.only else ["obstacles", "braking", "gap", "gate_deep"]
     rc = 0
     for v in variants:
         if not args.check:

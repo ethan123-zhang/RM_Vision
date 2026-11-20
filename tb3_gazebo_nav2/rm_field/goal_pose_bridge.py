@@ -14,15 +14,31 @@ stdout：`READY`（就绪）→ 每次点击 `GOAL [...]` → `CANCELLED`/`ACCEP
 """
 import math
 import os
+import signal
 import sys
+import threading
 import time
 
 os.environ.setdefault("ROS_DOMAIN_ID", "42")
 
+# 进程刚起、ROS 库还在 import 时收到 SIGINT/SIGTERM：默认处置是立即终止（exit 143，跳过清理）。
+# 先接管成置位，main() 里再换成真正的 handler。
+_EARLY_SIGNALS = []
+
+
+def _early_signal(signum, _frame):
+    _EARLY_SIGNALS.append(signum)
+
+
+signal.signal(signal.SIGINT, _early_signal)
+signal.signal(signal.SIGTERM, _early_signal)
+
 import rclpy                                            # noqa: E402
 from rclpy.action import ActionClient                   # noqa: E402
+from rclpy.executors import SingleThreadedExecutor      # noqa: E402
 from rclpy.node import Node                             # noqa: E402
 from rclpy.parameter import Parameter                   # noqa: E402
+from rclpy.signals import SignalHandlerOptions          # noqa: E402
 from geometry_msgs.msg import PoseStamped                # noqa: E402
 from nav2_msgs.action import NavigateToPose             # noqa: E402
 
@@ -108,25 +124,50 @@ class GoalPoseBridge(Node):
 
 
 def main():
-    rclpy.init()
-    node = GoalPoseBridge()
-    print("等待 /navigate_to_pose action server ...", flush=True)
-    if not node.client.wait_for_server(timeout_sec=90.0):
-        print("!! 等不到导航 action server（栈没起来？）", flush=True)
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+    # 信号只置位，不在 handler 里 shutdown：rclpy 默认 handler 会直接 rcl_shutdown，
+    # 主循环还在 wait set 里 → RCLError（logs/goal_pose_bridge.log 那次就是这么崩的）
+    stop = threading.Event()
+
+    def _on_signal(_signum, _frame):
+        stop.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _on_signal)
+    if _EARLY_SIGNALS:                  # 启动阶段就收到信号：不建节点，直接干净退出
+        print("启动时收到退出信号，直接退出", flush=True)
         rclpy.shutdown()
-        return 2
-    # 等仿真时钟就绪，避免刚启动时 use_sim_time 还是 0
-    t0 = node.get_clock().now().nanoseconds
-    while node.get_clock().now().nanoseconds == 0:
-        rclpy.spin_once(node, timeout_sec=0.1)
-    _ = t0
-    print("READY 可以在地图上点坐标了（2D Goal Pose 或 Nav2 Goal）", flush=True)
+        return 0
+    node = GoalPoseBridge()
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    rclpy.shutdown()
-    return 0
+        print("等待 /navigate_to_pose action server ...", flush=True)
+        # 自己轮询而不用 wait_for_server：它一阻塞就是 90 s，期间 SIGTERM 退不出来
+        t0 = time.monotonic()
+        while not stop.is_set() and not node.client.server_is_ready():
+            if time.monotonic() - t0 > 90.0:
+                break
+            time.sleep(0.1)
+        if not stop.is_set() and not node.client.server_is_ready():
+            print("!! 等不到导航 action server（栈没起来？）", flush=True)
+            return 2
+        # 等仿真时钟就绪，避免刚启动时 use_sim_time 还是 0
+        while not stop.is_set() and node.get_clock().now().nanoseconds == 0:
+            executor.spin_once(timeout_sec=0.1)
+        if stop.is_set():
+            print("收到退出信号，直接退出", flush=True)
+            return 0
+        print("READY 可以在地图上点坐标了（2D Goal Pose 或 Nav2 Goal）", flush=True)
+        while not stop.is_set():
+            executor.spin_once(timeout_sec=0.1)
+        print("收到退出信号，正在关闭 ...", flush=True)
+        return 0
+    finally:
+        # 顺序：先停 executor（不再进 wait set），再销毁 node，最后 shutdown
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

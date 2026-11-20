@@ -21,14 +21,29 @@
 import argparse
 import math
 import os
+import signal
 import sys
 import threading
 import time
 
 os.environ.setdefault("ROS_DOMAIN_ID", "42")
 
+# 进程刚起、ROS 库还在 import 时收到 SIGINT/SIGTERM：默认处置是立即终止（exit 143，跳过清理）。
+# 先接管成置位，main() 里再换成真正的 handler。
+_EARLY_SIGNALS = []
+
+
+def _early_signal(signum, _frame):
+    _EARLY_SIGNALS.append(signum)
+
+
+signal.signal(signal.SIGINT, _early_signal)
+signal.signal(signal.SIGTERM, _early_signal)
+
 import rclpy                                                    # noqa: E402
 from rclpy.action import ActionClient                           # noqa: E402
+from rclpy.executors import SingleThreadedExecutor              # noqa: E402
+from rclpy.signals import SignalHandlerOptions                  # noqa: E402
 from rclpy.node import Node                                     # noqa: E402
 from rclpy.parameter import Parameter                           # noqa: E402
 from rclpy.time import Time                                     # noqa: E402
@@ -88,7 +103,15 @@ class RosBackend:
         self.last_goal = None              # 最近一次目标（重定位后要用它重发，让路径按新位姿重算）
         self.goal_active = False
         self.node.create_subscription(Path, "/plan", self._on_plan, 10)
-        threading.Thread(target=rclpy.spin, args=(self.node,), daemon=True).start()
+        self._stop = threading.Event()
+        self._shut = False
+        self._timers = []
+        self._executor = SingleThreadedExecutor()
+        self._executor.add_node(self.node)
+        # 不用 rclpy.spin()：它只能靠 rcl_shutdown 停，context 一关 spin 还在 wait set 里就
+        # RCLError / C++ terminate（logs/map_click.log 的 terminate 就是这么来的）。
+        self._spin_thread = threading.Thread(target=self._spin, daemon=True)
+        self._spin_thread.start()
         try:
             from gz.msgs10.pose_v_pb2 import Pose_V
             from gz.transport13 import Node as GzNode
@@ -96,6 +119,48 @@ class RosBackend:
             self.gz.subscribe(Pose_V, "/world/rmul2027_3v3/pose/info", self._on_truth)
         except Exception as e:                                   # noqa: BLE001
             print(f"（收不到 Gazebo 真值，定位误差显示不可用: {e}）", flush=True)
+
+    def _spin(self):
+        while not self._stop.is_set():
+            try:
+                self._executor.spin_once(timeout_sec=0.1)
+            except Exception:                                   # noqa: BLE001
+                if self._stop.is_set():
+                    break                                       # 退出中，executor 已关
+                raise                                           # 真异常不吞，暴露出来
+
+    def _later(self, delay, fn):
+        """可取消的定时器：shutdown 后再触发会去碰已经销毁的 node。"""
+        t = threading.Timer(delay, fn)
+        t.daemon = True
+        t.start()
+        self._timers.append(t)
+        return t
+
+    def shutdown(self):
+        """退出顺序：先让 spin 线程退出，再销毁 node；rclpy.shutdown() 由调用方最后调。
+
+        反过来（先关 context 再让 spin 醒来）就是日志里的 RCLError / terminate。
+        """
+        if self._shut:
+            return
+        self._shut = True
+        for t in self._timers:
+            t.cancel()
+            if t.is_alive():                                    # 已触发但还没跑完：等它走完再销毁 node
+                t.join(timeout=1.0)
+        self._timers = []
+        self._stop.set()
+        if self._spin_thread.is_alive():
+            self._spin_thread.join(timeout=3.0)
+        try:
+            self._executor.shutdown()
+        except Exception:                                       # noqa: BLE001
+            pass                                                # 退出路径上不能再抛
+        try:
+            self.node.destroy_node()
+        except Exception:                                       # noqa: BLE001
+            pass
 
     def _on_truth(self, msg):
         for p in msg.pose:
@@ -184,10 +249,10 @@ class RosBackend:
         if resend_goal and self.last_goal is not None:
             self.status = "已重定位，正在按新位姿重发目标（路径会重算）..."
             print(f"（重定位后重发目标 {self.last_goal}）", flush=True)
-            threading.Timer(1.0, self._resend_goal).start()
+            self._later(1.0, self._resend_goal)
 
     def _resend_goal(self):
-        if self.last_goal is None:
+        if self._stop.is_set() or self.last_goal is None:
             return
         print(f"RESEND goal {self.last_goal} after relocalize", flush=True)
         if self.goal_handle is not None:
@@ -208,8 +273,13 @@ class RosBackend:
 
 
 class MapWindow(tk.Tk):
-    def __init__(self, yaml_path, ppm):
+    def __init__(self, yaml_path, ppm, stop_event=None):
         super().__init__()
+        self._stop_event = stop_event
+        self._closing = False
+        self._shut = False
+        # 点窗口的 X 也走统一退出路径；不接管的话 Tk 直接 destroy，ROS 侧没人收尾
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.title("地图点选 → 机器人导航（左键=去这里 / Shift+左键=只报坐标 / 右键双击=重定位 / T=按真值重定位 / 中键=取消）")
         self.res_m, (ox, oy, _), img_path = yaml_load(yaml_path)
         self.ox, self.oy = ox, oy
@@ -264,6 +334,26 @@ class MapWindow(tk.Tk):
         """窗口映射后才有真实屏坐标；自动化点击（xdotool）靠这行换算。"""
         print(f"GEOM canvas_root=({self.canvas.winfo_rootx()},{self.canvas.winfo_rooty()}) "
               f"size=({self.cw}x{self.ch}) ppm={self.ppm}", flush=True)
+
+    # ---- 退出 -----------------------------------------------------------
+    def _on_close(self):
+        """窗口关闭：只退 mainloop，ROS/Tk 的销毁留给 main() 按顺序做。"""
+        self._closing = True
+        self.quit()
+
+    def shutdown(self):
+        """统一退出：ROS 先干净退出（停 spin → 销毁 node → rclpy.shutdown），再销毁窗口。"""
+        if self._shut:
+            return
+        self._shut = True
+        self._closing = True
+        self.backend.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
+        try:
+            self.destroy()
+        except tk.TclError:
+            pass
 
     # ---- 坐标换算 -------------------------------------------------------
     def w2c(self, x, y):
@@ -394,6 +484,13 @@ class MapWindow(tk.Tk):
 
     # ---- 刷新 -----------------------------------------------------------
     def _tick(self):
+        if self._closing:
+            return
+        # 信号 handler 只置位，主循环在这里看到再收尾（信号 handler 里碰 Tk/ROS 不安全）
+        if self._stop_event is not None and self._stop_event.is_set():
+            print("收到退出信号，关闭窗口", flush=True)
+            self._on_close()
+            return
         if self.backend.client.server_is_ready():
             if self.backend.status.startswith("等 action"):
                 self.backend.status = "就绪：左键点地图派目标"
@@ -447,15 +544,29 @@ def main():
     ap.add_argument("--self-test", action="store_true",
                     help="启动后自动触发一次右键重定位确认 + T 重定位（无鼠标环境自检）")
     args = ap.parse_args()
-    rclpy.init()
-    win = MapWindow(args.map, args.ppm)
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+    # 信号只置位，不在 handler 里碰 ROS/Tk：rclpy 默认 handler 会直接 rcl_shutdown，
+    # 后台 spin 还在 wait set 里 → RCLError / C++ terminate
+    stop = threading.Event()
+
+    def _on_signal(_signum, _frame):
+        stop.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _on_signal)
+    if _EARLY_SIGNALS:                  # 启动阶段就收到信号：不建窗口，直接干净退出
+        print("启动时收到退出信号，直接退出", flush=True)
+        rclpy.shutdown()
+        return 0
+    win = MapWindow(args.map, args.ppm, stop)
     if args.self_test:
         win.after(1500, win._self_test)
     try:
-        win.mainloop()
+        if not stop.is_set():
+            win.mainloop()
     except KeyboardInterrupt:
         pass
-    rclpy.shutdown()
+    win.shutdown()
     return 0
 
 
