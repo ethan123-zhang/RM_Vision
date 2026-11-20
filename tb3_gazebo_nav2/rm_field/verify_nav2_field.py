@@ -25,6 +25,11 @@ import os
 import re
 import time
 
+# nav2_field.sh 把整栈放在 ROS_DOMAIN_ID=42 里。跨 shell 直接跑本脚本时若没导出它，
+# 新 participant 会落到 domain 0，连 /navigate_to_pose 的 action server 都发现不了
+# （症状就是 "!! 等不到导航 action server"）。这里默认对齐 42，显式设置的环境变量优先。
+os.environ.setdefault("ROS_DOMAIN_ID", "42")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, "results")
 os.makedirs(RES, exist_ok=True)
@@ -273,7 +278,10 @@ def main():
                         "z_window": [Z_MIN, Z_MAX], "obstacle_margin": OBS_MARGIN,
                         "n_obstacle_boxes": len(boxes)},
               "goals": [list(g) for g in GOALS],
+              "ros_domain_id": os.environ.get("ROS_DOMAIN_ID"),
               "params_hint": {"vx_max": VX_MAX, "params_file": PARAMS_FILE}}
+
+    print(f"[0] ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID')}")
 
     print("[1] 等 action server /navigate_to_pose ...")
     if not v.client.wait_for_server(timeout_sec=90.0):

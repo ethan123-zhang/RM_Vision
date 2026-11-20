@@ -85,10 +85,28 @@ done
 [ "$got" = 1 ] || echo "警告: map->odom 仍不可用"
 
 echo "=== 5. 生命周期 ==="
+# 刚起完时节点发现会滞后几秒（ros2 lifecycle get 报 Node not found），这里最多重试 20 s
 for n in /amcl /map_server /planner_server /controller_server /bt_navigator /behavior_server /velocity_smoother; do
   printf "  %-24s " "$n"
-  timeout 5 ros2 lifecycle get "$n" 2>&1 | head -1
+  out=""
+  for i in $(seq 1 10); do
+    out=$(timeout 5 ros2 lifecycle get "$n" 2>&1 | head -1)
+    echo "$out" | grep -qE 'active|inactive|unconfigured|finalized' && break
+    sleep 2
+  done
+  echo "$out"
 done
+
+echo "=== 5b. 等导航 action server（/navigate_to_pose）==="
+NAVOK=0
+for i in $(seq 1 30); do
+  if timeout 5 ros2 action list 2>/dev/null | grep -qx '/navigate_to_pose'; then
+    NAVOK=1; echo "  action server 就绪 (${i}x2s)"; break
+  fi
+  sleep 2
+done
+[ "$NAVOK" = 1 ] || echo "  警告: 60 s 内没看到 /navigate_to_pose —— 先别跑验收，看上面的生命周期与日志"
+
 echo "=== 6. 近期报错 ==="
 grep -iE 'Failed to|Aborting bringup|died' "$LOG" | grep -v 'Timed out waiting' | tail -8 || true
-echo "OK: 栈已拉起，用 python3 verify_nav2_field.py 跑导航验收；停止用 stop_nav2_field.sh"
+echo "OK: 栈已拉起。跑验收：ROS_DOMAIN_ID=42 python3 verify_nav2_field.py（脚本内部也默认 42）；停止用 stop_nav2_field.sh"

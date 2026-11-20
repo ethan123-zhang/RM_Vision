@@ -23,6 +23,7 @@
 | M2 | 只靠几何生成，没有独立证据 | — | 平光正俯视渲染（1 px=0.01 m，关阴影）+ 颜色分类独立校核 | 地面 bbox 12.00×8.00（四边偏差 ≤0.01）、绿色 17.884 vs 障碍 17.880（重心差 0.022 m）|
 | B1 | 三目标闭环第一次全失败：goal 1 `error_code 103`、车卡在 (2.5,−1.6)；TF 报 (2.29,−1.43)、Gazebo 真值 (1.73,3.42)，**差 4.8 m** | **PGM 上下翻转**：`build_map()` 第 0 行是 y 最小的一行，map_server 把图像第 0 行当**最上面一行**；`write_pgm()` 直接 `tobytes()` → 整图翻了过来。翻转前自由区是整块矩形，翻转前后一样 ⇒ 潜伏半个月 | `write_pgm()` 落盘写 `img[::-1]`（预览同步）；新增 `read_pgm()`/`occupancy_at()` 按 map_server 约定回读 + **`pgm_orientation` 判据**核对 8 个已知点 | 回读：`(−2.5,−2.3)` 0→**100**（障碍）、`(−2.5,2.3)` 100→**0**（自由）；闭环三目标全 SUCCEEDED |
 | B2 | 重启栈后所有生命周期节点 `Node not found`、话题 0 Hz、`local_costmap` 一直 `Invalid frame ID "odom"` | 旧 `gz sim` 不响应 SIGTERM，清场后残留 → **两个仿真器同时发 `/clock /scan /tf`**；另有 FastRTPS 共享内存端口残留 | `nav2_field.sh` 清场改 **TERM → 3 s → KILL −9**，并 `rm /dev/shm/fastrtps*` | 清场后 `残留: 0`，重起 7 节点全 active |
+| B3 | 换 shell 跑 `python3 verify_nav2_field.py` 报 `!! 等不到导航 action server`，但栈里 `ROS_DOMAIN_ID=42 ros2 action list` 能看到 `/navigate_to_pose` | 栈在 domain 42（`nav2_field.sh` 自己 export），**脚本的 export 不传给调用者 shell** → 验收进程落在 domain 0 | 脚本内 `os.environ.setdefault("ROS_DOMAIN_ID", "42")`（显式优先）+ 启动时打印实际 domain；`nav2_field.sh` 收尾等到 `/navigate_to_pose` 真出现在 `ros2 action list`（≤60 s）再报 OK | 在**未导出** domain 的 shell 里直接跑：11 项全过（0.173/0.088/0.094 m，19.762 m / 80.08 s）|
 
 ## 3. 地图校核（`bash capture_nav_map_up.sh` → `results/report_nav_map_up.json`）
 
@@ -61,7 +62,9 @@
 | 真在跑 | 峰值 ≤ vx_max×1.05、平均 >0.05 | 0.495 ≤ 0.5；平均 0.256 m/s |
 | 定位一致 | TF vs Gazebo 真值 < 0.50 m | 均值 0.144 / **最大 0.443 m** |
 
-整圈：19.622 m / 76.66 s（RTF 0.999）。
+整圈：19.622 m / 76.66 s（RTF 0.999）。复跑一次（在**未导出 `ROS_DOMAIN_ID`** 的新 shell 里，
+专门验 B3 的修法）：到位 0.173 / 0.088 / 0.094 m，19.762 m / 80.08 s、平均 0.247 m/s、
+cmd_vel 峰值 0.492，11 项仍全过。
 
 **定位误差怎么读**：`whole_run.loc_err_m.series_2s` 每 2 s 一个点。转弯段瞬时到 0.44 m
 （AMCL 按 `update_min_d=0.25 m` 周期修正 + 电机里程计偏航误差在里程计原点上放大），
@@ -88,9 +91,10 @@
 
 修改：
 
-- `nav2_field.sh` — 指向新世界/新图；清场改 TERM→KILL 并清 FastRTPS 共享内存
+- `nav2_field.sh` — 指向新世界/新图；清场改 TERM→KILL 并清 FastRTPS 共享内存；生命周期查询加重试；
+  收尾先等 `/navigate_to_pose` 出现在 `ros2 action list`（≤60 s）再报 OK，并给出带 domain 的验收命令
 - `verify_nav2_field.py` — 判据换成 ±6.00/±4.00；新增"不压平台/墙""不爬台""定位一致"；
-  三个目标；`loc_err_m` 含 2 s 采样趋势
+  三个目标；`loc_err_m` 含 2 s 采样趋势；`os.environ.setdefault("ROS_DOMAIN_ID", "42")`（跨 shell 直接跑）
 - `results/report_nav2_field.json`、`README.md`（§13.3 欠账划掉、新增 §15）
 - `PROGRESS.md`、本 handoff
 

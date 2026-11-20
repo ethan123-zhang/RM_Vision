@@ -713,7 +713,7 @@ bash capture_nav_map_up.sh          # 起取证世界 → 抓 1600x1100 正俯�
 
 ```bash
 bash nav2_field.sh                  # 起栈（默认 headless；--gui 带 RViz）
-python3 verify_nav2_field.py        # 三目标闭环（约 80 s）
+python3 verify_nav2_field.py        # 三目标闭环（约 80 s；脚本内部默认 ROS_DOMAIN_ID=42，跨 shell 直接跑）
 bash stop_nav2_field.sh
 ```
 
@@ -731,6 +731,10 @@ bash stop_nav2_field.sh
 | 真在跑 | 19.622 m / 76.66 s，平均 **0.256 m/s**，cmd_vel 峰值 **0.495 ≤ vx_max 0.5** |
 | 定位一致 | TF 与 Gazebo 真值偏差 均值 **0.144** / 最大 **0.443 m**（转弯段，见 §15.4）|
 
+复跑一次（在**没有导出 `ROS_DOMAIN_ID`** 的新 shell 里，验证坑 3 的修法）：到位
+0.173 / 0.088 / 0.094 m，19.762 m / 80.08 s、平均 0.247 m/s、cmd_vel 峰值 0.492，
+z 仍恒 0.0100，**11 项仍全过**。
+
 ### 15.4 这轮踩的坑（两个都不是参数问题）
 
 **坑 1：PGM 上下翻转——旧图一直有，只是矩形看不出来。**
@@ -745,6 +749,15 @@ bash stop_nav2_field.sh
 会出现两个仿真器同时发 `/clock /scan /tf`，症状是 `local_costmap` 一直
 `Invalid frame ID "odom"`、话题频率 0、生命周期查询 `Node not found`。
 修法：`nav2_field.sh` 清场改成 **TERM → 3 s → KILL −9**，并清 `/dev/shm/fastrtps*` 残留端口文件。
+
+**坑 3：验收脚本跑在另一个 ROS domain 上（"等不到 action server"）。**
+栈在 `ROS_DOMAIN_ID=42` 里（`nav2_field.sh` 自己 export），但脚本的 export 不会传给调用者的
+shell。换个终端直接 `python3 verify_nav2_field.py` 时它会落到 **domain 0**，于是报
+`!! 等不到导航 action server`，而栈其实一切正常（`ROS_DOMAIN_ID=42 ros2 action list` 能看到
+`/navigate_to_pose`）。修法：脚本里 `os.environ.setdefault("ROS_DOMAIN_ID", "42")`（显式环境变量优先），
+启动报告里也打印实际 domain；`nav2_field.sh` 收尾会直接给出带 domain 的验收命令，
+并在退出前**等到 `/navigate_to_pose` 真的出现在 `ros2 action list`**（最多 60 s），
+不再出现"脚本说 OK、验收找不到服务器"。
 
 **定位误差怎么读**：电机里程计在转弯段有偏航误差，AMCL 按 `update_min_d=0.25 m` 周期修正，
 TF 瞬时能差到 0.44 m；静止/直行段只有 **0.02~0.07 m**（`report_nav2_field.json` 的

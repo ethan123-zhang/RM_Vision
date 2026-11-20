@@ -23,7 +23,9 @@
 > （TF 与 Gazebo 真值差 **4.8 m**、goal 1 error 103、车卡在平台上）。修法：落盘写 `img[::-1]` + 新增
 > `pgm_orientation` 回读判据（8 个已知点）。另：重启栈时旧 `gz sim` 不响应 SIGTERM，会变成两个仿真器同时发
 > `/clock /scan /tf`（症状 `Invalid frame ID "odom"`、话题 0 Hz），`nav2_field.sh` 清场改成 TERM→3 s→KILL −9
-> 并清 `/dev/shm/fastrtps*`。
+> 并清 `/dev/shm/fastrtps*`。另：验收脚本跨 shell 跑会落到 **domain 0**（栈在 `ROS_DOMAIN_ID=42`）→
+> 报"等不到 action server"；已在脚本内 `setdefault("ROS_DOMAIN_ID","42")`，`nav2_field.sh` 收尾也会
+> 等到 `/navigate_to_pose` 真出现再报 OK。
 > ⑤**剩余**：围挡高度（现为场地自带 0.40 m 外墙）与赛规核对、绕障/动态避障未测、5 cm 栅格贴边场景要再加细。
 > 详见 [HANDOFF 2026-11-20](docs/handoffs/2026-11-20-nav2-map-on-flipped-field.md)、`rm_field/README.md` §15。
 
