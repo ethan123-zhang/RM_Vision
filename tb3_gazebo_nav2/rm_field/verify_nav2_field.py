@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Nav2 在 RMUL2027 3V3 场地上的导航验收（前置：bash nav2_field.sh 已把栈拉起来）。
+"""Nav2 在 RMUL2027 3V3 场地（翻转后）上的导航验收（前置：bash nav2_field.sh 已把栈拉起来）。
 
 判据（全部是读数，不看画面）：
   1. 仿真链路：/scan、/odom 有稳定频率；节点用仿真时间；map->base_footprint 可查
-  2. 导航闭环：两个 /navigate_to_pose 目标都 SUCCEEDED（error_code 0）
-  3. 不出界：整段导航中 map->base_footprint 始终在围挡内侧面以内（|x|<6.25-0.15、|y|<4.25-0.15）
-  4. 不掉落：整段导航中 Gazebo 里机器人 z 始终 > -0.05（没掉下 0.503 m 的台子）
-  5. 到位：每段结束时 TF 实测位置距目标 < 0.30 m
-  6. 真在跑：按 TF 轨迹算路程/仿真时长，平均速度应在 TB3 速度上限 (0.26 m/s) 以内、且 >0.05
+  2. 导航闭环：每个 /navigate_to_pose 目标都 SUCCEEDED（error_code 0）
+  3. 不出界：整段导航中 map->base_footprint 始终在墙面内侧面以内（|x|<6.00-0.15、|y|<4.00-0.15）
+  4. 不掉台/不爬台：整段导航中 Gazebo 里机器人 z ∈ (-0.05, 0.06)。翻转后地面 z=0，
+     平台顶 0.20 m、墙顶 0.40 m；爬上台 z 会到 0.21，掉到台外底板 z 会到 -0.09
+  5. 不压平台/墙：整段导航中 TF 点不得侵入任何碰撞 box 的投影超过 5 cm
+     （5 cm = 碰撞体栅格粒度；超过说明定位跳变或真撞上去了）
+  6. 到位：每段结束时 TF 实测位置距目标 < 0.30 m
+  6b. 定位一致：TF(map->base_footprint) 与 Gazebo 真值偏差 < 0.50 m
+      （地图/世界不一致时这里会先炸：2026-11-20 PGM 上下翻转就是这条抓出来的）
+  7. 真在跑：按 TF 轨迹算路程/仿真时长，平均速度应在 TB3 速度上限 (0.5 m/s) 以内、且 >0.05
 
 为什么不用 /amcl_pose 算位置：AMCL 只在"移动超过 0.25 m / 转超过 0.2 rad"时才发布，
 用它算终点会滞后半米。TF（map->base_footprint）是导航栈真正在用的位姿，直接采样。
@@ -24,13 +29,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, "results")
 os.makedirs(RES, exist_ok=True)
 
+# 翻转后场地（2026-11-19）：地面 z=0，场内凸起 0.19~0.40 m；外墙内侧面 ±6.00 / ±4.00
+# （实测见 debug/box_collisions.json → stats.test_geometry，与导航用的 48 块碰撞 box 同源）
 FIELD_LEN, FIELD_WID = 12.600, 8.600
-INNER_X = FIELD_LEN / 2 - 0.05      # 围挡内侧面 6.250
-INNER_Y = FIELD_WID / 2 - 0.05      # 4.250
-MARGIN = 0.15                       # 车身半径余量（判"没压到/穿出围挡"）
-GOALS = [(4.0, 2.0, 0.0), (0.0, 0.0, 0.0)]
+INNER_X = 6.00
+INNER_Y = 4.00
+MARGIN = 0.15                       # 车身半径余量（判"没压到/穿出外墙"）
+OBS_MARGIN = 0.05                   # 允许侵入 box 投影的深度（=碰撞体 5 cm 栅格粒度）
+# TF 位姿与 Gazebo 真值的最大允许偏差（m）。实测本仿真里转弯段瞬时 0.37 m、直行/静止段
+# 0.02~0.06 m：这是 AMCL 按 update_min_d=0.25 m 周期修正 + odom 偏航误差在里程计原点上
+# 放大出来的滞后，不是地图错位（PGM 上下翻转那次是 4.8 m，量级完全不同）。
+LOC_ERR_MAX = 0.50
+Z_MIN, Z_MAX = -0.05, 0.06          # 机器人 z 必须在这个窗口内（不落台、不爬台）
+GOALS = [(4.0, 2.0, 0.0), (4.0, -2.5, 0.0), (0.0, 0.0, 0.0)]
 GOAL_TOL = 0.30                     # 结束时到位判据（m）
 GOAL_TIMEOUT = 240.0
+BOXES_JSON = os.path.join(HERE, "debug", "box_collisions.json")
 # 速度上限从实际用的 nav2 参数文件里读（velocity_smoother 的 vx_max）；
 # TB3 底盘本身不限速，所以"跑多快"完全由这份参数决定，不能凭印象写 0.26。
 PARAMS_FILE = os.environ.get(
@@ -44,6 +58,26 @@ def read_vx_max(path=PARAMS_FILE):
         return float(m.group(1)) if m else None
     except OSError:
         return None
+
+
+def load_obstacles(path=BOXES_JSON):
+    """碰撞 box 的水平投影 → [(x0, x1, y0, y1)]。地形/平台/墙都在里面。"""
+    with open(path, "r", encoding="utf-8") as f:
+        boxes = json.load(f)["boxes"]
+    out = []
+    for b in boxes:
+        cx, cy, _ = b["center"]
+        sx, sy, _ = b["size"]
+        out.append((cx - sx / 2.0, cx + sx / 2.0, cy - sy / 2.0, cy + sy / 2.0))
+    return out
+
+
+def box_penetration(x, y, boxes):
+    """点 (x,y) 对全部 box 投影的最大侵入深度；>0 表示落在某个 box 内部。"""
+    pen = -1e9
+    for x0, x1, y0, y1 in boxes:
+        pen = max(pen, min(x - x0, x1 - x, y - y0, y1 - y))
+    return pen
 
 
 VX_MAX = read_vx_max()
@@ -77,6 +111,7 @@ class Verifier(Node):
         self.amcl = []
         self.gz = {}
         self.gz_names = set()
+        self.gz_track = []     # (wall_t, x, y, z) Gazebo 真值
         self.track = []        # (wall_t, sim_t, x, y, yaw)
         self.scan_n = 0
         self.odom_n = 0
@@ -112,10 +147,13 @@ class Verifier(Node):
         self.cmd.append((time.time(), m.linear.x, m.angular.z))
 
     def _on_gz(self, msg):
+        now = time.time()
         for p in msg.pose:
             self.gz_names.add(p.name)
             if "waffle" in p.name and "::" not in p.name:
                 self.gz[p.name] = (p.position.x, p.position.y, p.position.z)
+                # Gazebo 真值：用来量化 AMCL/TF 的定位误差（地图与世界是否一致的最直接证据）
+                self.gz_track.append((now, p.position.x, p.position.y, p.position.z))
 
     def _sample_tf(self):
         now = time.time()
@@ -229,8 +267,11 @@ class Verifier(Node):
 def main():
     rclpy.init()
     v = Verifier()
+    boxes = load_obstacles()
     report = {"field": {"len": FIELD_LEN, "wid": FIELD_WID,
-                        "fence_inner_half": [INNER_X, INNER_Y], "margin": MARGIN},
+                        "wall_inner_half": [INNER_X, INNER_Y], "margin": MARGIN,
+                        "z_window": [Z_MIN, Z_MAX], "obstacle_margin": OBS_MARGIN,
+                        "n_obstacle_boxes": len(boxes)},
               "goals": [list(g) for g in GOALS],
               "params_hint": {"vx_max": VX_MAX, "params_file": PARAMS_FILE}}
 
@@ -270,6 +311,22 @@ def main():
     sim_dt = (tr[-1][1] - tr[0][1]) if len(tr) > 1 else 0.0
     wall_dt = (tr[-1][0] - tr[0][0]) if len(tr) > 1 else 0.0
     zs = [p[2] for p in v.gz.values()] or [0.0]
+    # 定位误差：TF(map->base_footprint) vs Gazebo 真值，按 wall 时间取最近的真值帧
+    loc_err = []
+    loc_series = []
+    loc_t0 = tr[0][0] if tr else 0.0
+    if v.gz_track:
+        gt = v.gz_track
+        gi = 0
+        for wall_t, _sim_t, x, y, _yaw in tr:
+            while gi + 1 < len(gt) and gt[gi + 1][0] <= wall_t:
+                gi += 1
+            g = gt[gi]
+            if abs(g[0] - wall_t) <= 0.5:
+                loc_err.append(math.hypot(x - g[1], y - g[2]))
+                if wall_t - loc_t0 >= 2.0:            # 每 2 s 留一个点看趋势（偏置 vs 漂移）
+                    loc_t0 = wall_t
+                    loc_series.append([round(wall_t - tr[0][0], 1), round(loc_err[-1], 3)])
     report["whole_run"] = {
         "tf_samples": len(tr),
         "path_len_m": round(total_path, 3),
@@ -280,6 +337,12 @@ def main():
         "max_abs_y": round(max((abs(p[3]) for p in tr), default=0.0), 3),
         "gz_z_min": round(min(zs), 4),
         "gz_z_max": round(max(zs), 4),
+        "max_box_penetration_m": round(
+            max((box_penetration(p[2], p[3], boxes) for p in tr), default=-1e9), 4),
+        "loc_err_m": {"max": round(max(loc_err), 3) if loc_err else None,
+                      "mean": round(sum(loc_err) / len(loc_err), 3) if loc_err else None,
+                      "samples": len(loc_err),
+                      "series_2s": loc_series},
         "limit": [round(INNER_X - MARGIN, 3), round(INNER_Y - MARGIN, 3)],
         "amcl_samples": len(v.amcl),
         "cmd_samples": len(v.cmd),
@@ -302,8 +365,21 @@ def main():
             "max_abs_x": report["whole_run"]["max_abs_x"],
             "max_abs_y": report["whole_run"]["max_abs_y"],
             "limit": report["whole_run"]["limit"]},
-        "no_fall": {"ok": report["whole_run"]["gz_z_min"] > -0.05,
-                    "gz_z_min": report["whole_run"]["gz_z_min"]},
+        "no_fall": {"ok": report["whole_run"]["gz_z_min"] > Z_MIN,
+                    "gz_z_min": report["whole_run"]["gz_z_min"], "z_min_limit": Z_MIN},
+        "no_climb": {"ok": report["whole_run"]["gz_z_max"] < Z_MAX,
+                     "gz_z_max": report["whole_run"]["gz_z_max"], "z_max_limit": Z_MAX},
+        "no_obstacle_overlap": {
+            "ok": report["whole_run"]["max_box_penetration_m"] <= OBS_MARGIN,
+            "max_box_penetration_m": report["whole_run"]["max_box_penetration_m"],
+            "tol": OBS_MARGIN,
+            "note": "5 cm = 碰撞体栅格粒度；正数=TF 点落在某个平台/墙的投影内"},
+        "localization_consistent": {
+            "ok": report["whole_run"]["loc_err_m"]["max"] is not None
+                  and report["whole_run"]["loc_err_m"]["max"] < LOC_ERR_MAX,
+            "loc_err_m": report["whole_run"]["loc_err_m"], "tol": LOC_ERR_MAX,
+            "note": "TF(map->base_footprint) 与 Gazebo 真值的偏差；"
+                    "地图/世界不一致（如 PGM 上下翻转）时这里会先炸"},
         "reached_goal": {
             "ok": all((r.get("end_dist_to_goal_m") is not None
                        and r["end_dist_to_goal_m"] < GOAL_TOL) for r in results),

@@ -2,16 +2,27 @@
   "field": {
     "len": 12.6,
     "wid": 8.6,
-    "fence_inner_half": [
-      6.25,
-      4.25
+    "wall_inner_half": [
+      6.0,
+      4.0
     ],
-    "margin": 0.15
+    "margin": 0.15,
+    "z_window": [
+      -0.05,
+      0.06
+    ],
+    "obstacle_margin": 0.05,
+    "n_obstacle_boxes": 48
   },
   "goals": [
     [
       4.0,
       2.0,
+      0.0
+    ],
+    [
+      4.0,
+      -2.5,
       0.0
     ],
     [
@@ -28,7 +39,7 @@
   "tf_ready": true,
   "rates": {
     "scan_hz": 5.0,
-    "odom_hz": 29.0
+    "odom_hz": 29.33
   },
   "nav_results": [
     {
@@ -40,22 +51,49 @@
       "status": 4,
       "succeeded": true,
       "error_code": 0,
-      "wall_s": 12.2,
-      "sim_s": 11.6,
-      "rtf_mean": 0.95,
-      "path_len_m": 4.335,
-      "mean_speed_mps": 0.374,
-      "cmd_v_max_mps": 0.496,
-      "cmd_w_max_rps": 0.453,
-      "cmd_samples": 243,
-      "tf_samples": 122,
+      "wall_s": 25.95,
+      "sim_s": 25.94,
+      "rtf_mean": 1.0,
+      "path_len_m": 9.176,
+      "mean_speed_mps": 0.354,
+      "cmd_v_max_mps": 0.493,
+      "cmd_w_max_rps": 0.668,
+      "cmd_samples": 518,
+      "tf_samples": 258,
       "end_xy": [
-        3.875,
-        1.873
+        4.285,
+        1.947
       ],
-      "end_dist_to_goal_m": 0.179,
-      "max_abs_x": 3.875,
-      "max_abs_y": 1.873,
+      "end_dist_to_goal_m": 0.29,
+      "max_abs_x": 4.377,
+      "max_abs_y": 2.025,
+      "recoveries": 0
+    },
+    {
+      "goal": [
+        4.0,
+        -2.5,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 15.5,
+      "sim_s": 15.5,
+      "rtf_mean": 1.0,
+      "path_len_m": 4.81,
+      "mean_speed_mps": 0.31,
+      "cmd_v_max_mps": 0.489,
+      "cmd_w_max_rps": 0.685,
+      "cmd_samples": 310,
+      "tf_samples": 155,
+      "end_xy": [
+        4.13,
+        -2.521
+      ],
+      "end_dist_to_goal_m": 0.132,
+      "max_abs_x": 4.433,
+      "max_abs_y": 2.521,
       "recoveries": 0
     },
     {
@@ -67,44 +105,204 @@
       "status": 4,
       "succeeded": true,
       "error_code": 0,
-      "wall_s": 29.15,
-      "sim_s": 26.99,
-      "rtf_mean": 0.926,
-      "path_len_m": 4.824,
-      "mean_speed_mps": 0.179,
-      "cmd_v_max_mps": 0.279,
-      "cmd_w_max_rps": 0.791,
-      "cmd_samples": 583,
-      "tf_samples": 290,
+      "wall_s": 27.8,
+      "sim_s": 27.78,
+      "rtf_mean": 0.999,
+      "path_len_m": 5.598,
+      "mean_speed_mps": 0.202,
+      "cmd_v_max_mps": 0.495,
+      "cmd_w_max_rps": 0.778,
+      "cmd_samples": 556,
+      "tf_samples": 276,
       "end_xy": [
-        0.037,
-        0.0
+        -0.002,
+        -0.015
       ],
-      "end_dist_to_goal_m": 0.037,
-      "max_abs_x": 3.875,
-      "max_abs_y": 1.877,
+      "end_dist_to_goal_m": 0.015,
+      "max_abs_x": 4.13,
+      "max_abs_y": 2.521,
       "recoveries": 0
     }
   ],
   "whole_run": {
-    "tf_samples": 487,
-    "path_len_m": 9.194,
-    "sim_s": 45.98,
-    "wall_s": 48.86,
-    "mean_speed_mps": 0.2,
-    "global_rtf": 0.941,
-    "max_abs_x": 3.875,
-    "max_abs_y": 1.877,
+    "tf_samples": 764,
+    "path_len_m": 19.622,
+    "sim_s": 76.66,
+    "wall_s": 76.7,
+    "mean_speed_mps": 0.256,
+    "global_rtf": 0.999,
+    "max_abs_x": 4.433,
+    "max_abs_y": 2.521,
     "gz_z_min": 0.01,
     "gz_z_max": 0.01,
+    "max_box_penetration_m": -0.5105,
+    "loc_err_m": {
+      "max": 0.443,
+      "mean": 0.144,
+      "samples": 764,
+      "series_2s": [
+        [
+          2.0,
+          0.063
+        ],
+        [
+          4.0,
+          0.063
+        ],
+        [
+          6.0,
+          0.063
+        ],
+        [
+          8.0,
+          0.058
+        ],
+        [
+          10.1,
+          0.033
+        ],
+        [
+          12.1,
+          0.166
+        ],
+        [
+          14.1,
+          0.307
+        ],
+        [
+          16.1,
+          0.35
+        ],
+        [
+          18.1,
+          0.235
+        ],
+        [
+          20.1,
+          0.274
+        ],
+        [
+          22.1,
+          0.257
+        ],
+        [
+          24.1,
+          0.287
+        ],
+        [
+          26.1,
+          0.356
+        ],
+        [
+          28.1,
+          0.432
+        ],
+        [
+          30.2,
+          0.394
+        ],
+        [
+          32.2,
+          0.256
+        ],
+        [
+          34.2,
+          0.227
+        ],
+        [
+          36.2,
+          0.169
+        ],
+        [
+          38.2,
+          0.123
+        ],
+        [
+          40.2,
+          0.152
+        ],
+        [
+          42.2,
+          0.176
+        ],
+        [
+          44.2,
+          0.117
+        ],
+        [
+          46.2,
+          0.048
+        ],
+        [
+          48.3,
+          0.022
+        ],
+        [
+          50.3,
+          0.033
+        ],
+        [
+          52.3,
+          0.052
+        ],
+        [
+          54.3,
+          0.073
+        ],
+        [
+          56.3,
+          0.077
+        ],
+        [
+          58.3,
+          0.043
+        ],
+        [
+          60.3,
+          0.006
+        ],
+        [
+          62.3,
+          0.012
+        ],
+        [
+          64.3,
+          0.029
+        ],
+        [
+          66.3,
+          0.037
+        ],
+        [
+          68.4,
+          0.035
+        ],
+        [
+          70.4,
+          0.031
+        ],
+        [
+          72.4,
+          0.12
+        ],
+        [
+          74.4,
+          0.218
+        ],
+        [
+          76.4,
+          0.15
+        ]
+      ]
+    },
     "limit": [
-      6.1,
-      4.1
+      5.85,
+      3.85
     ],
-    "amcl_samples": 42,
-    "cmd_samples": 836,
-    "cmd_v_max_mps": 0.496,
-    "cmd_w_max_rps": 0.791
+    "amcl_samples": 98,
+    "cmd_samples": 1394,
+    "cmd_v_max_mps": 0.495,
+    "cmd_w_max_rps": 0.778
   },
   "checks": {
     "sim_time": {
@@ -116,7 +314,7 @@
     "topics": {
       "ok": true,
       "scan_hz": 5.0,
-      "odom_hz": 29.0
+      "odom_hz": 29.33
     },
     "goals_succeeded": {
       "ok": true,
@@ -124,33 +322,215 @@
         {
           "succeeded": true,
           "error_code": 0,
-          "wall_s": 12.2
+          "wall_s": 25.95
         },
         {
           "succeeded": true,
           "error_code": 0,
-          "wall_s": 29.15
+          "wall_s": 15.5
+        },
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "wall_s": 27.8
         }
       ]
     },
     "inside_field": {
       "ok": true,
-      "max_abs_x": 3.875,
-      "max_abs_y": 1.877,
+      "max_abs_x": 4.433,
+      "max_abs_y": 2.521,
       "limit": [
-        6.1,
-        4.1
+        5.85,
+        3.85
       ]
     },
     "no_fall": {
       "ok": true,
-      "gz_z_min": 0.01
+      "gz_z_min": 0.01,
+      "z_min_limit": -0.05
+    },
+    "no_climb": {
+      "ok": true,
+      "gz_z_max": 0.01,
+      "z_max_limit": 0.06
+    },
+    "no_obstacle_overlap": {
+      "ok": true,
+      "max_box_penetration_m": -0.5105,
+      "tol": 0.05,
+      "note": "5 cm = 碰撞体栅格粒度；正数=TF 点落在某个平台/墙的投影内"
+    },
+    "localization_consistent": {
+      "ok": true,
+      "loc_err_m": {
+        "max": 0.443,
+        "mean": 0.144,
+        "samples": 764,
+        "series_2s": [
+          [
+            2.0,
+            0.063
+          ],
+          [
+            4.0,
+            0.063
+          ],
+          [
+            6.0,
+            0.063
+          ],
+          [
+            8.0,
+            0.058
+          ],
+          [
+            10.1,
+            0.033
+          ],
+          [
+            12.1,
+            0.166
+          ],
+          [
+            14.1,
+            0.307
+          ],
+          [
+            16.1,
+            0.35
+          ],
+          [
+            18.1,
+            0.235
+          ],
+          [
+            20.1,
+            0.274
+          ],
+          [
+            22.1,
+            0.257
+          ],
+          [
+            24.1,
+            0.287
+          ],
+          [
+            26.1,
+            0.356
+          ],
+          [
+            28.1,
+            0.432
+          ],
+          [
+            30.2,
+            0.394
+          ],
+          [
+            32.2,
+            0.256
+          ],
+          [
+            34.2,
+            0.227
+          ],
+          [
+            36.2,
+            0.169
+          ],
+          [
+            38.2,
+            0.123
+          ],
+          [
+            40.2,
+            0.152
+          ],
+          [
+            42.2,
+            0.176
+          ],
+          [
+            44.2,
+            0.117
+          ],
+          [
+            46.2,
+            0.048
+          ],
+          [
+            48.3,
+            0.022
+          ],
+          [
+            50.3,
+            0.033
+          ],
+          [
+            52.3,
+            0.052
+          ],
+          [
+            54.3,
+            0.073
+          ],
+          [
+            56.3,
+            0.077
+          ],
+          [
+            58.3,
+            0.043
+          ],
+          [
+            60.3,
+            0.006
+          ],
+          [
+            62.3,
+            0.012
+          ],
+          [
+            64.3,
+            0.029
+          ],
+          [
+            66.3,
+            0.037
+          ],
+          [
+            68.4,
+            0.035
+          ],
+          [
+            70.4,
+            0.031
+          ],
+          [
+            72.4,
+            0.12
+          ],
+          [
+            74.4,
+            0.218
+          ],
+          [
+            76.4,
+            0.15
+          ]
+        ]
+      },
+      "tol": 0.5,
+      "note": "TF(map->base_footprint) 与 Gazebo 真值的偏差；地图/世界不一致（如 PGM 上下翻转）时这里会先炸"
     },
     "reached_goal": {
       "ok": true,
       "end_dist_to_goal_m": [
-        0.179,
-        0.037
+        0.29,
+        0.132,
+        0.015
       ],
       "tol": 0.3
     },
@@ -158,12 +538,14 @@
       "ok": true,
       "vx_max_from_params": 0.5,
       "cmd_v_max_mps": [
-        0.496,
-        0.279
+        0.493,
+        0.489,
+        0.495
       ],
       "mean_speed_mps": [
-        0.374,
-        0.179
+        0.354,
+        0.31,
+        0.202
       ],
       "note": "vx_max 读自 velocity_smoother；TB3 底盘自身不限速"
     }

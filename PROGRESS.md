@@ -1,9 +1,31 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-19
+> 最后更新：2026-11-20
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **✅ 2026-11-20（副线 Gazebo）：翻转后场地的 Nav2 地图重建 + 三目标闭环验收全过；顺带修掉潜伏半个月的 PGM 上下翻转 bug。**
+> ①**地图**（`make_nav_map_up.py` + `capture_nav_map_up.sh`）：自由区 = 墙面内侧面以内 12.0×8.0 = 96 m²
+> − 48 块碰撞 box 投影 18.510 m² = **77.490 m²**；512×352 @0.025 m/px、origin(−6.40,−4.40)；
+> 从出生点 (0,0) 泛洪**单一连通**、0 未连通格、3 个验收目标全可达。
+> ②**独立校核**（平光正俯视渲染 1 px=0.01 m，`worlds/nav_map_capture_up.sdf`）：渲染地面 bbox **12.00×8.00**
+> （四边偏差 ≤0.01）、渲染地面 74.348 vs 地图 74.160、渲染绿色 17.884 vs 地图障碍 17.880（重心差 **0.022 m**）、
+> 核心区逐像素一致 free **99.999%** / 障碍 **99.803%**；**11 项断言全过**（`results/report_nav_map_up.json`）。
+> ③**Nav2 闭环**（`nav2_field.sh` 已切新世界 `worlds/rmul2027_3v3_up_nav2.sdf.xacro` + 新图）：7 个节点全 active、
+> /scan 5.0 Hz、/odom 29.3 Hz、RTF 0.999；(4,2)/(4,−2.5)/(0,0) 三目标 **全 SUCCEEDED**（error_code 0），
+> 结束差 **0.290/0.132/0.015 m**，总 19.622 m / 76.66 s、平均 0.256 m/s、cmd_vel 峰值 0.495 ≤ vx_max 0.5；
+> z 全程 **0.0100**（不落台不爬台）、TF 离任何平台/墙投影最近 **0.51 m**；**11 项判据全过**
+> （`results/report_nav2_field.json`）。定位误差（TF vs Gazebo 真值）均值 0.144 / 最大 0.443 m，最大出现在转弯段
+> （AMCL 按 update_min_d=0.25 m 周期修正的滞后；静止/直行段 0.02~0.07 m）。
+> ④**踩坑（不是参数问题）**：PGM 写盘漏了上下翻转——map_server 把图像第 0 行当**最上面一行**，而 `write_pgm`
+> 直接 `tobytes()` 把整图翻了过来；翻转前自由区是整块矩形所以潜伏了半个月，这轮三目标闭环**第一次全失败**
+> （TF 与 Gazebo 真值差 **4.8 m**、goal 1 error 103、车卡在平台上）。修法：落盘写 `img[::-1]` + 新增
+> `pgm_orientation` 回读判据（8 个已知点）。另：重启栈时旧 `gz sim` 不响应 SIGTERM，会变成两个仿真器同时发
+> `/clock /scan /tf`（症状 `Invalid frame ID "odom"`、话题 0 Hz），`nav2_field.sh` 清场改成 TERM→3 s→KILL −9
+> 并清 `/dev/shm/fastrtps*`。
+> ⑤**剩余**：围挡高度（现为场地自带 0.40 m 外墙）与赛规核对、绕障/动态避障未测、5 cm 栅格贴边场景要再加细。
+> 详见 [HANDOFF 2026-11-20](docs/handoffs/2026-11-20-nav2-map-on-flipped-field.md)、`rm_field/README.md` §15。
 
 > **✅ 2026-11-19（副线 Gazebo）：3V3 场地整体翻转（结构面朝上）+ 重做配色；"轮子转、车不走"的网格碰撞 bug 已用 box 拼块修好并五项验收全过。**
 > ①**翻转**：`debug/make_flipped_meshes.py` 把 `RMUL2027_3V3_V1.0.0.stp` 的网格 `z→-z`（绕序反转、再 −0.10 m），

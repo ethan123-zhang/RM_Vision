@@ -65,3 +65,6 @@ tb3_gazebo_nav2/rm_field/shots/*.png
 !tb3_gazebo_nav2/rm_field/shots/gui_fenced_view*.png
 !tb3_gazebo_nav2/rm_field/shots/nav_topdown.png
 !tb3_gazebo_nav2/rm_field/shots/nav_map_overlay.png
+# 2026-11-20 翻转后场地的出图证据（map_server 校核用）
+!tb3_gazebo_nav2/rm_field/shots/nav_topdown_up.png
+!tb3_gazebo_nav2/rm_field/shots/nav_map_up_overlay.png

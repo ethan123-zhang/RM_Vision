@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!-- 只用于"出 Nav2 地图"的取证世界（翻转后场地，2026-11-20）：
+     翻转后的场地 + 一台 z=20 m 的正俯视相机，1 px = 0.01 m，用来独立校核
+     make_nav_map_up.py 生成的地图自由区。
+     与翻转前的 nav_map_capture.sdf 的区别：
+       - 场地换成 rmul2027_3v3_field_up（结构面朝上）；
+       - **关掉阴影**：平台落下 0.1~0.13 m 的影子会把浅灰地面压暗，颜色分类会误判；
+         这个世界的唯一用途是"看颜色分区域"，所以用平光。
+     颜色含义（models/rmul2027_3v3_field_up/model.sdf 的材质）：
+       浅灰 = 场地地面（z=0，可行驶）  绿 = 内部凸起结构（0.19~0.40 m）
+       黄 = 墙顶沿（0.40 m）           红 = 墙身       深灰 = 场外地板（z=-0.10）
+     用法: gz sim -s -r --headless-rendering worlds/nav_map_capture_up.sdf -->
+<sdf version="1.9">
+  <world name="rmul2027_3v3_up_capture">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <scene>
+      <ambient>0.55 0.55 0.55 1</ambient>
+      <background>0.02 0.023 0.032 1</background>
+      <shadows>false</shadows>
+    </scene>
+    <!-- 平光：一个偏正上方的方向光 + 一个几乎全向的补光，保证从上往下只看得到材质本色 -->
+    <light type="directional" name="flat_sun">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 1.0 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.0 0.0 -1.0</direction>
+    </light>
+    <light type="directional" name="flat_fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.45 0.45 0.45 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.0 0.0 -1.0</direction>
+    </light>
+
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.10 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material><ambient>0.08 0.08 0.09 1</ambient><diffuse>0.12 0.12 0.14 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field_up</uri>
+      <name>rmul2027_3v3_field_up</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <!-- 正俯视相机：光轴朝下，图像列 = 世界 +X，图像行向下 = 世界 -Y。
+         f = (W/2)/tan(hfov/2) = 800/tan(0.3805) = 2000 px
+         地面上 1 px = 20 m / 2000 px = 0.01 m；视野 ±8.0 x ±5.5 m（盖住 12.6x8.6 场地）。 -->
+    <model name="nav_topdown_cam">
+      <static>true</static>
+      <pose>0 0 20 0 1.5707963 1.5707963</pose>
+      <link name="cam_link">
+        <sensor name="nav_topdown" type="camera">
+          <always_on>true</always_on>
+          <update_rate>2</update_rate>
+          <topic>nav_topdown/image</topic>
+          <camera name="nav_topdown">
+            <horizontal_fov>0.7610</horizontal_fov>
+            <image><width>1600</width><height>1100</height><format>R8G8B8</format></image>
+            <clip><near>0.1</near><far>300</far></clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </world>
+</sdf>

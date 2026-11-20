@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# 起 "Nav2 + RMUL2027 3V3 场地"（默认 headless）。
+# 起 "Nav2 + RMUL2027 3V3 场地（翻转后）"（默认 headless）。
 #   bash nav2_field.sh            # 无 GUI（验收用）
 #   bash nav2_field.sh --gui      # 带 Gazebo GUI + RViz（看画面用）
+# 2026-11-20 更新：场地已翻转（结构面朝上，地面 z=0，外墙内侧面 ±6.00/±4.00），
+#   旧世界/旧地图（围挡变体、自由区=整块矩形）已失效，这里指向
+#   worlds/rmul2027_3v3_up_nav2.sdf.xacro + maps/rmul2027_3v3_up.yaml。
+#   地图由 capture_nav_map_up.sh / make_nav_map_up.py 从 48 块碰撞 box 生成。
 # 关键点：
 #   - 场地世界是 xacro（nav2 的 launch 会用 xacro 展成临时 SDF）
-#   - 地图用 maps/rmul2027_3v3_fenced.yaml（围挡内侧面以内为自由区）
 #   - AMCL 不给初始位姿会让 planner_server 起不来 → 这里按 spawn 点 (0,0) 发三次
 set +u
 source /opt/ros/jazzy/setup.bash 2>/dev/null
@@ -18,8 +21,8 @@ GUI=0
 [ "${1:-}" = "--gui" ] && GUI=1
 if [ "$GUI" = 1 ]; then HL=False; RV=True; else HL=True; RV=False; fi
 
-WORLD="$ROOT/worlds/rmul2027_3v3_nav2.sdf.xacro"
-MAP="$ROOT/maps/rmul2027_3v3_fenced.yaml"
+WORLD="$ROOT/worlds/rmul2027_3v3_up_nav2.sdf.xacro"
+MAP="$ROOT/maps/rmul2027_3v3_up.yaml"
 PARAMS=/opt/ros/jazzy/share/nav2_bringup/params/nav2_params.yaml
 LOG="$ROOT/logs/nav2_field.log"
 mkdir -p "$ROOT/logs"
@@ -27,13 +30,19 @@ mkdir -p "$ROOT/logs"
 [ -f "$MAP" ]    || { echo "缺 map: $MAP（先跑 bash capture_nav_map.sh）"; exit 1; }
 
 echo "=== 0. 清场 ==="
-pkill -f 'ros2 launch nav2_bringup' 2>/dev/null
-pkill -f 'gz sim' 2>/dev/null
-pkill -f 'rviz2' 2>/dev/null
-pkill -f 'parameter_bridge' 2>/dev/null
-pkill -f 'component_container' 2>/dev/null
-pkill -f 'robot_state_publisher' 2>/dev/null
+# 先 TERM 再 KILL：gz sim 有时不响应 SIGTERM，留着旧进程会变成两个仿真器同时发
+# /clock /scan /tf（症状：local_costmap 一直报 "Invalid frame ID odom"、话题频率 0）。
+for pat in 'ros2 launch nav2_bringup' 'gz sim' 'rviz2' 'parameter_bridge' \
+           'component_container' 'robot_state_publisher'; do
+  pkill -f "$pat" 2>/dev/null
+done
 sleep 3
+for pat in 'ros2 launch nav2_bringup' 'gz sim' 'parameter_bridge' 'component_container'; do
+  pkill -9 -f "$pat" 2>/dev/null
+done
+sleep 2
+# 清掉上一个 participant 留下的 FastRTPS 共享内存端口文件（否则新栈可能抢不到端口）
+rm -f /dev/shm/fastrtps_port* /dev/shm/fastrtps_* 2>/dev/null
 echo "残留: $(pgrep -fc 'gz sim|ros2 launch|rviz2' 2>/dev/null || echo 0)"
 
 echo "=== 1. 拉起 launch（headless=$HL use_rviz=$RV）==="

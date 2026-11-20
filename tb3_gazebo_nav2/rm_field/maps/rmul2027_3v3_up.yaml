@@ -1,0 +1,8 @@
+# RMUL2027 3V3 场地（翻转后：地面 z=0，凸起结构最高 0.40 m）的 Nav2 地图
+# 由 make_nav_map_up.py 生成：自由区 = 墙壁内侧面以内 − 48 块碰撞 box 的投影
+image: rmul2027_3v3_up.pgm
+resolution: 0.025
+origin: [-6.4, -4.4, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
