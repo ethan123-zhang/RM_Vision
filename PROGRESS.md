@@ -21,7 +21,7 @@
 > active exception` 与 `goal_pose_bridge.py` SIGINT 的 `RCLError: failed to initialize wait set`
 > （改 `signal_handler_options=NO`+信号置位+executor 轮询+统一收尾顺序；实测 TERM 后无 traceback）。
 > ⑤**下次进入点**：`bash nav2_gap_deep.sh && python3 verify_narrow_gap.py --scenario gate_deep`
-> （约 90 s + 启动）；改动**未提交**。详见 `docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md`。
+> （约 90 s + 启动）；已提交 `8e37ad3`（收尾 docs 提交见 git log）。详见 `docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md`。
 
 > **✅ 2026-11-20 深夜（副线 Gazebo）：远距离导航定位漂移 + 重定位后路径不更新，两个都修了——AMCL 换成"适配本仿真"的参数（12 m 路线最大误差 0.160 m），重定位后自动重发目标让 nav2 重规划（复现测试：不重发会停在 2.59 m 外，重发后到点 0.24 m）。**
 > ①**定位**：官方 amcl 的 `laser_max_range:100`（实际雷达 3.5 m）与 `recovery_alpha_*=0`（恢复关闭）
@@ -541,3 +541,4 @@ Ki=0.004四轮均有完整单轮序列，3号补测末尾零速与释放已确�
   `docs/decisions/2026-10-18-yolo-input-576.md`。
 - 2026-10-18：USB2 MJPG 摄像头实测（软解瓶颈 24/48/11 FPS），待换 CSI/USB3；
   aiVault 草稿见 `docs/aiVault/2026-10-18-rdk-x5-yolo-int8-tailcut.md`。
+

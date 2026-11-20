@@ -12,7 +12,7 @@
 | 机器 | Windows + WSL2 Ubuntu-24.04（ROS 2 Jazzy / Gazebo 8.15.0，llvmpipe）|
 | 仓库 | `E:\RM` → `github.com/ethan123-zhang/RM_Vision` |
 | 起点提交 | `353743d`（AMCL 参数修复 + 点选导航）|
-| 本轮提交 | 未提交（见 §8）|
+| 本轮提交 | `8e37ad3`（代码 + 本交接初稿）；收尾补哈希见随后 docs 提交 |
 
 ## 2. 根因（证据链）
 
@@ -110,4 +110,4 @@ bash nav2_gap.sh         && python3 verify_narrow_gap.py
 bash nav2_obstacles.sh   && python3 verify_nav2_obstacles.py
 ```
 
-**提交状态**：本轮改动全部留在工作区未提交（用户未要求提交/推送）。
+**提交状态**：已提交 `8e37ad3`（代码 + 交接初稿）；收尾文档（本哈希补记）为随后的 docs 提交。
