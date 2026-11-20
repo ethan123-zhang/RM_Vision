@@ -1,0 +1,132 @@
+{
+  "scenario": {
+    "gate_gap_m": 0.8,
+    "goal": [
+      0.0,
+      2.6
+    ],
+    "spawn": [
+      0.0,
+      -2.0
+    ],
+    "gate_clear_min_m": 0.2,
+    "grid_quantization_m": 0.025,
+    "boxes": [
+      {
+        "name": "gate_west",
+        "center": [
+          -0.7,
+          0.5
+        ],
+        "size": [
+          0.6,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.3,
+          0.75,
+          0.3
+        ]
+      },
+      {
+        "name": "gate_east",
+        "center": [
+          0.7,
+          0.5
+        ],
+        "size": [
+          0.6,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.3,
+          0.75,
+          0.3
+        ]
+      }
+    ]
+  },
+  "ros_domain_id": "42",
+  "sim_time_ok": true,
+  "tf_ready": true,
+  "nav_result": {
+    "goal": [
+      0.0,
+      2.6,
+      0.0
+    ],
+    "status": 4,
+    "succeeded": true,
+    "error_code": 0,
+    "wall_s": 18.4,
+    "sim_s": 17.66,
+    "rtf_mean": 0.959,
+    "path_len_m": 5.798,
+    "mean_speed_mps": 0.328,
+    "cmd_v_max_mps": 0.499,
+    "cmd_w_max_rps": 0.739,
+    "cmd_samples": 367,
+    "tf_samples": 184,
+    "end_xy": [
+      0.118,
+      2.636
+    ],
+    "end_dist_to_goal_m": 0.124,
+    "max_abs_x": 0.565,
+    "max_abs_y": 2.687,
+    "recoveries": 0
+  },
+  "tf_samples": 199,
+  "gz_samples": 1220,
+  "checks": {
+    "goals_succeeded": {
+      "ok": true,
+      "succeeded": true,
+      "error_code": 0,
+      "error": null
+    },
+    "reached_goal": {
+      "ok": true,
+      "end_dist_to_goal_m": 0.124,
+      "tol": 0.3
+    },
+    "gate_passed": {
+      "ok": true,
+      "crossed": true,
+      "samples_on_gate_line": 26,
+      "max_abs_x_on_gate_m": 0.02,
+      "limit_m": 0.42,
+      "note": "门线 y=0.5±0.1 的样本 |x| 必须 ≤0.42（门洞半宽 0.40 + 2 cm 容差）"
+    },
+    "gate_clearance": {
+      "ok": true,
+      "per_box_min_gap_m": {
+        "gate_west": 0.379,
+        "gate_east": 0.417
+      },
+      "min_gap_m": 0.379,
+      "clear_min_m": 0.2,
+      "worst": {
+        "wall_t": 1795176775.49,
+        "robot_xy": [
+          -0.021,
+          0.245
+        ],
+        "box": "gate_west",
+        "gap_m": 0.379
+      }
+    },
+    "safe_envelope": {
+      "ok": true,
+      "gz_z_min": 0.01,
+      "gz_z_max": 0.01,
+      "max_abs_x": 0.565,
+      "max_abs_y": 2.687
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}

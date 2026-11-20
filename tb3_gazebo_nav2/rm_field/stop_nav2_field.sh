@@ -5,6 +5,8 @@
 set +u
 pkill -f 'ros2 launch nav2_bringup' 2>/dev/null
 sleep 1
+pkill -f 'dynamic_obstacle.py' 2>/dev/null
+pkill -f 'goal_pose_bridge[.]py' 2>/dev/null
 pkill -f 'gz sim' 2>/dev/null
 pkill -f 'parameter_bridge' 2>/dev/null
 pkill -f 'component_container' 2>/dev/null

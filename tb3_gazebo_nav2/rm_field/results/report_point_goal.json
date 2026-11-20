@@ -1,0 +1,155 @@
+{
+  "clicks": [
+    [
+      2.5,
+      -2.0,
+      0.0
+    ],
+    [
+      4.5,
+      1.5,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "retarget": [
+    [
+      2.5,
+      -2.0,
+      0.0
+    ],
+    [
+      1.0,
+      2.0,
+      0.0
+    ]
+  ],
+  "tol_m": 0.3,
+  "ros_domain_id": "42",
+  "sim_time_ok": true,
+  "tf_ready": true,
+  "legs": [
+    {
+      "click": [
+        2.5,
+        -2.0,
+        0.0
+      ],
+      "reached": true,
+      "final_dist_m": 0.164,
+      "wall_s": 11.06,
+      "moved_m": 2.979
+    },
+    {
+      "click": [
+        4.5,
+        1.5,
+        0.0
+      ],
+      "reached": true,
+      "final_dist_m": 0.082,
+      "wall_s": 12.13,
+      "moved_m": 3.99
+    },
+    {
+      "click": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reached": true,
+      "final_dist_m": 0.129,
+      "wall_s": 22.42,
+      "moved_m": 4.663
+    }
+  ],
+  "retarget_result": {
+    "reached_B": true,
+    "final_dist_to_B_m": 0.11,
+    "final_dist_to_A_m": 4.282,
+    "wall_s": 20.62
+  },
+  "tf_samples": 716,
+  "checks": {
+    "sim_time": {
+      "ok": true
+    },
+    "tf_available": {
+      "ok": true
+    },
+    "clicks_reached": {
+      "ok": true,
+      "per_click": [
+        {
+          "click": [
+            2.5,
+            -2.0,
+            0.0
+          ],
+          "reached": true,
+          "final_dist_m": 0.164
+        },
+        {
+          "click": [
+            4.5,
+            1.5,
+            0.0
+          ],
+          "reached": true,
+          "final_dist_m": 0.082
+        },
+        {
+          "click": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "reached": true,
+          "final_dist_m": 0.129
+        }
+      ],
+      "tol_m": 0.3
+    },
+    "click_moves_robot": {
+      "ok": true,
+      "moved_m": [
+        2.979,
+        3.99,
+        4.663
+      ],
+      "note": "每次点击后机器人至少位移 0.30 m，证明 /goal_pose 真的驱动了导航"
+    },
+    "retarget_to_latest": {
+      "ok": true,
+      "reached_B": true,
+      "final_dist_to_B_m": 0.11,
+      "final_dist_to_A_m": 4.282,
+      "wall_s": 20.62,
+      "note": "第二次点击必须取代第一次：停在 E、不在 D"
+    },
+    "inside_field": {
+      "ok": true,
+      "max_abs_x": 4.763,
+      "max_abs_y": 1.992
+    },
+    "no_fall": {
+      "ok": true,
+      "gz_z_min": 0.01
+    },
+    "no_climb": {
+      "ok": true,
+      "gz_z_max": 0.01
+    },
+    "no_map_overlap": {
+      "ok": true,
+      "max_box_penetration_m": -0.4662
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}

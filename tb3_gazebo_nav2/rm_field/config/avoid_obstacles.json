@@ -1,0 +1,133 @@
+{
+  "note": "绕障/刹车验收用障碍物布局。本文件是几何的唯一源：make_obstacles_world.py 用它生成 Gazebo 世界，verify_nav2_obstacles.py / verify_braking.py 用同一份算投影/判据。静态箱位置按 results/baseline_route.json（无障基线）挑：两块箱体都压在基线轨迹上（基线侵入箱体投影）。动态箱是『触发式单程退让』：一开始停在基线走道正中挡住去路，机器人进到 1.5 m 内后，箱体以 0.3 m/s 沿 start->end 让开（向北，朝平台方向；机器人实际走道在它南侧，所以让开方向永远背离机器人）并停住。popup 是刹车验收专用的宽挡板：先藏在 (3,-3)，机器人进到正前方 0.85 m 内瞬移出现，用来逼 collision_monitor 真正刹车。",
+  "static": [
+    {
+      "name": "avoid_box_1",
+      "center": [
+        0.85,
+        -1.45
+      ],
+      "size": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "color": [
+        0.9,
+        0.45,
+        0.05
+      ]
+    },
+    {
+      "name": "avoid_box_2",
+      "center": [
+        4.3,
+        -0.6
+      ],
+      "size": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "color": [
+        0.9,
+        0.45,
+        0.05
+      ]
+    }
+  ],
+  "dynamic": {
+    "name": "dynamic_box",
+    "mode": "triggered_retreat",
+    "start": [
+      2.5,
+      -1.94
+    ],
+    "end": [
+      2.5,
+      -1.35
+    ],
+    "speed": 0.3,
+    "trigger_dist": 1.5,
+    "size": [
+      0.5,
+      0.5,
+      0.6
+    ],
+    "z_center": 0.3,
+    "color": [
+      0.1,
+      0.55,
+      0.9
+    ]
+  },
+  "popup": {
+    "name": "popup_barrier",
+    "hidden": [
+      3.0,
+      -3.0
+    ],
+    "appear": [
+      0.0,
+      2.2
+    ],
+    "trigger_dist": 0.85,
+    "size": [
+      2.8,
+      0.5,
+      0.6
+    ],
+    "z_center": 0.3,
+    "color": [
+      0.85,
+      0.2,
+      0.15
+    ]
+  },
+  "gate": {
+    "boxes": [
+      {
+        "name": "gate_west",
+        "center": [
+          -0.7,
+          0.5
+        ],
+        "size": [
+          0.6,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.3,
+          0.75,
+          0.3
+        ]
+      },
+      {
+        "name": "gate_east",
+        "center": [
+          0.7,
+          0.5
+        ],
+        "size": [
+          0.6,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.3,
+          0.75,
+          0.3
+        ]
+      }
+    ],
+    "goal": [
+      0.0,
+      2.6
+    ],
+    "spawn": [
+      0.0,
+      -2.0
+    ]
+  }
+}

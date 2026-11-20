@@ -5,6 +5,120 @@
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
 
+> **✅ 2026-11-20 深夜（副线 Gazebo）：远距离导航定位漂移 + 重定位后路径不更新，两个都修了——AMCL 换成"适配本仿真"的参数（12 m 路线最大误差 0.160 m），重定位后自动重发目标让 nav2 重规划（复现测试：不重发会停在 2.59 m 外，重发后到点 0.24 m）。**
+> ①**定位**：官方 amcl 的 `laser_max_range:100`（实际雷达 3.5 m）与 `recovery_alpha_*=0`（恢复关闭）
+> 是漂移/跟丢主因；新增 `make_nav2_params.py` → `config/nav2_params_rm.yaml`（3.4 / 0.12 / max_beams 180 /
+> 粒子 800-3000 / update 0.10 / recovery 0.001,0.10 / alpha 0.1），`nav2_field.sh` 默认用它。
+> 实测 `drive_and_track.py`：(0,0)→(4.6,2.1) 约 12 m，误差起点 0.024 / 中位 0.096 / **最大 0.160** / 终点 0.087 m。
+> ②**路径不更新**：`test_relocalize_replan.py` 复现——错误 initialpose → 目标 **ABORTED**；用真值重定位后
+> 估计虽对，但目标已死、离目标 2.59 m 不动；**取消+重发目标**后到点 0.24 m。
+> ③**修复**：`map_click.py` 重定位后自动"取消并重发上一个目标"（ABORTED 保留、SUCCEEDED/手动取消清空），
+> 路径按新位姿重算；配合上一轮的 T 键（仿真真值重定位）与状态栏定位误差显示。
+> ④新增工具 `drive_and_track.py`（边开边测定位误差）、`test_relocalize_replan.py`（重定位→重规划回归）、
+> `make_nav2_params.py`。⑤仍**未提交**。详见 `rm_field/README.md` §19.8。
+
+> **✅ 2026-11-20 深夜（副线 Gazebo）："地图坐标和实际坐标差 4 m"查清——地图/里程计都没问题，是 AMCL 被误触的"右键重定位"设到了错误位置且不会自愈。已改双击确认 + T 键按真值重定位 + 状态栏显示定位误差；现误差 0.037 m。**
+> ①**框架**：导航用 **ROS 2 Nav2 标准框架**（AMCL 定位 / NavFn 规划 / MPPI 控制 / costmap / BT），
+> 自写只有仿真世界生成、起栈验收脚本、点选窗口、`/goal_pose` 桥。**AMCL** = 粒子滤波定位，
+> 激光+地图估计 map 系位姿并发布 `map→odom` 修正，是估计值、可能跟丢。
+> ②**体检**：`check_map_alignment.py` 地图 vs 48 方块 **96.5%** 重合、最优平移 ≈0（地图没错）；
+> `check_localization.py` odom 误差 **0.07 m**（里程计没错）；AMCL 估计 (2.15,0.42) vs 真值
+> (4.93,2.97) → 差 **3.77 m**，`map→odom`=(0.28,5.81,−103°)。
+> ③**根因**：日志 4 条 `initialPoseReceived→Setting pose` 全不在机器人位置（上一版 UI 右键重定位误触），
+> 且 **AMCL 不会自愈**（5 分钟后仍差 4.8 m）；按真值重定位后 **0.037 m / yaw 1°**。
+> ④**修复**：右键重定位改**双击确认**；新增 **T 键=按 Gazebo 真值重定位**；状态栏显示**定位误差**、
+> >0.4 m 提示跟丢；`/initialpose` 连发 3 次；`--self-test` 自检通过。
+> ⑤新增 `check_localization.py` / `relocalize_to_truth.py` / `check_map_alignment.py`。
+> ⑥仍**未提交**。详见 `rm_field/README.md` §19.7。
+
+> **✅ 2026-11-20 深夜（副线 Gazebo）："绕了一大圈"查清——不是规划器绕远，是两处"口袋"被 0.4 m 墙隔开、最短路本来就是 12.5 m；真毛病是点击落点净空 0.18~0.20 m < 车体半径 0.22（nav2 到不了→反复重规划/转圈）。已加"落点吸附 + Shift 探针"。**
+> ①**几何**：`box_027` 是 0.40×1.05 m、高 0.27 m 的墙（x[2.30,2.70] y[2.95,4.00]），把平台北侧
+> 1 m 通道从中间堵死，地图上没有可过缺口；离线算（净空 ≥0.24）西口袋→东口袋最短 **12.52 m**、
+> 出生点→东口袋约 10.7 m，nav2 实际 `/plan` 就是沿东侧通道北上（530 点 6.65 m 一段），
+> **长路线是唯一路线**。
+> ②**真问题**：点击 (1.743,3.643) 净空 0.20、(2.986,3.671) 净空 0.18（<0.22）→ 目标在致命区，
+> nav2 反复重规划/进恢复；另一次 (2.300,3.500) 点在墙里。
+> **已修**：`map_click.py` 落点自动吸附到净空 ≥0.26 m 的最近格（≤1.5 m），障碍内直接拒绝；
+> 实测 (2.971,3.671)→发 (2.975,3.575)，`Goal succeeded`。
+> ③**新发现**：该口袋附近 AMCL 一次漂移 **0.66 m**（nav2 报到达时真值 (3.32,3.51) vs TF (2.91,2.99)）——
+> 属定位偏差，待查/可右键重定位。
+> ④**工具**：`analyze_gap_route.py`（离线最短路+净空）、`path_len_once.py`（采 /plan 长度）、
+> `list_boxes.py`（按区域列方块）、`kill_map_click.sh`；`Shift+左键`=只报坐标+净空。
+> ⑤**栈挂过一次**（退出时 nav2 container `Magick SIGSEGV`，Gazebo/RViz 窗口关掉后 launch 退出）→ 已重启；
+> 别随手关 Gazebo/RViz 窗口。⑥仍**未提交**。详见 `rm_field/README.md` §19.6。
+
+> **✅ 2026-11-20 深夜（副线 Gazebo）：用户报"RViz 点了没反应 / Gazebo Move To 没反应"已定位并修——RViz 是"当前工具不是 Nav2 Goal"，Gazebo 的 Move To 本来就不是导航命令；新增【地图点选】窗口，真实鼠标点击实测到点 0.11 m。**
+> ①**根因**：RViz 启动后当前工具不是 GoalTool（把 GoalTool 排到 Tools 第一也不改变当前工具）——
+> 点地图只动视角。Gazebo Sim 右键 `Move To` 是模型编辑（改位姿），不通知 Nav2，且会破坏 odom/AMCL。
+> ②**新交互**：`map_click.py`【地图点选】窗口（`nav_gui.sh` 自动起；单独 `bash start_map_click.sh`）：
+> **左键=去那里、右键=重定位(/initialpose)、中键=取消**；显示地图+网格+机器人箭头+目标+规划路径。
+> ③**实测**：真实鼠标点 → `CLICK go (2.714,-2.443)` → nav2 `Received a goal` → 到点 TF vs 真值 0.05 m、
+> 与点击点 **0.11 m**（中途 MPPI `Failed to make progress`+spin 一次，恢复后照常到点，既有偶发）。
+> ④RViz 正确用法：**先点工具栏 "Nav2 Goal" 图标**再点地图（`2D Goal Pose` 同理）。
+> ⑤仍按用户要求**先不提交**。详见 `rm_field/README.md` §19.5。
+
+> **✅ 2026-11-20 夜（副线 Gazebo）："在地图上点坐标 → 机器人走过去"交互模式打通，9 项判据全过；GUI 下同一链路实测到点偏差 0.17 m。**
+> ①**入口**：`bash nav_gui.sh` 一条命令起 Gazebo GUI + RViz（`config/rm_field_click.rviz`，由
+> `make_rviz_config.py` 从 nav2 官方配置生成，**2D Goal Pose + Nav2 Goal + 2D Pose Estimate** 三个工具都在）
+> + `/goal_pose` 桥；在 RViz 地图上点一下、拖出朝向即可；再点别处 = 换目标（自动取消旧的）。
+> 命令行等价 `bash goto_xy.sh X Y [YAW]`；纯脚本验收 `bash nav2_field.sh && bash start_goal_bridge.sh && python3 verify_point_goal.py`。
+> ②**验收**（`results/report_point_goal.json`，链路 = RViz 2D Goal Pose 同款 /goal_pose → 桥 → action）：
+> 三次点击到点 **0.164 / 0.082 / 0.129 m**、每点击位移 2.98 / 3.99 / 4.66 m；
+> 换目标：先点 D(2.5,-2.0)、3 s 后点 E(1.0,2.0) → 最终停在 **E 0.110 m**、离 D 4.28 m；
+> 不出界/不掉台/不压平台全过。
+> ③**GUI 实测**：RViz 窗口标题核对到 `config/rm_field_click.rviz`、Gazebo Sim 窗口在、桥单实例；
+> 发 /goal_pose (4.0,-2.0) → 桥 `GOAL→ACCEPTED→SUCCEEDED`、TF 偏差 **0.17 m**；GUI 下 RTF **0.62**（llvmpipe）。
+> ④**踩坑**：脚本连发 3 次点击被桥当成 3 个目标互相取消 → 改"只发一次 + 桥 1 s 同点去抖"；
+> 旧桥实例残留（当时 stop 脚本没杀它）导致点击落到旧桥、日志里看不到但车动了 →
+> `stop_nav2_field.sh`/`nav2_field.sh` 清场都加 `goal_pose_bridge[.]py`。
+> ⑤**提交状态**：仍按用户要求**先不提交**。详见 `rm_field/README.md` §19。
+
+> **✅ 2026-11-20 夜（副线 Gazebo 补测）：安全层刹车验收 6 项判据全过——collision_monitor 在"突然出现的 2.8 m 宽挡板"前 0.24 s 介入、0.79 s 刹到 0.03 m/s、最小间距 0.335 m；围挡/赛规核对收口（规则图是位图无法读，以官方 CAD 为准）。**
+> ①**场景**：`worlds/rmul2027_3v3_up_nav2_braking.sdf.xacro`（同一 JSON 的 popup 段生成）：2.8×0.5×0.6 m
+> 宽挡板先藏 (3,-3)，机器人跑 (0,0)→(0,3.0)，离 (0,2.2) 剩 0.85 m 时瞬移拦满 3.2 m 走廊（绕不过去）；
+> 入口 `bash nav2_braking.sh` + `python3 verify_braking.py` → `results/report_collision_monitor.json`。
+> ②**结果**：pop 前车速 **0.452 m/s**；cm state 事件 **2 次**（STOP + LIMIT，首事件 pop 后 **0.24 s**）；
+> 首停 **0.791 s**、最低速 **0.028 m/s**；人-挡板最小间距 **0.335 m**（≥0.22）；z 0.010、不出界；
+> 目标必然到不了（挡板拦死）→ 停住后主动取消，不算失败。
+> ③**口径**："刹住"= 2.5 s 内出现 <0.05 m/s，不要求停住不动——cm STOP 后恢复行为会倒车让开，更安全；
+> 第一版触发 0.7 m 时停车间距只有 0.215 m（差 5 mm），抬到 0.85 m 才是"刹得住"的实测点。
+> ④**围挡/赛规**：规则手册场地尺寸是位图（文本层只有图题，正文写"以实际场地为准"），
+> 本机无 OCR/视觉引擎（modlens: No vision provider；WSL 无 tesseract/pdftoppm）→ 无法逐项对图；
+> 场地几何仍以官方 CAD 为准（12.60×8.60、内侧面 ±6.00/±4.00、墙顶 0.40、墙厚 0.05）。
+> ⑤**窄通道（补测）**：`worlds/rmul2027_3v3_up_nav2_gap.sdf.xacro`（同一 JSON 的 gate 段）两块 0.6×0.5 m 箱
+> 留出 **0.80 m 门洞**（两侧外缝 0.40 < 车宽 0.44 → 绕不过去），出生 (0,-2.0) → 目标 (0,2.6)：
+> **5 项判据全过**——SUCCEEDED、到位 0.124 m、门线上 |x| 最大 **0.02 m**（居中过门）、到两箱间距
+> **0.379/0.417 m**、z 0.010。结论：**5 cm 栅格对 0.80 m 门洞够用**，不必重生成 2.5 cm；
+> 只有 <0.70 m 门洞/厘米级贴边才需要 2.5 cm 变体。入口 `bash nav2_gap.sh` + `python3 verify_narrow_gap.py`。
+> ⑥**仍未执行**：动态箱速度/方向档位（现 0.3 m/s 一档）；<0.70 m 门洞与 2.5 cm 栅格变体。
+> ⑦**提交状态**：按用户要求**先不提交**——本轮全部改动留在工作区（15 项绕障 + 6 项刹车 + 5 项窄通道 + 文档）。
+> 详见 `rm_field/README.md` §17 / §18。
+
+> **✅ 2026-11-20 晚（副线 Gazebo）：绕障 + 动态避障验收 15 项判据全过；两个动态方案各踩一次坑后改成"触发式让开"。**
+> ①**链路**：`capture_route.py` 先采无障基线（3 目标 19.442 m/66.8 s）→
+> `config/avoid_obstacles.json`（唯一几何源）→ `make_obstacles_world.py` 生成带障碍物世界
+> （静态 2 箱 0.5 m：`(0.85,-1.45)`、`(4.30,-0.60)`；动态 1 箱 kinematic，停在 `(2.50,-1.94)` 挡路，
+> 机器人进 1.5 m 内后 0.3 m/s 让开到 `(2.50,-1.35)`）→ `nav2_obstacles.sh` 起栈 →
+> `verify_nav2_obstacles.py` 出 `results/report_nav2_obstacles.json`。
+> ②**结果**：三目标全 SUCCEEDED（12.646/5.557/6.807 m，到位 0.121/0.088/0.025 m），全程 25.051 m/86.9 s、
+> 平均 0.288 m/s、cmd 峰值 0.499、z 全程 0.0100、不压平台墙（−0.562 m）；
+> 静态间距 **0.701/0.640 m**；动态箱独立测速 **0.293 m/s**（配置 0.30）、行程 0.590=期望、
+> 停位误差 0、人-箱最小间距 **0.892 m**、最近中心距 1.144 m（该段 cmd_vel 曾到 0）；
+> 绕行代价相对基线 **+5.57 m**；定位一致（剔除未建图障碍物 ≤2 m 样本）max **0.256 m**。
+> ③**两次失败方案（都是机制坑不是参数）**：连续往返横穿 → MPPI 反复 `Failed to make progress`、
+> recovery 死循环（第三段 153.9 s），且盲动的箱子会压上机器人（最近 0.077 m）；
+> 让开方向朝南 → 让进机器人绕行路径（中心距 0.237 m、穿模 −0.013 m）。
+> 改"向北触发式让开+停住"后一次过。
+> ④**新发现**：未建图障碍物会把 AMCL 带偏 **0.76~1.05 m**（三次复跑都出现，集中在贴着静态箱/动态箱走的
+> 12~32 s 段，30 s 内收敛；无障基线最大只有 0.44 m）——实车临时摆箱/敌车同样会短时漂。
+> 报告同时给 all 与剔除后两份定位误差。
+> ⑤**踩坑**：`pkill -f 'dynamic_obstacle.py'` 会杀掉调用者自己（静默 exit 1）→ 用 `[.]` 写法并封装
+> `start_dynamic.sh`；set_pose 的 0.1 s 步进让相邻帧测速失真 → 测速改用 1 s 窗口位移中位数。
+> ⑥**剩余**：`collision_monitor` 本轮 0 次触发（DWB 提前绕开）→ "必撞/突然出现"场景未测；
+> 5 cm 栅格贴边/窄通道、围挡 0.40 m 与赛规核对仍未做；动态箱只有 0.3 m/s 单向单程。
+> 详见 [HANDOFF 2026-11-20 绕障验收](docs/handoffs/2026-11-20-obstacle-avoidance-acceptance.md)、
+> `rm_field/README.md` §16。
+
 > **✅ 2026-11-20（副线 Gazebo）：翻转后场地的 Nav2 地图重建 + 三目标闭环验收全过；顺带修掉潜伏半个月的 PGM 上下翻转 bug。**
 > ①**地图**（`make_nav_map_up.py` + `capture_nav_map_up.sh`）：自由区 = 墙面内侧面以内 12.0×8.0 = 96 m²
 > − 48 块碰撞 box 投影 18.510 m² = **77.490 m²**；512×352 @0.025 m/px、origin(−6.40,−4.40)；
