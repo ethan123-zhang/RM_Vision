@@ -25,11 +25,14 @@
 > `/clock /scan /tf`（症状 `Invalid frame ID "odom"`、话题 0 Hz），`nav2_field.sh` 清场改成 TERM→3 s→KILL −9
 > 并清 `/dev/shm/fastrtps*`。另：验收脚本跨 shell 跑会落到 **domain 0**（栈在 `ROS_DOMAIN_ID=42`）→
 > 报"等不到 action server"；已在脚本内 `setdefault("ROS_DOMAIN_ID","42")`，`nav2_field.sh` 收尾也会
-> 等到 `/navigate_to_pose` 真出现再报 OK。再两条环境坑：④`ros2 lifecycle get`/`node list` 走 daemon，
+> 等到 `/navigate_to_pose` 真出现再报 OK。再两条环境坑：`ros2 lifecycle get`/`node list` 走 daemon，
 > 本机 WSL 上常看不到 composable 容器里的节点（7 个全报 Node not found，实际全都是 ACTIVE）→
-> 启动检查改成直接调 `/<node>/get_state`；⑤`stop_nav2_field.sh` 里过宽的 `pkill -f nav2_` 会把调用者自己
+> 启动检查改成直接调 `/<node>/get_state`；`stop_nav2_field.sh` 里过宽的 `pkill -f nav2_` 会把调用者自己
 > 杀掉（串联执行时踩到），已删。
 > ⑤**剩余**：围挡高度（现为场地自带 0.40 m 外墙）与赛规核对、绕障/动态避障未测、5 cm 栅格贴边场景要再加细。
+> ⑥**提交**：`bbf9e57`（地图+验收）→ `bf937fb`（验收默认 domain）→ `1ee79bd`（lifecycle 服务检查 + stop 脚本），
+> 已 push `origin/codex/car-local-obstacle-avoidance`（HEAD 与 origin 一致）；知识沉淀见 aiVault
+> `wiki/concepts/Nav2_Map_And_Localization_Verification.md`。
 > 详见 [HANDOFF 2026-11-20](docs/handoffs/2026-11-20-nav2-map-on-flipped-field.md)、`rm_field/README.md` §15。
 
 > **✅ 2026-11-19（副线 Gazebo）：3V3 场地整体翻转（结构面朝上）+ 重做配色；"轮子转、车不走"的网格碰撞 bug 已用 box 拼块修好并五项验收全过。**

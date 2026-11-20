@@ -121,3 +121,15 @@ bash stop_nav2_field.sh
   但抓不到 1~2 cm 的擦碰。
 - 旧地图 `maps/rmul2027_3v3_fenced.*`、旧世界 `worlds/rmul2027_3v3_nav2.sdf.xacro`、
   旧脚本 `make_nav_map.py` / `capture_nav_map.sh` 保留作历史，**已不代表当前场地**。
+
+## 9. 提交记录（本轮收尾）
+
+| 提交 | 内容 |
+|---|---|
+| `bbf9e57` | 翻转后场地重建 Nav2 地图 + 三目标闭环全过；修 PGM 上下翻转潜伏 bug |
+| `bf937fb` | 验收脚本默认 `ROS_DOMAIN_ID=42`；起栈脚本等到 action server 再报 OK |
+| `1ee79bd` | 起栈生命周期检查改用 `/<node>/get_state` 服务；删掉会自杀的 `pkill -f nav2_` |
+
+已推送 `origin/codex/car-local-obstacle-avoidance`，回读 HEAD 与 origin 一致（`1ee79bd`）。
+知识沉淀：aiVault `wiki/concepts/Nav2_Map_And_Localization_Verification.md`（连带 INDEX/LOG）。
+流程沉淀：技能 `simulating-ros2-nav2-in-wsl`（自建 pgm 方向约定、TF vs 真值核对、`lifecycle get` 误报）。
