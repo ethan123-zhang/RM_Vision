@@ -32,6 +32,7 @@
 - [Pose_Sensor_Lever_Arm](E:/Document/Ethan'vault/aiVault/wiki/concepts/Pose_Sensor_Lever_Arm.md) — 力臂使"位置+朝向"起点判据互斥
 - [Differential_Drive_Point_Arrival](E:/Document/Ethan'vault/aiVault/wiki/concepts/Differential_Drive_Point_Arrival.md) — 追点转弯半径必须大于到位容差
 - [Chassis_Command_Unit_Calibration](E:/Document/Ethan'vault/aiVault/wiki/concepts/Chassis_Command_Unit_Calibration.md) — 指令单位标定口径与死区
+- [Nav2_Map_And_Localization_Verification](E:/Document/Ethan'vault/aiVault/wiki/concepts/Nav2_Map_And_Localization_Verification.md) — 自建栅格地图方向/定位一致性；未建图障碍物把 AMCL 拉走 2.9 m 的机理与 beam skip 修法、全样本定位判据
 
 ## 5. 证据与产物
 
