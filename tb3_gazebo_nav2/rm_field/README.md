@@ -1358,4 +1358,6 @@ bash verify_cleanup_domain_scope.sh     # 14 项：domain 过滤 / stop 入口 /
 - `make_box_collisions.py` 新增 `--model-dir/--src/--out-json`（原来写死基线路径）；
 - `make_nav_map_up.py` 新增 `--boxes/--tag`（原来写死 `debug/box_collisions.json` 与 `rmul2027_3v3_up` 文件名）；
 - `nav2_field.sh` 新增 `NAV2_MAP=`（原来地图写死基线）；
+- `stop_nav2_field.sh` 现在连"地图点选窗口"（`map_click.py`）一起停——之前只停 launch，
+  窗口会残留、下次起栈变成两个实例；
 - `domain_cleanup.sh` 共享内存清场补"端口成对"规则（见 §21 末行）。

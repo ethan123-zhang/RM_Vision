@@ -11,17 +11,19 @@ ROOT=/mnt/e/RM/tb3_gazebo_nav2/rm_field
 source "$ROOT/domain_cleanup.sh" || { echo "致命: 缺 $ROOT/domain_cleanup.sh"; exit 1; }
 
 echo "=== 停栈（domain $ROS_DOMAIN_ID）==="
-# 先停 launch，让它有机会把子进程收掉；再逐类兜底
+# 先停 launch，让它有机会把子进程收掉；再逐类兜底。
+# 地图点选窗口（nav_gui.sh 起的 map_click.py）属于这套栈的 UI，一起停——
+# 只停 launch 会留下它继续订阅话题（窗口关不掉、下次起栈变两个实例）。
 kill_in_domain TERM 'ros2 launch nav2_bringup' 'dynamic_obstacle.py' \
-  'goal_pose_bridge[.]py' 'gz sim' 'parameter_bridge' 'component_container' \
-  'robot_state_publisher' 'rviz2'
+  'goal_pose_bridge[.]py' 'map_click[.]py' 'gz sim' 'parameter_bridge' \
+  'component_container' 'robot_state_publisher' 'rviz2'
 sleep 2
 # gz sim / 组件容器对 TERM 不总是响应，补一轮 KILL
 kill_in_domain KILL 'ros2 launch nav2_bringup' 'gz sim' 'parameter_bridge' \
-  'component_container' 'dynamic_obstacle.py' 'goal_pose_bridge[.]py'
+  'component_container' 'dynamic_obstacle.py' 'goal_pose_bridge[.]py' 'map_click[.]py'
 sleep 1
 left=$(count_in_domain 'gz sim' 'ros2 launch nav2_bringup' 'rviz2' \
-  'parameter_bridge' 'component_container')
+  'parameter_bridge' 'component_container' 'map_click[.]py')
 echo "残留: $left 个（domain $ROS_DOMAIN_ID）"
 if [ "$left" != 0 ] && [ "${RM_CLEAN_ALL_DOMAINS:-0}" != 1 ]; then
   echo "提示: 若还要连别的 domain 一起清：RM_CLEAN_ALL_DOMAINS=1 bash stop_nav2_field.sh"

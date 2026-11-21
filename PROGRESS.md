@@ -15,8 +15,9 @@
 > `gate_tight` 门洞 **0.62 m**，`nav2_gap_tight.sh --grid 25mm|5cm` + `verify_narrow_gap.py --scenario gate_tight`：
 > 2.5 cm 到点 0.081 / 门线 |x| 0.021 / 最小间距 0.288 m；5 cm 到点 0.068 / 0.022 / 0.284 m；**两套各 6 项全过**
 > → 结论：0.62 m 量级 **5 cm 栅格就够**，2.5 cm 变体备而不用（留给 <0.55 m / 厘米级贴边）。
-> ④**附带**：`make_box_collisions.py --model-dir/--src/--out-json`、`make_nav_map_up.py --boxes/--tag`、`nav2_field.sh` 新增 `NAV2_MAP=`。
-> ⑤**下次进入点**：`bash verify_obstacles_tiers.sh`（三档约 8 min）；`bash make_25mm_variant.sh && bash nav2_gap_tight.sh`（超窄门约 3 min）。
+> ④**附带**：`make_box_collisions.py --model-dir/--src/--out-json`、`make_nav_map_up.py --boxes/--tag`、`nav2_field.sh` 新增 `NAV2_MAP=`；`stop_nav2_field.sh` 现在连"地图点选窗口"（`map_click.py`）一起停（之前只停 launch，会留一个窗口实例）。
+> ⑤**GUI 实操验收（用户）**：`nav_gui.sh` 三窗口（Gazebo/RViz/地图点选）手点导航正常；用户手插 6 个未建图物体（4 箱 + 2 球，最近距车约 0.5 m）后 **AMCL 发散**：静止车估计在 (-5.02, 2.25) → (1.82, 0.90) 之间跳、状态栏 `定位误差 4.84 m`（真值 (-0.10, 0.61)，按 T 真值重定位后仍复发）——属未建图障碍物密度/距离超出 `likelihood_field_prob` 容忍范围，不是 odom 或地图问题；脚本场景（2 静态 + 1 动态）定位 max 0.30~0.41 m 仍稳。
+> ⑥**下次进入点**：`bash verify_obstacles_tiers.sh`（三档约 8 min）；`bash make_25mm_variant.sh && bash nav2_gap_tight.sh`（超窄门约 3 min）；GUI 手玩 `bash nav_gui.sh`（障碍别超过 2~3 个、离车 ≥1.5 m）。
 > 详见 `docs/handoffs/2026-11-21-domain-scope-cleanup-and-acceptance-tiers.md`。
 
 > **✅ 2026-11-20 深夜五补（副线 Gazebo）："钻过窄缝后定位飘走"根因查清并修好——不是车/雷达/地图对齐坏，而是两块障碍物只在 Gazebo 世界里、不在导航静态地图里，AMCL 把它们的回波当证据，窄缝里真值位姿的似然被压到贴墙假位姿之下 → 漂 2.9 m 且不自愈。修法：AMCL 改 `likelihood_field_prob` + `do_beamskip: true`（2 行，`make_nav2_params.py` 生成）；新增第 4 个专项场景 `gate_deep`（1.0×1.2 箱、门洞 0.8 m）回归。**

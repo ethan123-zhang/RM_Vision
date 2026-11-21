@@ -112,6 +112,26 @@
 - 自动验收全部可复跑，耗时：清场回归 <1 min；动态箱三档约 8 min；超窄门一档约 3 min。
 - 工作树包含本轮全部改动，`git status` 干净前不要跑 `git clean`。
 
+## 4b. GUI 交互验收（用户实操，同日深夜）
+
+`bash nav_gui.sh` 起 Gazebo GUI + RViz + 地图点选窗口，用户手点测试：三个窗口正常、点地图/换目标可用。
+
+用户随后在 Gazebo 里手插 **6 个未建图物体**（`box/box_0..2` + `sphere/sphere_0`，最近距车约 0.5 m）后，
+出现"实际位置与自认位置不符"：地图点选状态栏 `定位误差 4.84 m`，静止机器人的 AMCL 估计在
+**(-5.02, 2.25) → (1.82, 0.90)** 之间跳，按 T（真值）重定位后仍复发。
+
+- 真值（gz `pose/info`）：机器人 `turtlebot3_waffle` **(-0.10, 0.61)**，odom 速度 0；`/scan` 360 束
+  全有效、最近 0.45 m —— 雷达主体打在未建图物体上。
+- 判定：**不是 odom/地图问题，是未建图障碍物密度超限**（`likelihood_field_prob` + beam skip 能容忍
+  2~3 个、离车 ≥1.5 m；6 个贴身会把可解释束压到太少 → 似然面变平 → 跳分支）。脚本场景
+  （2 静态 + 1 动态，定位 max 0.30~0.41 m）不受影响。
+- 结论：GUI 手玩/演示时未建图障碍保持 **2~3 个、离车 ≥1.5 m**；要密集障碍就写进
+  `config/avoid_obstacles.json` 并重生成地图（已知障碍）。
+- 顺带修掉：`stop_nav2_field.sh` 之前**不停地图点选窗口**（只停 launch，`map_click.py` 残留），
+  已把 `map_click[.]py` 加进 TERM/KILL/残留统计；用假进程回归
+  `_probe/cleanup/test_stop_kills_mapclick.sh` → PASS。
+- 收尾状态：GUI 栈与点选窗口都已停（`stop_nav2_field.sh` + `kill_map_click.sh`，domain 42 残留 0）。
+
 ## 5. 风险 / 注意
 
 - `verify_obstacles_tiers.sh` 会**真的**在该 domain 起停栈：跑之前别在同一 domain 上留想保留的栈。
@@ -150,4 +170,14 @@ bash nav2_gap_tight.sh && python3 verify_narrow_gap.py --scenario gate_tight --g
 bash stop_nav2_field.sh
 bash nav2_gap_tight.sh --grid 5cm && python3 verify_narrow_gap.py --scenario gate_tight --grid 5cm --tag 5cm
 bash stop_nav2_field.sh
+
+# GUI 手玩/演示（障碍 ≤2~3 个、离车 ≥1.5 m；T=按真值重定位）
+bash nav_gui.sh
+bash stop_nav2_field.sh      # 连地图点选窗口一起停
 ```
+
+## 8. 提交状态
+
+- `8d0ebae` 清场 domain 隔离；`367c6d1` 动态箱三档 + 超窄门 2.5 cm 变体；
+  收尾补 `stop_nav2_field.sh` 停地图点选窗口 + 本文档更新。（收尾提交哈希见
+  `git log --oneline -1`，推送后与 origin 一致。）
