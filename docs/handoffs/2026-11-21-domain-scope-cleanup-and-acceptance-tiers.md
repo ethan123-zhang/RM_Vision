@@ -179,5 +179,5 @@ bash stop_nav2_field.sh      # 连地图点选窗口一起停
 ## 8. 提交状态
 
 - `8d0ebae` 清场 domain 隔离；`367c6d1` 动态箱三档 + 超窄门 2.5 cm 变体；
-  收尾补 `stop_nav2_field.sh` 停地图点选窗口 + 本文档更新。（收尾提交哈希见
-  `git log --oneline -1`，推送后与 origin 一致。）
+  `074a6c6` 收尾（`stop_nav2_field.sh` 连地图点选窗口一起停 + GUI 实操验收记录 + 本文档更新）。
+- 三个提交都已推送 `origin/codex/car-local-obstacle-avoidance`，`git ls-remote` 回读与本地 HEAD 一致。
