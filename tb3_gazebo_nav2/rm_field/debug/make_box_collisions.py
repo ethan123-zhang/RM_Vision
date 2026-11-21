@@ -282,8 +282,8 @@ def render_sdf(boxes):
         for b in boxes)
 
 
-def patch_model_sdf(boxes):
-    txt = open(MODEL_SDF, encoding="utf-8").read()
+def patch_model_sdf(boxes, model_sdf=MODEL_SDF):
+    txt = open(model_sdf, encoding="utf-8").read()
     beg = "<!-- BOX_COLLISION_BEGIN"
     end = "<!-- BOX_COLLISION_END -->"
     i = txt.find(beg)
@@ -292,7 +292,7 @@ def patch_model_sdf(boxes):
         raise SystemExit("model.sdf 里找不到 BOX_COLLISION 标记，先补标记")
     i = txt.find("\n", i) + 1          # 保留 BEGIN 行
     new = txt[:i] + render_sdf(boxes) + txt[j:]
-    with open(MODEL_SDF, "w", encoding="utf-8") as f:
+    with open(model_sdf, "w", encoding="utf-8") as f:
         f.write(new)
 
 
@@ -314,9 +314,26 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--cell", type=float, default=CELL)
     ap.add_argument("--ascii", action="store_true", help="打印 0.2 m 粗俯视高度图")
+    ap.add_argument("--model-dir", default=MODEL,
+                    help="场地模型目录（默认基线 models/rmul2027_3v3_field_up）；"
+                         "2.5 cm 变体传 models/rmul2027_3v3_field_up_25mm，不碰基线")
+    ap.add_argument("--src", default=None,
+                    help="网格路径（默认 <model-dir>/meshes/structures.stl；"
+                         "变体模型目录不带 meshes 时指向基线模型的网格）")
+    ap.add_argument("--out-json", default=None,
+                    help="碰撞体 JSON 输出路径（默认 debug/box_collisions.json；"
+                         "2.5 cm 变体建议 debug/box_collisions_25mm.json）")
     args = ap.parse_args()
+    model_dir = os.path.abspath(args.model_dir)
+    src = args.src or os.path.join(model_dir, "meshes", "structures.stl")
+    model_sdf = os.path.join(model_dir, "model.sdf")
+    out_json = args.out_json or OUT_JSON
+    if not os.path.exists(src):
+        raise SystemExit(f"缺网格: {src}")
+    if not os.path.exists(model_sdf):
+        raise SystemExit(f"缺模型: {model_sdf}")
 
-    t = read_stl(SRC)
+    t = read_stl(src)
     print("structures.stl: %d 面" % len(t))
     H, gx0, gy0 = rasterize(t["v"], args.cell)
 
@@ -337,16 +354,16 @@ def main():
               % (p["level"], p["lane_x"], p["spawn_y"], p["south_face_y"]))
     print("原点(0,0) 所在格高度: %.3f m" % float(H[int((0 - gy0) / args.cell),
                                                     int((0 - gx0) / args.cell)]))
-    with open(OUT_JSON, "w", encoding="utf-8") as f:
+    with open(out_json, "w", encoding="utf-8") as f:
         json.dump({"stats": stats, "boxes": boxes}, f, indent=1, ensure_ascii=False)
-    print("写:", OUT_JSON)
+    print("写:", out_json)
     if args.ascii:
         print(ascii_map(H))
     if args.dry_run:
         print("--dry-run：不改 model.sdf")
         return 0
-    patch_model_sdf(boxes)
-    print("已写回:", MODEL_SDF)
+    patch_model_sdf(boxes, model_sdf)
+    print("已写回:", model_sdf)
     return 0
 
 

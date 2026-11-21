@@ -26,7 +26,8 @@ GUI=0
 if [ "$GUI" = 1 ]; then HL=False; RV=True; else HL=True; RV=False; fi
 
 WORLD="${NAV2_WORLD:-$ROOT/worlds/rmul2027_3v3_up_nav2.sdf.xacro}"
-MAP="$ROOT/maps/rmul2027_3v3_up.yaml"
+# 地图默认基线（5 cm 碰撞栅格生成的 rmul2027_3v3_up）；2.5 cm 变体用 NAV2_MAP 指过去
+MAP="${NAV2_MAP:-$ROOT/maps/rmul2027_3v3_up.yaml}"
 # 参数：默认用本项目的 config/nav2_params_rm.yaml（官方参数 + AMCL 针对性调整，
 # 见 make_nav2_params.py）；临时想用官方原始参数就 RM_PARAMS=<路径> 覆盖
 DEFAULT_PARAMS="$ROOT/config/nav2_params_rm.yaml"
@@ -141,11 +142,13 @@ echo "=== 6. 近期报错 ==="
 grep -iE 'Failed to|Aborting bringup|died' "$LOG" | grep -v 'Timed out waiting' | tail -8 || true
 
 if [ "${RM_DYNAMIC:-0}" = 1 ]; then
-  echo "=== 7. 动态障碍物（dynamic_obstacle.py）==="
+  echo "=== 7. 动态障碍物（dynamic_obstacle.py，档位 ${RM_DYN_TIER:-<config default>}）==="
   DLOG="$ROOT/logs/dynamic_obstacle.log"
   : > "$DLOG"
+  TIER_ARG=()
+  [ -n "${RM_DYN_TIER:-}" ] && TIER_ARG=(--tier "$RM_DYN_TIER")
   setsid nohup python3 "$ROOT/dynamic_obstacle.py" \
-    --world rmul2027_3v3 --config "$ROOT/config/avoid_obstacles.json" \
+    --world rmul2027_3v3 --config "$ROOT/config/avoid_obstacles.json" "${TIER_ARG[@]}" \
     > "$DLOG" 2>&1 < /dev/null &
   mov=0
   for i in $(seq 1 40); do

@@ -1,9 +1,23 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-20（深夜五补）
+> 最后更新：2026-11-21（清场 domain 隔离 + 动态箱三档 + 0.62 m 超窄门）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **✅ 2026-11-21（副线 Gazebo）：两笔欠账收口——①清场按 ROS domain 隔离（修跨 domain 误杀 / 误删 FastRTPS 共享内存）；②动态箱 three 档（slow/fast/faster 0.3/0.6/1.0 m/s）+ 0.62 m 超窄门的 2.5 cm 栅格变体。**
+> ①**A 清场**：新增 `domain_cleanup.sh`——进程按 `/proc/<pid>/environ` 的 `ROS_DOMAIN_ID` 过滤；共享内存只删没人 mmap/flock/fd 占用的段（`sem.*` 一律保留；端口 `X`/`X_el` 成对保护）。
+> 复现旧 bug（旧版 `stop_nav2_field.sh` 误杀 domain 43 的假 bridge）→ 新版存活；真栈(42) + domain 43 真 DDS participant 集成 **8 项全过**；`verify_cleanup_domain_scope.sh` **14 项回归全过**。
+> `ROS_DOMAIN_ID` 改 `${ROS_DOMAIN_ID:-42}`；现场抢救 `RM_CLEAN_ALL_DOMAINS=1 bash stop_nav2_field.sh`。提交 `8d0ebae`。
+> ②**B1 动态箱档位**：config 改 `default_tier` + `tiers`（世界初始位姿/驱动轨迹/验收判据同源）；`verify_obstacles_tiers.sh` 一次跑三档，
+> 实测 **0.293 / 0.587 / 0.979 m/s**、行程 0.59 / 0.97 / 1.27 m，**各 15 项判据全过**（报告 `report_nav2_obstacles{,_fast,_faster}.json`）。
+> ③**B2 超窄门**：`make_25mm_variant.sh` 生成 2.5 cm 碰撞栅格变体（**178 块** box vs 基线 48；地图自由区 77.706 m² = 解析值，11 项校核全过）；
+> `gate_tight` 门洞 **0.62 m**，`nav2_gap_tight.sh --grid 25mm|5cm` + `verify_narrow_gap.py --scenario gate_tight`：
+> 2.5 cm 到点 0.081 / 门线 |x| 0.021 / 最小间距 0.288 m；5 cm 到点 0.068 / 0.022 / 0.284 m；**两套各 6 项全过**
+> → 结论：0.62 m 量级 **5 cm 栅格就够**，2.5 cm 变体备而不用（留给 <0.55 m / 厘米级贴边）。
+> ④**附带**：`make_box_collisions.py --model-dir/--src/--out-json`、`make_nav_map_up.py --boxes/--tag`、`nav2_field.sh` 新增 `NAV2_MAP=`。
+> ⑤**下次进入点**：`bash verify_obstacles_tiers.sh`（三档约 8 min）；`bash make_25mm_variant.sh && bash nav2_gap_tight.sh`（超窄门约 3 min）。
+> 详见 `docs/handoffs/2026-11-21-domain-scope-cleanup-and-acceptance-tiers.md`。
 
 > **✅ 2026-11-20 深夜五补（副线 Gazebo）："钻过窄缝后定位飘走"根因查清并修好——不是车/雷达/地图对齐坏，而是两块障碍物只在 Gazebo 世界里、不在导航静态地图里，AMCL 把它们的回波当证据，窄缝里真值位姿的似然被压到贴墙假位姿之下 → 漂 2.9 m 且不自愈。修法：AMCL 改 `likelihood_field_prob` + `do_beamskip: true`（2 行，`make_nav2_params.py` 生成）；新增第 4 个专项场景 `gate_deep`（1.0×1.2 箱、门洞 0.8 m）回归。**
 > ①**复现**：`gate_deep` 修复前过门时 in-range 束 70%（峰值 90%）是未建图箱体回波；真值位姿 p≈20，

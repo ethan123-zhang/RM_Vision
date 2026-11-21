@@ -48,12 +48,19 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 CFG = os.path.join(HERE, "config", "avoid_obstacles.json")
 BASE = os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2.sdf.xacro")
+# 2.5 cm 碰撞栅格变体的基世界（由 make_25mm_variant.sh 生成；模型名/地图都带 _25mm 后缀，
+# 不覆盖 5 cm 基线）
+BASE_25MM = os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_25mm.sdf.xacro")
 OUT = {
     "obstacles": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_obstacles.sdf.xacro"),
     "braking": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_braking.sdf.xacro"),
     "gap": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_gap.sdf.xacro"),
     "gate_deep": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_gap_deep.sdf.xacro"),
+    "gate_tight": os.path.join(HERE, "worlds", "rmul2027_3v3_up_nav2_gate_tight.sdf.xacro"),
+    "gate_tight_25mm": os.path.join(HERE, "worlds",
+                                    "rmul2027_3v3_up_nav2_gate_tight_25mm.sdf.xacro"),
 }
+BASE_OF = {"gate_tight_25mm": BASE_25MM}
 MARK_BEGIN = "    <!-- AVOID_OBSTACLES_BEGIN（由 make_obstacles_world.py 从 config/avoid_obstacles.json 生成，勿手改）-->"
 MARK_END = "    <!-- AVOID_OBSTACLES_END -->"
 ANCHOR = '    <plugin filename="gz-sim-physics-system"'
@@ -62,6 +69,20 @@ ANCHOR = '    <plugin filename="gz-sim-physics-system"'
 def load_cfg(path=CFG):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def resolve_tier(dyn, name=None):
+    """档位 → 实际几何（{name, speed, start, end}）；与 dynamic_obstacle.py 同一规则。"""
+    tiers = dyn.get("tiers") or {}
+    if not tiers:
+        return {"name": "legacy", "speed": dyn["speed"],
+                "start": list(dyn["start"]), "end": list(dyn["end"])}
+    name = name or dyn.get("default_tier") or sorted(tiers)[0]
+    if name not in tiers:
+        raise SystemExit(f"未知档位 {name!r}；可选: {', '.join(sorted(tiers))}")
+    t = tiers[name]
+    return {"name": name, "speed": float(t["speed"]),
+            "start": list(t["start"]), "end": list(t["end"])}
 
 
 def box_model(name, center, size, z_center, color, mode="static"):
@@ -88,7 +109,7 @@ def box_model(name, center, size, z_center, color, mode="static"):
 """
 
 
-def build_text(cfg, variant):
+def build_text(cfg, variant, tier_name=None):
     blocks = [MARK_BEGIN]
     if variant == "obstacles":
         for ob in cfg["static"]:
@@ -96,9 +117,9 @@ def build_text(cfg, variant):
             blocks.append(box_model(ob["name"], ob["center"], size, size[2] / 2.0,
                                     ob.get("color", [0.90, 0.45, 0.05]), "static"))
         dyn = cfg["dynamic"]
+        tier = resolve_tier(dyn, tier_name)
         size = dyn["size"]
-        start = dyn.get("start", dyn.get("p0"))
-        blocks.append(box_model(dyn["name"], start, size,
+        blocks.append(box_model(dyn["name"], tier["start"], size,
                                 dyn.get("z_center", size[2] / 2.0),
                                 dyn.get("color", [0.10, 0.55, 0.90]), "kinematic"))
     elif variant == "braking":
@@ -107,8 +128,9 @@ def build_text(cfg, variant):
         blocks.append(box_model(pop["name"], pop["hidden"], size,
                                 pop.get("z_center", size[2] / 2.0),
                                 pop.get("color", [0.85, 0.25, 0.20]), "kinematic"))
-    else:      # gap / gate_deep：两道墙之间留一个刚好能过的门
-        key = "gate" if variant == "gap" else "gate_deep"
+    else:      # gap / gate_deep / gate_tight(_25mm)：两道墙之间留一个刚好能过的门
+        key = {"gap": "gate", "gate_deep": "gate_deep",
+               "gate_tight": "gate_tight", "gate_tight_25mm": "gate_tight"}[variant]
         for ob in cfg[key]["boxes"]:
             size = ob["size"]
             blocks.append(box_model(ob["name"], ob["center"], size, size[2] / 2.0,
@@ -117,18 +139,25 @@ def build_text(cfg, variant):
     return "\n".join(blocks)
 
 
-def generate(variant):
-    with open(BASE, "r", encoding="utf-8") as f:
+def generate(variant, tier_name=None):
+    base_path = BASE_OF.get(variant, BASE)
+    if not os.path.exists(base_path):
+        raise SystemExit(f"缺基世界: {os.path.relpath(base_path, HERE)}"
+                         f"（2.5 cm 变体先跑 bash make_25mm_variant.sh）")
+    with open(base_path, "r", encoding="utf-8") as f:
         base = f.read()
     cfg = load_cfg()
     base = re.sub(re.escape(MARK_BEGIN) + r".*?" + re.escape(MARK_END) + r"\n?", "",
                   base, flags=re.S)
     if ANCHOR not in base:
         raise SystemExit(f"基世界缺少锚点: {ANCHOR}")
-    out = base.replace(ANCHOR, build_text(cfg, variant) + "\n" + ANCHOR, 1)
+    out = base.replace(ANCHOR, build_text(cfg, variant, tier_name) + "\n" + ANCHOR, 1)
     with open(OUT[variant], "w", encoding="utf-8") as f:
         f.write(out)
-    print(f"生成: {os.path.relpath(OUT[variant], HERE)}")
+    extra = ""
+    if variant == "obstacles":
+        extra = f"（动态箱档位 {resolve_tier(cfg['dynamic'], tier_name)['name']}）"
+    print(f"生成: {os.path.relpath(OUT[variant], HERE)}{extra}")
 
 
 def _check_box(text, name, center, size, mode, errs):
@@ -149,7 +178,7 @@ def _check_box(text, name, center, size, mode, errs):
         errs.append(f"{name} 尺寸与 JSON 不一致")
 
 
-def check(variant):
+def check(variant, tier_name=None):
     cfg = load_cfg()
     with open(OUT[variant], "r", encoding="utf-8") as f:
         text = f.read()
@@ -162,19 +191,34 @@ def check(variant):
             names.append(ob["name"])
             _check_box(text, ob["name"], ob["center"], ob["size"], "static", errs)
         dyn = cfg["dynamic"]
+        tier = resolve_tier(dyn, tier_name)
         names.append(dyn["name"])
-        d_start = dyn.get("start", dyn.get("p0"))
-        d_end = dyn.get("end", dyn.get("p1"))
+        d_start = tier["start"]
+        d_end = tier["end"]
         _check_box(text, dyn["name"], d_start, dyn["size"], "kinematic", errs)
         L = math.hypot(d_end[0] - d_start[0], d_end[1] - d_start[1])
         for p, tag in ((d_start, "start"), (d_end, "end")):
             if abs(p[0]) > 6.0 - 0.3 or abs(p[1]) > 4.0 - 0.3:
                 errs.append(f"动态箱 {tag}={p} 太贴外墙")
-        # 线段下限 0.40 m：按 0.3 m/s 走完 ≥1.3 s，1 s 窗口才测得出来；
-        # 再短就落到 set_pose 0.1 s 步进的量化误差里。
-        if L < 0.40:
-            errs.append(f"动态箱移动线段 {L:.2f} m < 0.40 m（1 s 窗口测不出速度）")
-        summary = f"静态箱 {len(cfg['static'])} 块 + 动态箱 1 块；动态 {dyn.get('mode')} {d_start}->{d_end}（{L:.2f} m）@ {dyn['speed']} m/s"
+        # 线段下限：验收用 1 s 窗口独立测速，运动段必须 ≥1.2 s，否则窗口会跨进停车段。
+        # 0.40 m 是底线（0.3 m/s 档位 0.59 m 的 1.97 s 也满足）。
+        if L < max(0.40, tier["speed"] * 1.2):
+            errs.append(f"档位 {tier['name']}: 线段 {L:.2f} m 太短"
+                        f"（{tier['speed']} m/s 需 ≥{max(0.40, tier['speed'] * 1.2):.2f} m 才有 1.2 s 运动段）")
+        # 其它档位也一起校核：生成的是其中一个档位，但配置里每个档位都会被验收跑到
+        for tname, t in (dyn.get("tiers") or {}).items():
+            tl = math.hypot(t["end"][0] - t["start"][0], t["end"][1] - t["start"][1])
+            if t["speed"] <= 0:
+                errs.append(f"档位 {tname}: speed={t['speed']} 必须 >0")
+            if tl < max(0.40, t["speed"] * 1.2):
+                errs.append(f"档位 {tname}: 线段 {tl:.2f} m 太短"
+                            f"（{t['speed']} m/s 需 ≥{max(0.40, t['speed'] * 1.2):.2f} m）")
+            for p, tag in ((t["start"], "start"), (t["end"], "end")):
+                if abs(p[0]) > 6.0 - 0.3 or abs(p[1]) > 4.0 - 0.3:
+                    errs.append(f"档位 {tname} {tag}={p} 太贴外墙")
+        summary = (f"静态箱 {len(cfg['static'])} 块 + 动态箱 1 块（档位 {tier['name']}，"
+                   f"共 {len(dyn.get('tiers') or {}) or 1} 档）；{tier['speed']} m/s "
+                   f"{d_start}->{d_end}（{L:.2f} m）")
     elif variant == "braking":
         # 刹车场景只有一个"先藏后弹"的挡板：这里校核它的存在性/尺寸/kinematic 标记，
         # 以及"真能挡死走廊"（宽度 ≥2.6 m），否则 collision_monitor 的前提不成立。
@@ -191,8 +235,9 @@ def check(variant):
             errs.append(f"挡板弹出点 x={pop['appear'][0]:.2f} 不在中线 x=0 附近")
         summary = (f"刹车挡板 {width:.2f}×{pop['size'][1]:.2f}×{pop['size'][2]:.2f} m，"
                    f"藏在 {pop['hidden']} → 弹到 {pop['appear']}（kinematic）")
-    elif variant in ("gap", "gate_deep"):
-        key = "gate" if variant == "gap" else "gate_deep"
+    elif variant in ("gap", "gate_deep", "gate_tight", "gate_tight_25mm"):
+        key = {"gap": "gate", "gate_deep": "gate_deep",
+               "gate_tight": "gate_tight", "gate_tight_25mm": "gate_tight"}[variant]
         gate = cfg[key]
         for ob in gate["boxes"]:
             names.append(ob["name"])
@@ -213,7 +258,12 @@ def check(variant):
             if v >= 0.42:
                 errs.append(f"门{tag}侧余量 {v:.2f} m ≥ 车宽 0.44 m：机器人会绕过去，"
                             f"窄通道失效")
-        if not (0.60 <= gap <= 1.20):
+        if key == "gate_tight":
+            # <0.70 m 档：0.62 m（车宽 0.44 + 两侧各 0.09 m）。太宽就不叫"超窄门"，
+            # 太窄（<0.55）连 nav2 的 inflation 都不给过，测出来的只是规划器拒绝。
+            if not (0.55 <= gap <= 0.70):
+                errs.append(f"超窄门洞 {gap:.2f} m 不在 0.55~0.70 m 范围")
+        elif not (0.60 <= gap <= 1.20):
             errs.append(f"门洞 {gap:.2f} m 不在 0.60~1.20 m 的窄通道范围")
         if gate["goal"][1] <= es["center"][1]:
             errs.append("目标点必须在门北侧")
@@ -223,10 +273,12 @@ def check(variant):
             depth = min(ws["size"][1], es["size"][1])
             if depth < 1.0:
                 errs.append(f"gate_deep 箱子深度 {depth:.2f} m < 1.0 m（复现不出 AMCL 漂移）")
-        summary = (f"窄通道：门洞 {gap:.2f} m（车宽 0.44，两侧余量 "
+        grid = "2.5 cm" if variant == "gate_tight_25mm" else "5 cm"
+        quant = "±0.0125 m" if variant == "gate_tight_25mm" else "±0.025 m"
+        summary = (f"窄通道：门洞 {gap:.2f} m（车宽 0.44，外侧余量 "
                    f"{outer_w:.2f}/{outer_e:.2f} m），箱子深度 "
                    f"{min(ws['size'][1], es['size'][1]):.2f} m，目标 {gate['goal']}；"
-                   f"5 cm 栅格量化 ±0.025 m")
+                   f"{grid} 栅格量化 {quant}")
     n = len(re.findall(r'<model name="(?:avoid_|dynamic_|popup_|gate_)', text))
     if n != len(names):
         errs.append(f"生成的障碍物模型数 {n} != 配置 {len(names)}")
@@ -243,13 +295,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--only", choices=sorted(OUT), default=None)
+    ap.add_argument("--tier", default=None,
+                    help="绕障世界用哪个动态箱档位（config.dynamic.tiers 的键；"
+                         "默认 default_tier）。其它变体忽略此项")
     args = ap.parse_args()
     variants = [args.only] if args.only else ["obstacles", "braking", "gap", "gate_deep"]
     rc = 0
     for v in variants:
         if not args.check:
-            generate(v)
-        rc |= check(v)
+            generate(v, args.tier)
+        rc |= check(v, args.tier)
     return rc
 
 

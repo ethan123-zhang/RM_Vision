@@ -119,6 +119,14 @@ clean_stale_fastrtps_shm() {
     return 0
   fi
   inuse=$(rc_shm_in_use)
+  # 端口/数据段是成对的：<name> 与 <name>_el。实测 FastRTPS 只把锁打在 _el 上、
+  # plain 文件既不 mmap 也不打开（例如 ros2 daemon 常驻的端口 7000/7001）——
+  # 按单文件判会以为 plain 没人用而删掉，下一次 participant init 该端口就报
+  # "Failed init_port fastrtps_portNNNN: open_and_lock_file failed"（非致命，但丢 SHM
+  # 通道 + 刷日志）。所以这里把配对关系补进"在用"集合。
+  inuse=$(printf '%s\n%s\n' "$inuse" \
+          "$(printf '%s\n' "$inuse" | sed -n 's/^\(.*\)_el$/\1/p')" \
+          "$(printf '%s\n' "$inuse" | sed -n 's/^\(.*\)$/\1_el/p')" | sort -u)
   for f in /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_*; do
     [ -e "$f" ] || continue
     base=${f##*/}

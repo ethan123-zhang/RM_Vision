@@ -41,7 +41,9 @@ fake_files=(/dev/shm/fastrtps_seg_stale_cleantest \
             /dev/shm/fastrtps_port9901_cleantest \
             /dev/shm/fastrtps_port9902_cleantest \
             /dev/shm/sem.fastrtps_live_cleantest \
-            /dev/shm/fastrtps_seg_open_cleantest)
+            /dev/shm/fastrtps_seg_open_cleantest \
+            /dev/shm/fastrtps_port9903_cleantest \
+            /dev/shm/fastrtps_port9903_cleantest_el)
 holders=()
 cleanup() {
   for p in "${holders[@]}" "${fakes[@]}"; do kill -9 "$p" 2>/dev/null; done
@@ -110,6 +112,10 @@ f.flush()
 time.sleep(300)
 PY
 holders+=($!); disown $! 2>/dev/null
+# 端口成对保护：只锁住 _el、plain 文件谁都没映射 → 也必须保留（FastRTPS 下一轮 init 要用）
+touch "${fake_files[6]}" "${fake_files[7]}"
+flock "${fake_files[7]}" sleep 300 >/dev/null 2>&1 &
+holders+=($!); disown $! 2>/dev/null
 sleep 1
 inuse_before=$(rc_shm_in_use)
 clean_stale_fastrtps_shm
@@ -119,6 +125,9 @@ clean_stale_fastrtps_shm
 [ -e "${fake_files[3]}" ] && bad "没人用的端口文件没被删（${fake_files[3]}）" || ok "没人用的端口文件被删掉"
 [ -e "${fake_files[4]}" ] && ok "sem 信号量一律保留（没有文件锁可查，保守）" || bad "sem 文件被误删"
 [ -e "${fake_files[5]}" ] && ok "被进程打开（未 mmap）的段保留" || bad "被 fd 打开的段被误删"
+[ -e "${fake_files[6]}" ] && [ -e "${fake_files[7]}" ] \
+  && ok "端口成对文件：只锁 _el 时 plain 文件也保留" \
+  || bad "端口成对文件被拆开（plain 被删、_el 保留 → 下次 init 报 open_and_lock_file failed）"
 
 echo "=== 5. 清场前所有"在用"的共享内存都不能被删 ==="
 gone_inuse=""

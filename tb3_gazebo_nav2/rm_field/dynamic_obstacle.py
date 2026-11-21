@@ -10,6 +10,9 @@
      但不会追着机器人跑，可复现且可判定。
   2. patrol（手动试验用）：在 p0<->p1 之间以固定速度往返，永不主动停。
 
+档位（2026-11-21）：config.dynamic.tiers 里每个档位有自己的速度/让开方向，
+--tier 选档（默认 default_tier=slow，与 2026-11-20 基线同几何）。
+
 做法：直接调 Gazebo 的 /world/<world>/set_pose 服务（gz.msgs.Pose），10 Hz 设定位置。
 为什么不给障碍物加轮子：验收要的是"机器人看见会动的东西并避开"，障碍物自身动力学
 越简单越可复现；位置由服务直接设定（位置误差 0），速度由本脚本按墙钟积分，
@@ -40,6 +43,24 @@ DEF_CFG = os.path.join(HERE, "config", "avoid_obstacles.json")
 def load_dyn(cfg_path):
     with open(cfg_path, "r", encoding="utf-8") as f:
         return json.load(f)["dynamic"]
+
+
+def resolve_tier(dyn, name=None):
+    """把配置里的"档位"解析成实际几何 {name, speed, start, end}。
+
+    config.dynamic.tiers 是唯一源（每个档位有自己的速度与让开方向）；没选档位时用
+    default_tier。老配置（只有顶层 speed/start/end）仍支持，便于对比历史数据。
+    """
+    tiers = dyn.get("tiers") or {}
+    if not tiers:
+        return {"name": "legacy", "speed": dyn["speed"],
+                "start": list(dyn["start"]), "end": list(dyn["end"])}
+    name = name or dyn.get("default_tier") or sorted(tiers)[0]
+    if name not in tiers:
+        raise SystemExit(f"未知档位 {name!r}；可选: {', '.join(sorted(tiers))}")
+    t = tiers[name]
+    return {"name": name, "speed": float(t["speed"]),
+            "start": list(t["start"]), "end": list(t["end"])}
 
 
 def interp(t, p0, p1, speed):
@@ -150,6 +171,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--world", default="rmul2027_3v3")
     ap.add_argument("--config", default=DEF_CFG)
+    ap.add_argument("--tier", default=None,
+                    help="动态箱档位（config.dynamic.tiers 的键；默认用 default_tier）")
     ap.add_argument("--rate", type=float, default=10.0)     # 服务调用频率（Hz）
     ap.add_argument("--duration", type=float, default=0.0)  # >0 时到时退出（自检用）
     ap.add_argument("--patrol-p0", nargs=2, type=float, default=None)
@@ -164,18 +187,20 @@ def main():
         return run_popup(args, load_cfg(args.config))
 
     dyn = load_dyn(args.config)
+    tier = resolve_tier(dyn, args.tier)
     mode = "patrol" if args.patrol_p0 else dyn.get("mode", "triggered_retreat")
-    speed = args.patrol_speed or dyn["speed"]
+    speed = args.patrol_speed or tier["speed"]
     size = dyn["size"]
     z = dyn.get("z_center", size[2] / 2.0)
     if mode == "patrol":
-        p0 = args.patrol_p0 or dyn.get("p0") or dyn["start"]
-        p1 = args.patrol_p1 or dyn.get("p1") or dyn["end"]
+        p0 = args.patrol_p0 or dyn.get("p0") or tier["start"]
+        p1 = args.patrol_p1 or dyn.get("p1") or tier["end"]
         trigger_dist = 0.0
     else:
-        p0 = list(dyn["start"])
-        p1 = list(dyn["end"])
+        p0 = list(tier["start"])
+        p1 = list(tier["end"])
         trigger_dist = float(dyn.get("trigger_dist", 1.5))
+    print(f"TIER {tier['name']} speed={tier['speed']} m/s {p0}->{p1}", flush=True)
 
     stopping = {"flag": False}
 

@@ -947,12 +947,13 @@ excluding_unmapped 两份数，不藏）。这条对实车有直接含义：场�
   内侧面 ±6.00/±4.00、墙顶 **0.40 m**、墙厚 0.05 m（从 `debug/box_collisions.json`
   栅格化数据回读），与"以实际场地为准"的口径一致。这条从"未核对"改成"有据可查 + 明确限制"。
 
-### 17.6 仍未执行
+### 17.6 欠账（2026-11-21 已补，见 §22）
 
-- **2.5 cm 栅格 / 贴边 / 窄通道**：0.80 m 门洞已用现有 5 cm 栅格实测通过（见 §18）：居中过门、
-  两侧中心距 0.38 m，**不必**重生成。只有 <0.70 m 门洞或要求厘米级贴边时才需要 2.5 cm 变体
-  （新模型名 + 新地图名，不能替换现有基线）。
-- **动态箱速度/方向档位**：目前只有 0.3 m/s 一档、单程一次。
+- ~~**2.5 cm 栅格 / 贴边 / 窄通道**~~：0.80 m 门洞用 5 cm 栅格实测通过（§18）；<0.70 m 档
+  已于 2026-11-21 做成 2.5 cm 变体 + 0.62 m 门洞验收（§22.2）——实测 5 cm 在 0.62 m 也够，
+  变体备而不用，留给 <0.55 m 或厘米级贴边。
+- ~~**动态箱速度/方向档位**~~：已做成 slow/fast/faster 三档（0.3 / 0.6 / 1.0 m/s，方向不同），
+  三档 15 项判据全过（§22.1）。
 
 ---
 
@@ -1280,12 +1281,16 @@ Gazebo/RViz 窗口被关后 launch 随之退出），所以有一阵点击完全
   `sem.fastrtps_port*_mutex`（POSIX 信号量，没有文件锁/fd/mapping 可查）。
   前两种只要有一项在用就保留；**sem 一律保留**（删掉活栈的信号量比留个孤儿文件危险）。
   `(deleted)` 的旧映射不算"在用文件"（磁盘上本来就没文件可删）。
+  **端口/数据段是成对的**（`X` 与 `X_el`）：实测 FastRTPS 只把 flock 打在 `_el` 上，plain 文件
+  既不被 mmap 也不被 open（ros2 daemon 常驻的 7000/7001 就是这样）。按单文件判会删掉 plain，
+  下一次 participant init 就报 `Failed init_port fastrtps_portNNNN: open_and_lock_file failed`
+  （非致命，但丢 SHM 通道 + 刷日志）——所以配对关系也补进"在用"集合。
 - 现场抢救回退：`RM_CLEAN_ALL_DOMAINS=1 bash stop_nav2_field.sh`（全 domain 清，含 shm）。
 
 验收（不需要 Gazebo 的回归 + 真栈集成）：
 
 ```bash
-bash verify_cleanup_domain_scope.sh     # 13 项：domain 过滤 / stop 入口 / flock/mmap/fd 保护 / 回退路径
+bash verify_cleanup_domain_scope.sh     # 14 项：domain 过滤 / stop 入口 / flock/mmap/fd/成对保护 / 回退路径
 ```
 
 | 证据 | 结果 |
@@ -1294,3 +1299,63 @@ bash verify_cleanup_domain_scope.sh     # 13 项：domain 过滤 / stop 入口 /
 | 新版同场景 | **存活** |
 | 真栈（domain 42）+ domain 43 真 DDS participant（`ros2 topic pub`）+ 4 个同 cmdline 假进程 | 清场后 42 栈 30 个"在用"文件一个没删、`/navigate_to_pose` 仍在；`stop_nav2_field.sh` 后 42 残留 0，43 的 5 个进程全存活 |
 | 栈停掉后再清 | 删掉 16 个崩溃/强杀留下的孤儿文件（原始目的仍是有效的）|
+| 端口成对保护（只锁 `_el`、plain 谁都没用）| 修前完整起栈日志 4 条 `RTPS_TRANSPORT_SHM ... open_and_lock_file failed`；补配对规则 + 清一次陈旧状态后 **0 条** |
+---
+
+## 22. 2026-11-21：动态箱速度/方向档位 + 0.62 m 超窄门（2.5 cm 栅格变体）
+
+### 22.1 动态箱三档（slow / fast / faster）
+
+`config/avoid_obstacles.json` 的 `dynamic` 改成档位制（`default_tier` + `tiers{名字: {speed,start,end,note}}`）：
+`dynamic_obstacle.py --tier`、`make_obstacles_world.py --tier`、`verify_nav2_obstacles.py --tier`
+读同一份配置——世界里的初始位置、驱动轨迹、验收判据三者同源。
+
+| 档位 | 速度 | 让开方向/距离 | 为什么这么选 |
+|---|---|---|---|
+| slow | 0.3 m/s | 正北 0.59 m | 与 2026-11-20 基线同几何，可对比历史 |
+| fast | 0.6 m/s | 东北 75° 0.90 m | 2× 机器人；正北再远会压到场地凸起结构（离线查图：x=2.5 往北只剩 0.9 m 自由段）|
+| faster | 1.0 m/s | 东北 45° 1.20 m | ≈4× 机器人；运动段必须 ≥1.2 s，否则 1 s 测速窗口会跨进停车段把速度测低 |
+
+一行入口：`bash verify_obstacles_tiers.sh`（依次起栈 → 验收 → 停栈；约 2 min/档）。
+
+| 档位 | 实测速度 | 行程 | 人-箱最近中心距 / 间距 | 15 项判据 |
+|---|---|---|---|---|
+| slow | 0.293 m/s | 0.59 m | 1.09 / 0.84 m | 全过 |
+| fast | 0.587 m/s | 0.97 m | 1.33 / 1.06 m | 全过 |
+| faster | 0.979 m/s | 1.27 m | 1.10 / 0.75 m | 全过 |
+
+报告：`results/report_nav2_obstacles.json`（slow，沿用老文件名）/ `_fast.json` / `_faster.json`。
+
+### 22.2 0.62 m 超窄门 + 2.5 cm 碰撞栅格变体
+
+§17.6 的另一条欠账（"只有 <0.70 m 门洞才需要 2.5 cm 变体"）现在有实物了：
+
+- `make_25mm_variant.sh` 一条命令生成（不碰 5 cm 基线）：
+  - `models/rmul2027_3v3_field_up_25mm/`：**178 块**碰撞 box（基线 48 块；2.5 cm 高度图，
+    高度误差 max 41 mm / rms 1 mm），视觉网格仍引用 `model://rmul2027_3v3_field_up/meshes/...`；
+  - `debug/box_collisions_25mm.json`（地图脚本的几何源）；
+  - `worlds/rmul2027_3v3_up_nav2_25mm.sdf.xacro`（world 名仍是 rmul2027_3v3）；
+  - `maps/rmul2027_3v3_up_25mm.pgm/yaml`：自由区 **77.706 m² = 解析值 77.706**（96.0 − 18.294），
+    `results/report_nav_map_up_25mm.json` 11 项校核全过（含 PGM 方向回读、连通性、正俯视渲染比对）。
+- 场景 `config/avoid_obstacles.json → gate_tight`：两块 1.0×0.5×0.6 m、内侧面 ±0.31 → **门洞 0.62 m**
+  （车宽 0.44，两侧外缝只剩 0.09 m，绕不过去）。
+- 入口 `bash nav2_gap_tight.sh [--grid 25mm|5cm]`；验收
+  `python3 verify_narrow_gap.py --scenario gate_tight --grid 25mm`
+  （5 cm 对照加 `--grid 5cm --tag 5cm`）。
+
+| 栅格 | 到点 | 门线 |x| max | 到门箱最小间距 | 定位 max / 门段 max | 6 项判据 |
+|---|---|---|---|---|---|---|
+| 2.5 cm | 0.081 m | 0.021 m | 0.288 / 0.327 m | 0.099 / 0.089 m | 全过 |
+| 5 cm | 0.068 m | 0.022 m | 0.284 / 0.329 m | 0.095 / 0.090 m | 全过 |
+
+**结论**：0.62 m 门洞在 5 cm 栅格下也过得去（两套栅格的定位/间距/居中读数差在 1~2 mm 级）——
+§18.3 的判断在更窄量级仍成立：**这个量级不必启用 2.5 cm 变体**；变体已备好，留给
+"<0.55 m 门洞或厘米级贴边"再上（本次没有找到 5 cm 失败的边界，不臆造结论）。
+`verify_narrow_gap.py` 的穿门判据也从写死 0.42 改成"门洞半宽 + 2 cm"（gate_tight 即 0.33）。
+
+### 22.3 附带修掉
+
+- `make_box_collisions.py` 新增 `--model-dir/--src/--out-json`（原来写死基线路径）；
+- `make_nav_map_up.py` 新增 `--boxes/--tag`（原来写死 `debug/box_collisions.json` 与 `rmul2027_3v3_up` 文件名）；
+- `nav2_field.sh` 新增 `NAV2_MAP=`（原来地图写死基线）；
+- `domain_cleanup.sh` 共享内存清场补"端口成对"规则（见 §21 末行）。

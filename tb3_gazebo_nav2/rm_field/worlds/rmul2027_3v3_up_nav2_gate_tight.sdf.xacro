@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!-- Nav2 用的场地世界（xacro 版，2026-11-20 起）：翻转后的 RMUL2027 3V3 场地。
+     与旧的 rmul2027_3v3_nav2.sdf.xacro 的区别：
+       - 场地模型换成 rmul2027_3v3_field_up（结构面朝上，地面 z=0，凸起最高 +0.40 m）；
+       - 不再 include 单独的 rmul2027_3v3_fence：翻转后场地自带的 0.40 m 外墙就是围挡，
+         内侧面在 x=±6.00 / y=±4.00（实测，见 debug/box_collisions.json test_geometry）；
+       - 场外地面下移到 z=-0.10（台体底板高度），与 drive_colored.sdf 一致。
+     为什么必须是 xacro：nav2_bringup 的 tb3_simulation_launch.py 会
+     xacro -o TMP headless:=BOOL WORLD 再交给 gz sim -r -s。
+     lidar 扫描面在 z=0.17：0.20 m 平台与 0.40 m 墙都在扫描面之上，AMCL 有真实几何可匹配。
+     用法见 nav2_field.sh。 -->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="headless" default="true"/>
+
+  <world name="rmul2027_3v3">
+    <physics name="dartsim-1ms" type="dartsim">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+
+    <scene>
+      <ambient>0.42 0.42 0.44 1</ambient>
+      <background>0.03 0.035 0.05 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 15 0 0 0</pose>
+      <diffuse>1.0 1.0 0.98 1</diffuse>
+      <specular>0.10 0.10 0.10 1</specular>
+      <direction>-0.25 0.30 -0.92</direction>
+    </light>
+    <light type="directional" name="fill">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.55 0.57 0.62 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
+      <direction>0.60 -0.40 -0.70</direction>
+    </light>
+
+    <model name="site_ground">
+      <static>true</static>
+      <pose>0 0 -0.10 0 0 0</pose>
+      <link name="ground_link">
+        <collision name="ground_collision">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <surface>
+            <friction>
+              <ode><mu>0.8</mu><mu2>0.8</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="ground_visual">
+          <geometry><plane><normal>0 0 1</normal><size>400 400</size></plane></geometry>
+          <material><ambient>0.08 0.08 0.09 1</ambient><diffuse>0.12 0.12 0.14 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://rmul2027_3v3_field_up</uri>
+      <name>rmul2027_3v3_field_up</name>
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+    </include>
+
+    <gui fullscreen="false">
+      <camera name="user_camera">
+        <pose>-9.0 8.0 4.0 0 0.32 -0.727</pose>
+      </camera>
+    </gui>
+
+    <!-- AVOID_OBSTACLES_BEGIN（由 make_obstacles_world.py 从 config/avoid_obstacles.json 生成，勿手改）-->
+    <model name="gate_west">
+      <static>true</static>
+      <pose>-0.8100 0.5000 0.3000 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0000 0.5000 0.6000</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0000 0.5000 0.6000</size></box></geometry>
+          <material>
+            <ambient>0.75 0.35 0.85 1</ambient>
+            <diffuse>0.75 0.35 0.85 1</diffuse>
+            <specular>0.10 0.10 0.10 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="gate_east">
+      <static>true</static>
+      <pose>0.8100 0.5000 0.3000 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0000 0.5000 0.6000</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0000 0.5000 0.6000</size></box></geometry>
+          <material>
+            <ambient>0.75 0.35 0.85 1</ambient>
+            <diffuse>0.75 0.35 0.85 1</diffuse>
+            <specular>0.10 0.10 0.10 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- AVOID_OBSTACLES_END -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+  </world>
+</sdf>

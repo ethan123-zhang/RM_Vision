@@ -35,6 +35,8 @@ import os
 import sys
 import time
 
+import argparse
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 os.environ.setdefault("ROS_DOMAIN_ID", "42")
@@ -72,6 +74,25 @@ LOC_EXCL_M = 2.00
 def load_cfg(path=CFG):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def resolve_tier(dyn, name=None):
+    """档位 → 实际几何（{name, speed, start, end}）；与 dynamic_obstacle.py 同一规则。
+
+    2026-11-21 起动态箱按档位验收（slow 0.3 / fast 0.6 / faster 1.0 m/s，方向也不同）：
+    验收必须用**同一档位**的几何来判"起点挡路/终点让开/实测速度"，否则会把
+    slow 的判据套到 faster 的轨迹上。
+    """
+    tiers = dyn.get("tiers") or {}
+    if not tiers:
+        return {"name": "legacy", "speed": dyn["speed"],
+                "start": list(dyn["start"]), "end": list(dyn["end"])}
+    name = name or dyn.get("default_tier") or sorted(tiers)[0]
+    if name not in tiers:
+        raise SystemExit(f"未知档位 {name!r}；可选: {', '.join(sorted(tiers))}")
+    t = tiers[name]
+    return {"name": name, "speed": float(t["speed"]),
+            "start": list(t["start"]), "end": list(t["end"])}
 
 
 def aabb_gap(x, y, cx, cy, sx, sy):
@@ -169,9 +190,17 @@ class ObstVerifier(Verifier):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tier", default=None,
+                    help="动态箱档位（不传则用 RM_DYN_TIER 环境变量，再退到 config.default_tier）")
+    args = ap.parse_args()
     cfg = load_cfg()
     statics = cfg["static"]
     dyn = cfg["dynamic"]
+    tier = resolve_tier(dyn, args.tier or os.environ.get("RM_DYN_TIER"))
+    # 默认档位沿用老报告名（report_nav2_obstacles.json），其它档位带后缀，
+    # 这样三档验收可以并存、也方便与 2026-11-20 的历史报告直接对比。
+    tier_suffix = "" if tier["name"] == (dyn.get("default_tier") or "legacy") else "_" + tier["name"]
     world_boxes = load_obstacles()
     if not os.path.exists(BASELINE):
         print(f"!! 缺无障基线 {BASELINE}：先跑 python3 capture_route.py（无障栈）")
@@ -188,6 +217,7 @@ def main():
         "robot_radius": ROBOT_R,
         "goals": [list(g) for g in GOALS],
         "obstacles": {"static": statics, "dynamic": dyn},
+        "tier": tier,
         "baseline": {"file": os.path.basename(BASELINE),
                      "path_len_m": [r.get("path_len_m") for r in base.get("nav_results", [])]},
         "ros_domain_id": os.environ.get("ROS_DOMAIN_ID"),
@@ -200,12 +230,13 @@ def main():
     }
 
     print(f"[0] ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID')} 静态箱 {len(statics)} "
-          f"+ 动态箱 {dyn['name']}")
+          f"+ 动态箱 {dyn['name']}（档位 {tier['name']}：{tier['speed']} m/s，"
+          f"{tier['start']}->{tier['end']}）")
 
     print("[1] 等 action server /navigate_to_pose ...")
     if not v.client.wait_for_server(timeout_sec=90.0):
         report["error"] = "no action server"
-        _save(report)
+        _save(report, tier_suffix)
         return 2
     print("    ok")
 
@@ -280,8 +311,8 @@ def main():
         mn = min(gaps) if gaps else None
         base_clear[ob["name"]] = {"min_gap_m": round(mn, 4) if mn is not None else None,
                                   "intrusion_m": round(-mn, 4) if (mn is not None and mn < 0) else 0.0}
-    d_start = dyn.get("start", dyn.get("p0"))
-    d_end = dyn.get("end", dyn.get("p1"))
+    d_start = tier["start"]
+    d_end = tier["end"]
     dyn_route_dist = min((seg_point_dist(p[2], p[3], d_start[0], d_start[1],
                                          d_end[0], d_end[1])
                           for p in base_track), default=1e9)
@@ -527,12 +558,13 @@ def main():
             "note": "Gazebo 真值机器人中心到箱体 AABB 的最近间距；robot_radius=0.22 未侵入"},
         "dynamic_moving": {
             "ok": ds.get("window_speed_1s_median_mps") is not None
-                  and abs(ds["window_speed_1s_median_mps"] - dyn["speed"]) <= DYN_SPEED_TOL
+                  and abs(ds["window_speed_1s_median_mps"] - tier["speed"]) <= DYN_SPEED_TOL
                   and ds.get("travel_m") is not None
                   and abs(ds["travel_m"] - seg_len) <= seg_len * DYN_TRAVEL_TOL
                   and (ds.get("park_err_m") is not None and ds["park_err_m"] <= DYN_PARK_TOL)
                   and (ds.get("tail_1s_move_m") or 0.0) <= 0.05,
-            "config_speed_mps": dyn["speed"],
+            "tier": tier["name"],
+            "config_speed_mps": tier["speed"],
             "window_speed_1s_median_mps": ds.get("window_speed_1s_median_mps"),
             "motion_speed_mps": ds.get("motion_speed_mps"),
             "motion_duration_s": ds.get("motion_duration_s"),
@@ -557,8 +589,8 @@ def main():
     }
     ok = all(c["ok"] for c in checks.values())
     report["checks"] = checks
-    report["summary"] = {"ok": bool(ok)}
-    _save(report)
+    report["summary"] = {"ok": bool(ok), "tier": tier["name"]}
+    _save(report, tier_suffix)
 
     print("\n===== 摘要 =====")
     print(json.dumps({"rates": report["rates"],
@@ -582,8 +614,8 @@ def main():
     return 0 if ok else 3
 
 
-def _save(report):
-    path = os.path.join(RES, "report_nav2_obstacles.json")
+def _save(report, tier_suffix=""):
+    path = os.path.join(RES, f"report_nav2_obstacles{tier_suffix}.json")
     with open(path, "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False, default=float)
     print("报告:", path)

@@ -254,10 +254,11 @@ def occupancy_at(img, x, y):
     return int(img[h - 1 - r, c])             # 图像行 = 上下翻转后的行
 
 
-def write_yaml(path, pgm_name):
+def write_yaml(path, pgm_name, n_boxes=None):
     with open(path, "w", encoding="utf-8") as f:
         f.write("# RMUL2027 3V3 场地（翻转后：地面 z=0，凸起结构最高 0.40 m）的 Nav2 地图\n")
-        f.write("# 由 make_nav_map_up.py 生成：自由区 = 墙壁内侧面以内 − 48 块碰撞 box 的投影\n")
+        nb = f"{n_boxes} 块" if n_boxes else "若干"
+        f.write(f"# 由 make_nav_map_up.py 生成：自由区 = 墙壁内侧面以内 − {nb}碰撞 box 的投影\n")
         f.write(f"image: {pgm_name}\n")
         f.write(f"resolution: {RES}\n")
         f.write(f"origin: [{ORIGIN[0]}, {ORIGIN[1]}, 0.0]\n")
@@ -273,6 +274,12 @@ def main():
     ap.add_argument("--out", default=os.path.join(HERE, "maps"))
     ap.add_argument("--report", default=os.path.join(HERE, "results", "report_nav_map_up.json"))
     ap.add_argument("--overlay", default=os.path.join(HERE, "shots", "nav_map_up_overlay.png"))
+    ap.add_argument("--boxes", default=BOXES_JSON,
+                    help="碰撞体 JSON（默认 debug/box_collisions.json=5 cm 栅格）；"
+                         "2.5 cm 变体传 debug/box_collisions_25mm.json")
+    ap.add_argument("--tag", default="rmul2027_3v3_up",
+                    help="地图文件名前缀（默认基线 rmul2027_3v3_up；"
+                         "2.5 cm 变体用 rmul2027_3v3_up_25mm，不覆盖基线）")
     args = ap.parse_args()
 
     for p in (args.render, args.world):
@@ -280,7 +287,7 @@ def main():
             raise SystemExit(f"!! 缺文件: {p}")
     os.makedirs(args.out, exist_ok=True)
 
-    boxes, geo, stats = load_boxes()
+    boxes, geo, stats = load_boxes(args.boxes)
     if abs(geo["east_inner_x"] - INNER_X) > 1e-6 or abs(geo["north_inner_y"] - INNER_Y) > 1e-6:
         raise SystemExit(f"!! 碰撞几何的墙内侧面 {geo} 与脚本常量不一致，先同步常量")
     print(f"碰撞体: {len(boxes)} 块 box, {stats['cell_m']} m 栅格, "
@@ -298,13 +305,13 @@ def main():
     print(f"地图 {mw}x{mh} @ {RES} m/px  自由区 {free_area:.3f} m²  "
           f"（解析值 {exp_area:.3f} = {interior:.1f} − 障碍 {obst_area_analytic:.3f}）")
 
-    pgm_name = "rmul2027_3v3_up.pgm"
+    pgm_name = f"{args.tag}.pgm"
     pgm_path = os.path.join(args.out, pgm_name)
-    yaml_path = os.path.join(args.out, "rmul2027_3v3_up.yaml")
+    yaml_path = os.path.join(args.out, f"{args.tag}.yaml")
     write_pgm(pgm_path, img)
-    write_yaml(yaml_path, pgm_name)
+    write_yaml(yaml_path, pgm_name, len(boxes))
     Image.fromarray(np.where(img[::-1] > 0, 254, 0).astype(np.uint8)).save(
-        os.path.join(args.out, "rmul2027_3v3_up_preview.png"))
+        os.path.join(args.out, f"{args.tag}_preview.png"))
 
     # 自由区 bbox（像素离散化后）
     ys, xs = np.nonzero(free)
@@ -424,7 +431,7 @@ def main():
     # ---- 5) 断言
     checks = {
         "map_free_area_m2": {
-            "_what": "地图自由区面积 vs 解析值（室内矩形 − 48 块 box 投影）",
+            "_what": f"地图自由区面积 vs 解析值（室内矩形 − {len(boxes)} 块 box 投影）",
             "measured": round(free_area, 3), "expected": round(exp_area, 3),
             "dev": round(abs(free_area - exp_area), 3), "tol": TOL_AREA,
             "ok": abs(free_area - exp_area) <= TOL_AREA,
@@ -514,7 +521,7 @@ def main():
         "camera": {"width": cam["w"], "height": cam["h"], "hfov": cam["hfov"],
                    "focal_px": round(cam["f"], 2), "cam_z": cam["cam_z"],
                    "m_per_px_at_z0": round(cam["m_per_px"], 5)},
-        "geometry": {"source": os.path.abspath(BOXES_JSON), "n_boxes": len(boxes),
+        "geometry": {"source": os.path.abspath(args.boxes), "n_boxes": len(boxes),
                      "cell_m": stats["cell_m"], "inner_half": [INNER_X, INNER_Y],
                      "interior_area_m2": round(interior, 3),
                      "obstacle_area_analytic_m2": round(obst_area_analytic, 3)},

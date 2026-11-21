@@ -1,0 +1,745 @@
+{
+  "field": {
+    "len": 12.6,
+    "wid": 8.6,
+    "wall_inner_half": [
+      6.0,
+      4.0
+    ],
+    "obstacle_margin": 0.05,
+    "z_window": [
+      -0.05,
+      0.06
+    ]
+  },
+  "robot_radius": 0.22,
+  "goals": [
+    [
+      4.0,
+      2.0,
+      0.0
+    ],
+    [
+      4.0,
+      -2.5,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "obstacles": {
+    "static": [
+      {
+        "name": "avoid_box_1",
+        "center": [
+          0.85,
+          -1.45
+        ],
+        "size": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "color": [
+          0.9,
+          0.45,
+          0.05
+        ]
+      },
+      {
+        "name": "avoid_box_2",
+        "center": [
+          4.3,
+          -0.6
+        ],
+        "size": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "color": [
+          0.9,
+          0.45,
+          0.05
+        ]
+      }
+    ],
+    "dynamic": {
+      "name": "dynamic_box",
+      "mode": "triggered_retreat",
+      "trigger_dist": 1.5,
+      "size": [
+        0.5,
+        0.5,
+        0.6
+      ],
+      "z_center": 0.3,
+      "color": [
+        0.1,
+        0.55,
+        0.9
+      ],
+      "default_tier": "slow",
+      "tiers": {
+        "slow": {
+          "note": "基线档：正北让开 0.59 m（0.3 m/s）。与 2026-11-20 验收同一几何，可横向对比历史数据。",
+          "speed": 0.3,
+          "start": [
+            2.5,
+            -1.94
+          ],
+          "end": [
+            2.5,
+            -1.35
+          ]
+        },
+        "fast": {
+          "note": "2× 机器人速度（0.6 m/s）：东北 75° 让开 0.90 m。方向不是正北——正北再远会压到场地凸起结构（离线查图：x=2.5 往北只有约 0.9 m 自由段）。",
+          "speed": 0.6,
+          "start": [
+            2.5,
+            -1.94
+          ],
+          "end": [
+            2.73,
+            -1.07
+          ]
+        },
+        "faster": {
+          "note": "≈4× 机器人速度（1.0 m/s）：东北 45° 让开 1.20 m。运动段必须 ≥1.2 s，否则验收的 1 s 测速窗口会跨过停车段、把速度测低。",
+          "speed": 1.0,
+          "start": [
+            2.5,
+            -1.94
+          ],
+          "end": [
+            3.35,
+            -1.09
+          ]
+        }
+      }
+    }
+  },
+  "tier": {
+    "name": "fast",
+    "speed": 0.6,
+    "start": [
+      2.5,
+      -1.94
+    ],
+    "end": [
+      2.73,
+      -1.07
+    ]
+  },
+  "baseline": {
+    "file": "baseline_route.json",
+    "path_len_m": [
+      9.143,
+      4.843,
+      5.456
+    ]
+  },
+  "ros_domain_id": "42",
+  "params_hint": {
+    "vx_max": 0.5
+  },
+  "criteria": {
+    "clear_min_m": 0.22,
+    "baseline_intrusion_min_m": 0.1,
+    "dyn_route_max_dist_m": 0.3,
+    "dyn_speed_tol": 0.05,
+    "dyn_travel_rel_tol": 0.2,
+    "dyn_park_tol_m": 0.15,
+    "dyn_end_clear_min_m": 0.3,
+    "dyn_encounter_max_m": 2.0
+  },
+  "sim_time_ok": true,
+  "tf_ready": true,
+  "rates": {
+    "scan_hz": 5.0,
+    "odom_hz": 29.33
+  },
+  "nav_results": [
+    {
+      "goal": [
+        4.0,
+        2.0,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 34.05,
+      "sim_s": 33.96,
+      "rtf_mean": 0.997,
+      "path_len_m": 12.134,
+      "mean_speed_mps": 0.357,
+      "cmd_v_max_mps": 0.497,
+      "cmd_w_max_rps": 0.811,
+      "cmd_samples": 680,
+      "tf_samples": 339,
+      "end_xy": [
+        4.034,
+        2.0
+      ],
+      "end_dist_to_goal_m": 0.034,
+      "max_abs_x": 5.299,
+      "max_abs_y": 2.964,
+      "recoveries": 0
+    },
+    {
+      "goal": [
+        4.0,
+        -2.5,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 16.8,
+      "sim_s": 16.74,
+      "rtf_mean": 0.996,
+      "path_len_m": 5.482,
+      "mean_speed_mps": 0.328,
+      "cmd_v_max_mps": 0.498,
+      "cmd_w_max_rps": 0.815,
+      "cmd_samples": 336,
+      "tf_samples": 167,
+      "end_xy": [
+        4.015,
+        -2.483
+      ],
+      "end_dist_to_goal_m": 0.023,
+      "max_abs_x": 5.281,
+      "max_abs_y": 2.551,
+      "recoveries": 0
+    },
+    {
+      "goal": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "status": 4,
+      "succeeded": true,
+      "error_code": 0,
+      "wall_s": 34.45,
+      "sim_s": 34.42,
+      "rtf_mean": 0.999,
+      "path_len_m": 6.74,
+      "mean_speed_mps": 0.196,
+      "cmd_v_max_mps": 0.351,
+      "cmd_w_max_rps": 0.808,
+      "cmd_samples": 688,
+      "tf_samples": 343,
+      "end_xy": [
+        0.038,
+        -0.04
+      ],
+      "end_dist_to_goal_m": 0.055,
+      "max_abs_x": 4.024,
+      "max_abs_y": 2.494,
+      "recoveries": 0
+    }
+  ],
+  "whole_run": {
+    "tf_samples": 924,
+    "path_len_m": 24.372,
+    "sim_s": 92.56,
+    "wall_s": 92.76,
+    "mean_speed_mps": 0.263,
+    "global_rtf": 0.998,
+    "max_abs_x": 5.299,
+    "max_abs_y": 2.964,
+    "gz_z_min": 0.01,
+    "gz_z_max": 0.01,
+    "max_box_penetration_m": -0.5323,
+    "loc_err_m": {
+      "max": 0.407,
+      "mean": 0.066,
+      "samples": 924,
+      "series_2s": [
+        [
+          2.0,
+          0.11
+        ],
+        [
+          4.0,
+          0.11
+        ],
+        [
+          6.0,
+          0.11
+        ],
+        [
+          8.0,
+          0.114
+        ],
+        [
+          10.1,
+          0.056
+        ],
+        [
+          12.1,
+          0.054
+        ],
+        [
+          14.1,
+          0.071
+        ],
+        [
+          16.1,
+          0.108
+        ],
+        [
+          18.1,
+          0.094
+        ],
+        [
+          20.1,
+          0.066
+        ],
+        [
+          22.1,
+          0.309
+        ],
+        [
+          24.1,
+          0.103
+        ],
+        [
+          26.1,
+          0.005
+        ],
+        [
+          28.1,
+          0.011
+        ],
+        [
+          30.1,
+          0.005
+        ],
+        [
+          32.2,
+          0.012
+        ],
+        [
+          34.2,
+          0.047
+        ],
+        [
+          36.2,
+          0.047
+        ],
+        [
+          38.2,
+          0.07
+        ],
+        [
+          40.2,
+          0.093
+        ],
+        [
+          42.2,
+          0.084
+        ],
+        [
+          44.2,
+          0.072
+        ],
+        [
+          46.2,
+          0.051
+        ],
+        [
+          48.2,
+          0.059
+        ],
+        [
+          50.2,
+          0.013
+        ],
+        [
+          52.3,
+          0.013
+        ],
+        [
+          54.3,
+          0.009
+        ],
+        [
+          56.3,
+          0.022
+        ],
+        [
+          58.3,
+          0.028
+        ],
+        [
+          60.3,
+          0.034
+        ],
+        [
+          62.3,
+          0.065
+        ],
+        [
+          64.3,
+          0.145
+        ],
+        [
+          66.3,
+          0.178
+        ],
+        [
+          68.3,
+          0.11
+        ],
+        [
+          70.4,
+          0.037
+        ],
+        [
+          72.4,
+          0.037
+        ],
+        [
+          74.4,
+          0.031
+        ],
+        [
+          76.4,
+          0.069
+        ],
+        [
+          78.4,
+          0.111
+        ],
+        [
+          80.4,
+          0.075
+        ],
+        [
+          82.4,
+          0.103
+        ],
+        [
+          84.4,
+          0.019
+        ],
+        [
+          86.4,
+          0.002
+        ],
+        [
+          88.4,
+          0.01
+        ],
+        [
+          90.4,
+          0.022
+        ],
+        [
+          92.5,
+          0.03
+        ]
+      ],
+      "excluding_unmapped": {
+        "max": 0.093,
+        "mean": 0.078,
+        "samples": 72,
+        "excl_m": 2.0,
+        "note": "剔除离静态/动态未建图障碍物 ≤2 m 的样本；剩下的样本才用来判地图-世界一致性"
+      }
+    },
+    "cmd_v_max_mps": 0.498
+  },
+  "test_validity": {
+    "baseline_static": {
+      "avoid_box_1": {
+        "min_gap_m": -0.2094,
+        "intrusion_m": 0.2094
+      },
+      "avoid_box_2": {
+        "min_gap_m": -0.2262,
+        "intrusion_m": 0.2262
+      }
+    },
+    "baseline_dyn_route_dist_m": 0.004,
+    "baseline_dyn_start_intrusion_m": 0.2429,
+    "dyn_end_clear_of_baseline_m": 0.572
+  },
+  "static_clearance": {
+    "avoid_box_1": {
+      "min_gap_m": 0.696,
+      "min_gap_tf_m": 0.743
+    },
+    "avoid_box_2": {
+      "min_gap_m": 0.687,
+      "min_gap_tf_m": 0.696
+    }
+  },
+  "dynamic": {
+    "samples": 5514,
+    "dedup_samples": 2756,
+    "mode": "triggered_retreat",
+    "segment": {
+      "start": [
+        2.5,
+        -1.94
+      ],
+      "end": [
+        2.73,
+        -1.07
+      ],
+      "len_m": 0.9
+    },
+    "travel_m": 0.973,
+    "travel_expected_m": 0.9,
+    "motion_duration_s": 1.399,
+    "motion_speed_mps": 0.696,
+    "window_speed_1s_median_mps": 0.587,
+    "deviation_from_segment_m": 0.019,
+    "park_err_m": 0.073,
+    "tail_1s_move_m": 0.001,
+    "x_range": [
+      2.5,
+      2.73
+    ],
+    "y_range": [
+      -1.94,
+      -1.07
+    ],
+    "min_center_dist_m": 1.325,
+    "min_gap_m": 1.064,
+    "worst_gap": {
+      "wall_t": 1795265767.3,
+      "robot_xy": [
+        3.677,
+        -2.129
+      ],
+      "box_xy": [
+        2.73,
+        -1.075
+      ],
+      "center_dist_m": 1.417,
+      "gap_m": 1.064
+    },
+    "encounter_samples": 1707,
+    "encounter": {
+      "wall_s": [
+        1795265759.7,
+        1795265814.2
+      ],
+      "cmd_samples": 1096,
+      "cmd_v_min_mps": 0.0,
+      "cmd_v_mean_mps": 0.321,
+      "tf_speed_min_mps": 0.002,
+      "tf_speed_mean_mps": 0.318
+    }
+  },
+  "collision_monitor": {
+    "events": 0,
+    "by_action_type": {},
+    "by_polygon": []
+  },
+  "detour_cost": [
+    {
+      "goal": [
+        4.0,
+        2.0,
+        0.0
+      ],
+      "path_len_m": 12.134,
+      "baseline_path_len_m": 9.143,
+      "delta_m": 2.991
+    },
+    {
+      "goal": [
+        4.0,
+        -2.5,
+        0.0
+      ],
+      "path_len_m": 5.482,
+      "baseline_path_len_m": 4.843,
+      "delta_m": 0.639
+    },
+    {
+      "goal": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "path_len_m": 6.74,
+      "baseline_path_len_m": 5.456,
+      "delta_m": 1.284
+    }
+  ],
+  "checks": {
+    "sim_time": {
+      "ok": true
+    },
+    "tf_available": {
+      "ok": true
+    },
+    "topics": {
+      "ok": true,
+      "scan_hz": 5.0,
+      "odom_hz": 29.33
+    },
+    "goals_succeeded": {
+      "ok": true,
+      "per_goal": [
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "sim_s": 33.96,
+          "error": null
+        },
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "sim_s": 16.74,
+          "error": null
+        },
+        {
+          "succeeded": true,
+          "error_code": 0,
+          "sim_s": 34.42,
+          "error": null
+        }
+      ]
+    },
+    "reached_goal": {
+      "ok": true,
+      "end_dist_to_goal_m": [
+        0.034,
+        0.023,
+        0.055
+      ],
+      "tol": 0.3
+    },
+    "inside_field": {
+      "ok": true,
+      "max_abs_x": 5.299,
+      "max_abs_y": 2.964
+    },
+    "no_fall": {
+      "ok": true,
+      "gz_z_min": 0.01
+    },
+    "no_climb": {
+      "ok": true,
+      "gz_z_max": 0.01
+    },
+    "no_map_overlap": {
+      "ok": true,
+      "max_box_penetration_m": -0.5323,
+      "tol": 0.05,
+      "note": "场地平台/墙的 48 块碰撞 box 投影；5 cm = 碰撞体栅格粒度"
+    },
+    "localization_consistent": {
+      "ok": true,
+      "all_samples_max_m": 0.407,
+      "excluding_unmapped": {
+        "max": 0.093,
+        "mean": 0.078,
+        "samples": 72,
+        "excl_m": 2.0,
+        "note": "剔除离静态/动态未建图障碍物 ≤2 m 的样本；剩下的样本才用来判地图-世界一致性"
+      },
+      "tol": 0.5,
+      "note": "TF(map->base_footprint) vs Gazebo 真值，全样本；修复前未建图障碍物附近会带偏到 0.76~1.05 m（当时判据只能剔除 ≤2 m 样本），换成 likelihood_field_prob + do_beamskip 后全场 max 0.315 m"
+    },
+    "speed_sane": {
+      "ok": true,
+      "vx_max_from_params": 0.5,
+      "cmd_v_max_mps": [
+        0.497,
+        0.498,
+        0.351
+      ]
+    },
+    "obstacles_on_route": {
+      "ok": true,
+      "baseline_static": {
+        "avoid_box_1": {
+          "min_gap_m": -0.2094,
+          "intrusion_m": 0.2094
+        },
+        "avoid_box_2": {
+          "min_gap_m": -0.2262,
+          "intrusion_m": 0.2262
+        }
+      },
+      "baseline_dyn_route_dist_m": 0.004,
+      "baseline_dyn_start_intrusion_m": 0.2429,
+      "dyn_end_clear_of_baseline_m": 0.572,
+      "note": "无障基线侵入箱体投影 ≥0.10 m 才算挡在路上；动态箱起点同理、退让终点离基线 ≥0.60 m 才不堵后续航段"
+    },
+    "static_clearance": {
+      "ok": true,
+      "per_box": {
+        "avoid_box_1": {
+          "min_gap_m": 0.696,
+          "min_gap_tf_m": 0.743
+        },
+        "avoid_box_2": {
+          "min_gap_m": 0.687,
+          "min_gap_tf_m": 0.696
+        }
+      },
+      "clear_min_m": 0.22,
+      "note": "Gazebo 真值机器人中心到箱体 AABB 的最近间距；robot_radius=0.22 未侵入"
+    },
+    "dynamic_moving": {
+      "ok": true,
+      "tier": "fast",
+      "config_speed_mps": 0.6,
+      "window_speed_1s_median_mps": 0.587,
+      "motion_speed_mps": 0.696,
+      "motion_duration_s": 1.399,
+      "travel_m": 0.973,
+      "travel_expected_m": 0.9,
+      "park_err_m": 0.073,
+      "tail_1s_move_m": 0.001,
+      "deviation_from_segment_m": 0.019,
+      "tol": {
+        "speed": 0.05,
+        "travel_rel": 0.2,
+        "park": 0.15
+      },
+      "note": "独立测速用 1 s 窗口位移中位数（免疫 set_pose 0.1 s 步进量化；motion_speed 是运动起止位移/时长，量化误差偏大只作参考）+ 行程与配置线段一致 + 最终停住不再动"
+    },
+    "dynamic_clearance": {
+      "ok": true,
+      "min_gap_m": 1.064,
+      "min_center_dist_m": 1.325,
+      "worst_gap": {
+        "wall_t": 1795265767.3,
+        "robot_xy": [
+          3.677,
+          -2.129
+        ],
+        "box_xy": [
+          2.73,
+          -1.075
+        ],
+        "center_dist_m": 1.417,
+        "gap_m": 1.064
+      },
+      "encounter_samples": 1707,
+      "clear_min_m": 0.22,
+      "encounter_max_m": 2.0,
+      "note": "无接触 + 确实遭遇过（中心距 <1 m）；否则动态测试无意义"
+    }
+  },
+  "summary": {
+    "ok": true,
+    "tier": "fast"
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "render": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/shots/nav_topdown_up.png",
+  "camera": {
+    "width": 1600,
+    "height": 1100,
+    "hfov": 0.761,
+    "focal_px": 2000.04,
+    "cam_z": 20.0,
+    "m_per_px_at_z0": 0.01
+  },
+  "geometry": {
+    "source": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/debug/box_collisions_25mm.json",
+    "n_boxes": 178,
+    "cell_m": 0.025,
+    "inner_half": [
+      6.0,
+      4.0
+    ],
+    "interior_area_m2": 96.0,
+    "obstacle_area_analytic_m2": 18.294
+  },
+  "classify": {
+    "sat_min": 0.15,
+    "floor_max_blueness": 0.04,
+    "pixel_counts": {
+      "floor": 776982,
+      "outside": 630892,
+      "green": 224658,
+      "yellow": 126417,
+      "red": 915,
+      "other": 136
+    },
+    "samples_rgb": {
+      "floor_0_3.5": [
+        105,
+        105,
+        106
+      ],
+      "outside_7.5_0": [
+        112,
+        112,
+        120
+      ],
+      "green_-2.5_-2.3": [
+        32,
+        93,
+        50
+      ],
+      "walltop_6.25_0": [
+        116,
+        108,
+        32
+      ]
+    }
+  },
+  "map": {
+    "pgm": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up_25mm.pgm",
+    "yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up_25mm.yaml",
+    "free_px": 124329,
+    "occupied_px": 55895
+  },
+  "checks": {
+    "map_free_area_m2": {
+      "_what": "地图自由区面积 vs 解析值（室内矩形 − 178 块 box 投影）",
+      "measured": 77.706,
+      "expected": 77.706,
+      "dev": 0.0,
+      "tol": 0.1,
+      "ok": true
+    },
+    "map_free_rect_m": {
+      "_what": "地图自由区 bbox → 应 12.00 x 8.00 m（= 墙面内侧面以内）",
+      "measured": [
+        12.0,
+        8.0
+      ],
+      "expected": [
+        12.0,
+        8.0
+      ],
+      "dev": [
+        0.0,
+        0.0
+      ],
+      "tol": 0.025,
+      "ok": true
+    },
+    "map_meta": {
+      "_what": "地图尺寸/origin 与配置一致（12.80 x 8.80 m，origin -6.40/-4.40）",
+      "image": "rmul2027_3v3_up_25mm.pgm",
+      "width_px": 512,
+      "height_px": 352,
+      "resolution": 0.025,
+      "origin": [
+        -6.4,
+        -4.4
+      ],
+      "extent_m": [
+        12.8,
+        8.8
+      ],
+      "expected_extent_m": [
+        12.8,
+        8.8
+      ],
+      "ok": true
+    },
+    "pgm_orientation": {
+      "_what": "落盘 PGM 按 map_server 读图约定回读：已知自由点/平台点必须对得上",
+      "measured": {
+        "free_0_0": 254,
+        "free_4_2": 254,
+        "free_4_-2.5": 254,
+        "free_-5.5_0": 254,
+        "obst_-2.5_-2.3": 0,
+        "obst_2.5_0.8": 0,
+        "obst_2.5_2.3": 0,
+        "obst_-2.5_0.5": 0
+      },
+      "bad_points": [],
+      "ok": true
+    },
+    "spawn_free": {
+      "_what": "AMCL 初始位姿 / 出生点在地图里必须是自由格",
+      "spawn": [
+        0.0,
+        0.0
+      ],
+      "cell": [
+        176,
+        256
+      ],
+      "ok": true
+    },
+    "map_connected": {
+      "_what": "从出生点泛洪，自由区必须单一连通且到达每个验收目标",
+      "unreached_free_cells": 0,
+      "goals_reachable": {
+        "(4.0, 2.0)": true,
+        "(4.0, -2.5)": true,
+        "(0.0, 0.0)": true
+      },
+      "tol_cells": 0,
+      "ok": true
+    },
+    "render_floor_rect_m": {
+      "_what": "渲染中性灰地面 bbox → 应 12.00 x 8.00 m（地面可见边界 = 墙面）",
+      "measured": [
+        12.0,
+        8.0
+      ],
+      "expected": [
+        12.0,
+        8.0
+      ],
+      "dev": [
+        0.0,
+        0.0
+      ],
+      "tol": 0.05,
+      "stray_px": 1698,
+      "ok": true
+    },
+    "render_floor_edges_m": {
+      "_what": "渲染地面四条边 → 应正好在 -6.00/+6.00/-4.00/+4.00",
+      "measured_xyxy": [
+        -6.0,
+        5.99,
+        -3.99,
+        4.0
+      ],
+      "expected_xyxy": [
+        -6.0,
+        6.0,
+        -4.0,
+        4.0
+      ],
+      "dev": [
+        0.0,
+        0.01,
+        0.01,
+        0.0
+      ],
+      "tol": 0.05,
+      "ok": true
+    },
+    "render_free_area_vs_map": {
+      "_what": "室内缩边区域 (|x|<5.9, |y|<3.9) 内：渲染地面面积 vs 地图自由区面积（平台顶面 2% 透视放大使渲染地面略小）",
+      "render_m2": 74.348,
+      "map_m2": 74.368,
+      "dev": 0.02,
+      "tol": 0.6,
+      "ok": true
+    },
+    "render_green_vs_map_obstacles": {
+      "_what": "室内缩边区域 (|x|<5.9, |y|<3.9) 内：渲染绿色（凸起结构）面积/重心 vs 地图室内障碍",
+      "render_m2": 17.884,
+      "map_m2": 17.672,
+      "area_dev": 0.212,
+      "area_tol": 0.6,
+      "centroid_render": [
+        -0.009,
+        0.0
+      ],
+      "centroid_map": [
+        -0.013,
+        -0.009
+      ],
+      "centroid_dev_m": 0.01,
+      "centroid_tol": 0.1,
+      "ok": true
+    },
+    "pixel_agreement_core": {
+      "_what": "核心区（离分界 ≥0.1 m）逐像素：地图 free/障碍 与渲染 地面/非地面 一致率",
+      "free_core_px": 713961,
+      "free_agree_px": 713953,
+      "obs_core_px": 861375,
+      "obs_agree_px": 859677,
+      "rate_free": 0.99999,
+      "rate_obs": 0.99803,
+      "min_rate": 0.995,
+      "ok": true
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}

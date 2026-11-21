@@ -1,0 +1,154 @@
+{
+  "scenario": {
+    "name": "gate_tight",
+    "gate_gap_m": 0.62,
+    "goal": [
+      0.0,
+      2.6
+    ],
+    "spawn": [
+      0.0,
+      -2.0
+    ],
+    "gate_clear_min_m": 0.2,
+    "gate_depth_m": 0.5,
+    "field_grid": "5cm",
+    "grid_quantization_m": 0.025,
+    "tag": "5cm",
+    "boxes": [
+      {
+        "name": "gate_west",
+        "center": [
+          -0.81,
+          0.5
+        ],
+        "size": [
+          1.0,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.75,
+          0.35,
+          0.85
+        ]
+      },
+      {
+        "name": "gate_east",
+        "center": [
+          0.81,
+          0.5
+        ],
+        "size": [
+          1.0,
+          0.5,
+          0.6
+        ],
+        "color": [
+          0.75,
+          0.35,
+          0.85
+        ]
+      }
+    ]
+  },
+  "ros_domain_id": "42",
+  "sim_time_ok": true,
+  "tf_ready": true,
+  "nav_result": {
+    "goal": [
+      0.0,
+      2.6,
+      0.0
+    ],
+    "status": 4,
+    "succeeded": true,
+    "error_code": 0,
+    "wall_s": 16.85,
+    "sim_s": 16.61,
+    "rtf_mean": 0.986,
+    "path_len_m": 4.834,
+    "mean_speed_mps": 0.291,
+    "cmd_v_max_mps": 0.5,
+    "cmd_w_max_rps": 0.61,
+    "cmd_samples": 336,
+    "tf_samples": 168,
+    "end_xy": [
+      0.065,
+      2.58
+    ],
+    "end_dist_to_goal_m": 0.068,
+    "max_abs_x": 0.118,
+    "max_abs_y": 2.596,
+    "recoveries": 0
+  },
+  "loc_err_m": {
+    "max": 0.095,
+    "mean": 0.066,
+    "gate_segment_max": 0.09,
+    "samples": 183,
+    "gate_samples": 43,
+    "gate_half_win_m": 0.9
+  },
+  "tf_samples": 183,
+  "gz_samples": 1131,
+  "checks": {
+    "goals_succeeded": {
+      "ok": true,
+      "succeeded": true,
+      "error_code": 0,
+      "error": null
+    },
+    "reached_goal": {
+      "ok": true,
+      "end_dist_to_goal_m": 0.068,
+      "tol": 0.3
+    },
+    "gate_passed": {
+      "ok": true,
+      "crossed": true,
+      "samples_on_gate_line": 26,
+      "max_abs_x_on_gate_m": 0.022,
+      "limit_m": 0.33,
+      "note": "门线 y=门中心±0.1 的样本 |x| 必须 ≤ 门洞半宽 + 2 cm"
+    },
+    "gate_clearance": {
+      "ok": true,
+      "per_box_min_gap_m": {
+        "gate_west": 0.284,
+        "gate_east": 0.329
+      },
+      "min_gap_m": 0.284,
+      "clear_min_m": 0.2,
+      "worst": {
+        "wall_t": 1795266240.45,
+        "robot_xy": [
+          -0.026,
+          0.247
+        ],
+        "box": "gate_west",
+        "gap_m": 0.284
+      }
+    },
+    "safe_envelope": {
+      "ok": true,
+      "gz_z_min": 0.01,
+      "gz_z_max": 0.01,
+      "max_abs_x": 0.118,
+      "max_abs_y": 2.596
+    },
+    "localization_consistent": {
+      "ok": true,
+      "max_m": 0.095,
+      "mean_m": 0.066,
+      "gate_segment_max_m": 0.09,
+      "samples": 183,
+      "gate_samples": 43,
+      "tol": 0.5,
+      "note": "未建图障碍物回波会让 AMCL 漂（修复前 gate_deep 实测 2.9 m）；本判据就是回归 likelihood_field_prob + do_beamskip 的修复"
+    }
+  },
+  "summary": {
+    "ok": true
+  }
+}

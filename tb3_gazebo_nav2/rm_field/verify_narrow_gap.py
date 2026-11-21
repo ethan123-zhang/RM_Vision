@@ -7,15 +7,18 @@
   --scenario gate_deep        两块 1.0×1.2×1.0 m，窄段深 1.2 m（GUI 默认箱量级）；
                               `bash nav2_gap_deep.sh`。这是 AMCL 漂移的回归档：
                               修复前实测出门后定位漂 2.9 m、nav2 ABORTED。
+  --scenario gate_tight       0.62 m 超窄门（<0.70 m 档，车宽 0.44）：`bash nav2_gap_tight.sh`。
+                              --grid 25mm（默认 2.5 cm 碰撞栅格变体）或 5cm（基线对照）；
+                              --tag 用来区分同场景的两次跑（报告名带后缀）。
 
 判据（gate 5 项 + deep 同 5 项，另有公共第 6 项）：
   1. 导航成功、到位 <0.30 m；
-  2. 真的穿门：真值轨迹在 y=门线±0.10 的样本里 |x| ≤ 0.42；
+  2. 真的穿门：真值轨迹在 y=门线±0.10 的样本里 |x| ≤ 门洞半宽 + 2 cm；
   3. 贴边安全：全程到两块门箱 AABB 的最小间距 ≥ 0.20 m；
   4. 不出界/不掉台/不爬台（同基类判据）；
   5. 定位一致：TF(map->base_footprint) 与 Gazebo 真值全程 max < 0.50 m；
      并单独给"门线 ±0.90 m 的穿门段"的 max，防止全局最大值被别处稀释。
-输出 results/report_narrow_gap[_deep].json；全过返回 0，否则 3。
+输出 results/report_narrow_gap[_deep|_tight][_tag].json；全过返回 0，否则 3。
 """
 import argparse
 import json
@@ -66,7 +69,11 @@ def loc_errors(v):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--scenario", choices=["gate", "gate_deep"], default="gate")
+    ap.add_argument("--scenario", choices=["gate", "gate_deep", "gate_tight"], default="gate")
+    ap.add_argument("--grid", choices=["5cm", "25mm"], default="5cm",
+                    help="这次跑用的是哪套碰撞栅格（只记录进报告；世界/地图由起栈脚本决定）")
+    ap.add_argument("--tag", default="",
+                    help="报告名后缀（例如同一 gate_tight 分别跑 5cm/25mm 时用 --tag 5cm）")
     args = ap.parse_args()
     key = args.scenario
     gate = load_cfg()[key]
@@ -75,21 +82,26 @@ def main():
     gate_y = west["center"][1]
     gap = ((east["center"][0] - east["size"][0] / 2.0)
            - (west["center"][0] + west["size"][0] / 2.0))
+    # 门洞半宽 + 2 cm：center 越过半个门洞就算没"真的从门里过"；贴边接触由
+    # gate_clearance（点-箱 AABB ≥0.20）兜底。
+    gate_half_limit = gap / 2.0 + 0.02
     rclpy.init()
     v = Verifier()
     report = {"scenario": {"name": key, "gate_gap_m": round(gap, 3), "goal": goal_xy,
                            "spawn": gate.get("spawn"), "gate_clear_min_m": GATE_CLEAR_MIN,
                            "gate_depth_m": west["size"][1],
-                           "grid_quantization_m": 0.025,
+                           "field_grid": args.grid,
+                           "grid_quantization_m": 0.0125 if args.grid == "25mm" else 0.025,
+                           "tag": args.tag,
                            "boxes": gate["boxes"]},
               "ros_domain_id": os.environ.get("ROS_DOMAIN_ID")}
-    print(f"[0] scenario={key} ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID')} "
+    print(f"[0] scenario={key} grid={args.grid} ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID')} "
           f"门洞 {gap:.2f} m 箱深 {west['size'][1]:.2f} m goal={goal_xy}")
 
     print("[1] 等 action server / sim clock / TF ...")
     if not v.client.wait_for_server(timeout_sec=90.0):
         report["error"] = "no action server"
-        _save(report, key)
+        _save(report, key, args.tag)
         return 2
     report["sim_time_ok"] = v.wait_sim_time(30.0)
     report["tf_ready"] = v.spin_until(v.tf_ready, 30.0)
@@ -154,13 +166,13 @@ def main():
                                 and r["end_dist_to_goal_m"] < GOAL_TOL),
                          "end_dist_to_goal_m": r.get("end_dist_to_goal_m"), "tol": GOAL_TOL},
         "gate_passed": {"ok": bool(crossed and max_abs_x_on_gate is not None
-                                   and max_abs_x_on_gate <= 0.42),
+                                   and max_abs_x_on_gate <= gate_half_limit),
                         "crossed": bool(crossed),
                         "samples_on_gate_line": len(on_gate),
                         "max_abs_x_on_gate_m": round(max_abs_x_on_gate, 3)
                         if max_abs_x_on_gate is not None else None,
-                        "limit_m": 0.42,
-                        "note": "门线 y=门中心±0.1 的样本 |x| 必须 ≤0.42（门洞半宽 0.40 + 2 cm 容差）"},
+                        "limit_m": round(gate_half_limit, 3),
+                        "note": "门线 y=门中心±0.1 的样本 |x| 必须 ≤ 门洞半宽 + 2 cm"},
         "gate_clearance": {"ok": min_gap is not None and min_gap >= GATE_CLEAR_MIN,
                            "per_box_min_gap_m": gaps, "min_gap_m": min_gap,
                            "clear_min_m": GATE_CLEAR_MIN, "worst": worst},
@@ -182,7 +194,7 @@ def main():
     report.update({"tf_samples": len(tr), "gz_samples": len(gztr),
                    "checks": checks,
                    "summary": {"ok": all(c["ok"] for c in checks.values())}})
-    _save(report, key)
+    _save(report, key, args.tag)
     print("\n===== 摘要 =====")
     print(json.dumps({"checks": {k: c["ok"] for k, c in checks.items()},
                       "details": checks, "summary": report["summary"]},
@@ -191,9 +203,13 @@ def main():
     return 0 if report["summary"]["ok"] else 3
 
 
-def _save(report, key):
-    name = "report_narrow_gap.json" if key == "gate" else "report_narrow_gap_deep.json"
-    path = os.path.join(RES, name)
+def _save(report, key, tag=""):
+    base = {"gate": "report_narrow_gap.json",
+            "gate_deep": "report_narrow_gap_deep.json",
+            "gate_tight": "report_narrow_gap_tight.json"}[key]
+    if tag:
+        base = base[:-len(".json")] + f"_{tag}.json"
+    path = os.path.join(RES, base)
     with open(path, "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False, default=float)
     print("报告:", path)
