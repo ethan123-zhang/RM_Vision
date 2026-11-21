@@ -1256,3 +1256,41 @@ Gazebo/RViz 窗口被关后 launch 随之退出），所以有一阵点击完全
    `signal_handler_options=NO` + 信号只置位 + executor 轮询 + 统一收尾顺序
    （停 spin → shutdown executor → destroy node → rclpy.shutdown），Tk 关窗也走同一路径。
    实测：两个脚本 `kill -TERM` 后日志只有"收到退出信号…"，无 traceback/terminate。
+
+---
+
+## 21. 2026-11-21：清场按 ROS domain 隔离（修跨 domain 误杀 / 误删共享内存）
+
+§20 末尾记的"发现但本轮未改"已修。原来 `nav2_field.sh` / `stop_nav2_field.sh` 用裸
+`pkill -f` 清场、再 `rm -f /dev/shm/fastrtps_*`：
+
+- `pkill` 不认 ROS domain —— 并行调试另一个 domain 时会把那边的 `goal_pose_bridge.py`、
+  组件容器一起 SIGKILL（2026-11-20 实测误杀过一次 bridge）；
+- `rm -f /dev/shm/fastrtps_*` 会把**别的 domain 正在用的** FastRTPS 共享内存/端口文件删掉
+  （症状：action server 看着 ready，但 `/clock` 收不到、bridge 永远不 READY）。
+
+修法：新增 `domain_cleanup.sh`，两个入口脚本 source 后调用 `kill_in_domain` /
+`clean_stale_fastrtps_shm`：
+
+- **进程**：读 `/proc/<pid>/environ` 的 `ROS_DOMAIN_ID`（未设置 = ROS 默认 0），只杀本 domain；
+  environ 读不到（权限）的一律不动。`ROS_DOMAIN_ID` 也从写死 42 改成 `${ROS_DOMAIN_ID:-42}`，
+  清场跟着同一个 domain 走。
+- **共享内存**：活 participant 的痕迹实测有三种 —— 数据段/端口段被 **mmap**
+  （`/proc/*/maps` 扫得到）、`*_el` 文件被 **flock** 锁住且 fd 打开、以及
+  `sem.fastrtps_port*_mutex`（POSIX 信号量，没有文件锁/fd/mapping 可查）。
+  前两种只要有一项在用就保留；**sem 一律保留**（删掉活栈的信号量比留个孤儿文件危险）。
+  `(deleted)` 的旧映射不算"在用文件"（磁盘上本来就没文件可删）。
+- 现场抢救回退：`RM_CLEAN_ALL_DOMAINS=1 bash stop_nav2_field.sh`（全 domain 清，含 shm）。
+
+验收（不需要 Gazebo 的回归 + 真栈集成）：
+
+```bash
+bash verify_cleanup_domain_scope.sh     # 13 项：domain 过滤 / stop 入口 / flock/mmap/fd 保护 / 回退路径
+```
+
+| 证据 | 结果 |
+|---|---|
+| 旧版 `stop_nav2_field.sh`（HEAD）在 domain 42 执行，domain 43 的假 bridge | **被误杀**（复现 bug）|
+| 新版同场景 | **存活** |
+| 真栈（domain 42）+ domain 43 真 DDS participant（`ros2 topic pub`）+ 4 个同 cmdline 假进程 | 清场后 42 栈 30 个"在用"文件一个没删、`/navigate_to_pose` 仍在；`stop_nav2_field.sh` 后 42 残留 0，43 的 5 个进程全存活 |
+| 栈停掉后再清 | 删掉 16 个崩溃/强杀留下的孤儿文件（原始目的仍是有效的）|

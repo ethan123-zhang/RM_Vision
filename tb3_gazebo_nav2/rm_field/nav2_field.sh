@@ -15,7 +15,8 @@
 set +u
 source /opt/ros/jazzy/setup.bash 2>/dev/null
 ROOT=/mnt/e/RM/tb3_gazebo_nav2/rm_field
-export ROS_DOMAIN_ID=42
+# 默认 42；显式给 ROS_DOMAIN_ID 时按给的走（清场也按同一个 domain 过滤，别写死 42）
+export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-42}"
 export TURTLEBOT3_MODEL=waffle
 export GZ_SIM_RESOURCE_PATH="$ROOT/models:/opt/ros/jazzy/share/turtlebot3_gazebo/models:/opt/ros/jazzy/share/nav2_minimal_tb3_sim/models"
 export DISPLAY="${DISPLAY:-:0}"
@@ -40,23 +41,24 @@ mkdir -p "$ROOT/logs"
 [ -f "$WORLD" ] || { echo "缺 world: $WORLD"; exit 1; }
 [ -f "$MAP" ]    || { echo "缺 map: $MAP（先跑 bash capture_nav_map.sh）"; exit 1; }
 
-echo "=== 0. 清场 ==="
+echo "=== 0. 清场（只动本 ROS domain = $ROS_DOMAIN_ID）==="
+# 用 domain_cleanup.sh 而不是裸 pkill -f：pkill 跨 domain 生效，并行调试另一个
+# domain 时会把它那边的栈一起杀掉；rm /dev/shm/fastrtps_* 同理会切断别的 domain
+# 正在用的 DDS 共享内存。详见 domain_cleanup.sh 顶部说明。
+source "$ROOT/domain_cleanup.sh" || { echo "致命: 缺 $ROOT/domain_cleanup.sh"; exit 1; }
 # 先 TERM 再 KILL：gz sim 有时不响应 SIGTERM，留着旧进程会变成两个仿真器同时发
 # /clock /scan /tf（症状：local_costmap 一直报 "Invalid frame ID odom"、话题频率 0）。
-for pat in 'ros2 launch nav2_bringup' 'gz sim' 'rviz2' 'parameter_bridge' \
-           'component_container' 'robot_state_publisher' 'dynamic_obstacle.py' \
-           'goal_pose_bridge[.]py'; do
-  pkill -f "$pat" 2>/dev/null
-done
+kill_in_domain TERM 'ros2 launch nav2_bringup' 'gz sim' 'rviz2' 'parameter_bridge' \
+  'component_container' 'robot_state_publisher' 'dynamic_obstacle.py' \
+  'goal_pose_bridge[.]py'
 sleep 3
-for pat in 'ros2 launch nav2_bringup' 'gz sim' 'parameter_bridge' 'component_container' \
-           'dynamic_obstacle.py' 'goal_pose_bridge[.]py'; do
-  pkill -9 -f "$pat" 2>/dev/null
-done
+kill_in_domain KILL 'ros2 launch nav2_bringup' 'gz sim' 'parameter_bridge' 'component_container' \
+  'dynamic_obstacle.py' 'goal_pose_bridge[.]py'
 sleep 2
-# 清掉上一个 participant 留下的 FastRTPS 共享内存端口文件（否则新栈可能抢不到端口）
-rm -f /dev/shm/fastrtps_port* /dev/shm/fastrtps_* 2>/dev/null
-echo "残留: $(pgrep -fc 'gz sim|ros2 launch|rviz2' 2>/dev/null || echo 0)"
+# 清掉上一轮 participant 留下、且已经没人用的 FastRTPS 共享内存（端口文件用 flock
+# 试探，别人还持着锁的一律保留 → 新栈照样能分到端口）
+clean_stale_fastrtps_shm
+echo "残留: $(count_in_domain 'gz sim' 'ros2 launch nav2_bringup' 'rviz2' 'parameter_bridge' 'component_container') 个（本 domain）"
 
 echo "=== 1. 拉起 launch（headless=$HL use_rviz=$RV）==="
 : > "$LOG"
