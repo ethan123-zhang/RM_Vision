@@ -49,8 +49,10 @@ from rclpy.node import Node                                     # noqa: E402
 from rclpy.parameter import Parameter                           # noqa: E402
 from rclpy.signals import SignalHandlerOptions                  # noqa: E402
 from rclpy.time import Time                                     # noqa: E402
-from nav_msgs.msg import Odometry, Path                         # noqa: E402
+from nav_msgs.msg import OccupancyGrid, Odometry, Path      # noqa: E402
 from nav2_msgs.action import NavigateToPose                     # noqa: E402
+from rclpy.qos import (DurabilityPolicy, QoSProfile,            # noqa: E402
+                       ReliabilityPolicy)
 from tf2_ros import Buffer, TransformListener                   # noqa: E402
 
 import tkinter as tk                                            # noqa: E402
@@ -102,6 +104,14 @@ class RosBackend:
         self.last_goal = None
         self.node.create_subscription(Path, "/plan", self._on_plan, 10)
         self.node.create_subscription(Odometry, truth_topic, self._on_truth, 10)
+        # S3: 临时障碍（敌车/箱子/锥桶）只存在于代价地图里，静态图上看不出来。抢一份全局
+        # 代价地图，点目标时先查它，否则会照着敌车发目标 → 车顶着敌车挤。
+        qos = QoSProfile(depth=1)
+        qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        qos.reliability = ReliabilityPolicy.BEST_EFFORT
+        self.costmap = None
+        self.node.create_subscription(OccupancyGrid, "/global_costmap/costmap",
+                                      self._on_costmap, qos)
         self._stop = threading.Event()
         self._shut = False
         self._timers = []
@@ -161,6 +171,15 @@ class RosBackend:
     def _on_plan(self, msg):
         with self.lock:
             self.path = [(p.pose.position.x, p.pose.position.y) for p in msg.poses]
+
+    def _on_costmap(self, msg):
+        """保存最新一帧全局代价地图（map 系，0.05 m/格，0=空 100=致命 -1=未知）。"""
+        info = msg.info
+        self.costmap = (msg.data, info.origin.position.x, info.origin.position.y,
+                        info.resolution, info.width, info.height)
+        if not getattr(self, "_costmap_seen", False):
+            self._costmap_seen = True
+            print(f"COSTMAP ready {info.width}x{info.height} res={info.resolution:.3f}", flush=True)
 
     def robot_pose(self):
         try:
@@ -393,16 +412,71 @@ class MapWindow(tk.Tk):
                                    f"≥{self.min_clear:.2f} m 的位置，没发目标")
             return
         gx, gy, clicked_clear, moved = g
-        self.clicked_xy = (x, y) if moved else None
+        dg = self.avoid_dynamic_goal(gx, gy)
+        if dg is None:
+            print(f"REJECT ({x:.3f}, {y:.3f}) 目标在临时障碍上（敌车/箱子），1 m 内没有空地", flush=True)
+            self.backend.status = "目标在临时障碍上（敌车/箱子/锥桶），附近没有空位，没发目标"
+            return
+        gx, gy, dyn_cost, dyn_moved = dg
+        self.clicked_xy = (x, y) if (moved or dyn_moved) else None
         self.goal_xy = (gx, gy)
-        if moved:
-            msg = (f"点击 ({x:.2f},{y:.2f}) 离障碍仅 {clicked_clear:.2f} m"
-                   f"（车要 {self.min_clear:.2f} m）→ 自动挪到 ({gx:.2f},{gy:.2f})")
-            print(f"CLICK go ({gx:.3f}, {gy:.3f}) [clicked ({x:.3f},{y:.3f}) clear={clicked_clear:.2f} snapped]", flush=True)
+        if moved or dyn_moved:
+            why = []
+            if moved:
+                why.append(f"离静态障碍仅 {clicked_clear:.2f} m")
+            if dyn_moved:
+                why.append(f"目标是临时障碍（代价 {dyn_cost}）")
+            msg = (f"点击 ({x:.2f},{y:.2f}) " + "、".join(why) +
+                   f" → 自动挪到 ({gx:.2f},{gy:.2f})")
+            print(f"CLICK go ({gx:.3f}, {gy:.3f}) [clicked ({x:.3f},{y:.3f}) "
+                  f"static_clear={clicked_clear:.2f} dyn_cost={dyn_cost} snapped]", flush=True)
             self.backend.status = msg
         else:
             print(f"CLICK go ({gx:.3f}, {gy:.3f})", flush=True)
         self.backend.send_goal(gx, gy)
+
+    # ---- 临时障碍避让：目标不能落在 /global_costmap 的高代价格上 --------------
+    def _dyn_cost(self, x, y):
+        cm = self.backend.costmap
+        if cm is None:
+            return None
+        data, ox, oy, res, w, h = cm
+        c = int((x - ox) / res)
+        r = int((y - oy) / res)
+        if not (0 <= c < w and 0 <= r < h):
+            return -1
+        return int(data[r * w + c])
+
+    def avoid_dynamic_goal(self, gx, gy):
+        """目标落在临时障碍上（代价 ≥85，即内切/致命区）就找附近空地，找不到返回 None。
+
+        静态图上的吸附（snap）看不见敌车/箱子 —— 它们只在代价地图里；不查这一步，
+        点"敌车后面"就会发一个被障碍占据的目标，车会顶着敌车挤。
+        """
+        cost = self._dyn_cost(gx, gy)
+        if cost is None or cost < 85:
+            return gx, gy, cost, False
+        data, ox, oy, res, w, h = self.backend.costmap
+        c0 = int((gx - ox) / res)
+        r0 = int((gy - oy) / res)
+        rad = int(1.0 / res)
+        best = None
+        for dr in range(-rad, rad + 1):
+            for dc in range(-rad, rad + 1):
+                r, c = r0 + dr, c0 + dc
+                if not (0 <= r < h and 0 <= c < w):
+                    continue
+                if data[r * w + c] > 20:
+                    continue
+                nx, ny = ox + c * res, oy + r * res
+                if self._clear_at(nx, ny) < self.min_clear:      # 别挪进静态图的窄缝
+                    continue
+                d2 = dr * dr + dc * dc
+                if best is None or d2 < best[0]:
+                    best = (d2, nx, ny)
+        if best is None:
+            return None
+        return best[1], best[2], cost, True
 
     def _on_right(self, _ev):
         print("CLICK cancel", flush=True)

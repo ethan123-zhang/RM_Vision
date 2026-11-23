@@ -63,7 +63,12 @@ def yaw_of(q):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--goal", nargs=2, type=float, required=True, metavar=("X", "Y"))
-    ap.add_argument("--obstacle", nargs=2, type=float, required=True, metavar=("X", "Y"))
+    ap.add_argument("--obstacle", nargs=2, type=float, metavar=("X", "Y"),
+                    help="静态敌车位置；用 --moving 时改成起点")
+    ap.add_argument("--moving", nargs=4, type=float,
+                    metavar=("X1", "Y1", "X2", "Y2"),
+                    help="移动敌车：在 (X1,Y1)↔(X2,Y2) 之间往返")
+    ap.add_argument("--moving-speed", type=float, default=0.4, help="移动敌车速度 m/s（墙钟）")
     ap.add_argument("--obstacle-size", type=float, default=0.40)
     ap.add_argument("--map", default=DEFAULT_MAP)
     ap.add_argument("--spawn", action="store_true", help="先 spawn 障碍")
@@ -72,15 +77,51 @@ def main():
     ap.add_argument("--out", default="")
     args = ap.parse_args()
     gx, gy = args.goal
+    if args.moving:
+        args.obstacle = [args.moving[0], args.moving[1]]
+        args.spawn = True
+    if not args.obstacle:
+        ap.error("要给 --obstacle 或 --moving")
     ox_w, oy_w = args.obstacle
+    moving_track = []        # (wall_t, x, y)，只在 --moving 时填
+    mover_stop = None
 
     if args.spawn:
-        rc = subprocess.run([sys.executable, os.path.join(HERE, "spawn_obstacle.py"),
-                             "spawn", str(ox_w), str(oy_w),
-                             "--size", str(args.obstacle_size)]).returncode
+        cmd = [sys.executable, os.path.join(HERE, "spawn_obstacle.py"),
+               "spawn", str(ox_w), str(oy_w), "--size", str(args.obstacle_size)]
+        if args.moving:
+            cmd.append("--dynamic")
+        rc = subprocess.run(cmd).returncode
         print(f"[spawn] rc={rc}")
         if rc != 0:
             return 4
+
+    if args.moving:
+        import threading
+        from gz.msgs10.boolean_pb2 import Boolean
+        from gz.msgs10.pose_pb2 import Pose
+        from gz.transport13 import Node as GzNode
+        from moving_obstacle import pose_at
+        gw = GzNode()
+        x1, y1, x2, y2 = args.moving
+        mover_stop = threading.Event()
+
+        def _drive():
+            t0 = time.monotonic()
+            while not mover_stop.is_set():
+                t = time.monotonic() - t0
+                x, y = pose_at(t, x1, y1, x2, y2, args.moving_speed)
+                req = Pose(name="enemy_robot")
+                req.position.x = x
+                req.position.y = y
+                req.position.z = 0.125
+                req.orientation.w = 1.0
+                gw.request("/world/rmul2027_3v3/set_pose", req, Pose, Boolean, 800)
+                moving_track.append((time.monotonic(), x, y))
+                time.sleep(0.1)
+
+        threading.Thread(target=_drive, daemon=True).start()
+        print(f"[moving] 敌车 ({x1:.2f},{y1:.2f})↔({x2:.2f},{y2:.2f}) @ {args.moving_speed} m/s")
 
     res, mox, moy, occ, clear = load_map(args.map)
     H = occ.shape[0]
@@ -130,7 +171,8 @@ def main():
     goal.pose.pose.position.y = gy
     goal.pose.pose.orientation.w = 1.0
     print(f"START ({start[0]:.3f},{start[1]:.3f}) -> GOAL ({gx:.2f},{gy:.2f}), "
-          f"障碍 ({ox_w:.2f},{oy_w:.2f}) 边长 {args.obstacle_size:.2f}")
+          f"障碍 ({ox_w:.2f},{oy_w:.2f}) 边长 {args.obstacle_size:.2f}"
+          + (f"，移动 {args.moving} @ {args.moving_speed} m/s" if args.moving else "，静态"))
 
     fut = client.send_goal_async(goal)
     t0 = time.monotonic()
@@ -144,7 +186,7 @@ def main():
         return 3
 
     res_fut = gh.get_result_async()
-    samples = []                                                     # (sim_s, x, y)
+    samples = []                                                     # (sim_s, wall_s, x, y)
     last_sample_t = 0.0
     while not res_fut.done() and time.monotonic() - t0 < args.timeout:
         rclpy.spin_once(node, timeout_sec=0.02)
@@ -152,7 +194,7 @@ def main():
         if now - last_sample_t >= 0.10:
             p = pose_now()
             if p is not None:
-                samples.append((now, p[0], p[1]))
+                samples.append((now, time.monotonic(), p[0], p[1]))
                 last_sample_t = now
     result_status = None
     if res_fut.done():
@@ -162,7 +204,10 @@ def main():
         print("TIMEOUT: 目标没在期限内结束，已取消")
     p_end = pose_now()
     if p_end is not None:
-        samples.append((node.get_clock().now().nanoseconds / 1e9, p_end[0], p_end[1]))
+        samples.append((node.get_clock().now().nanoseconds / 1e9, time.monotonic(),
+                        p_end[0], p_end[1]))
+    if mover_stop is not None:
+        mover_stop.set()
     node.destroy_node()
     rclpy.shutdown()
 
@@ -172,12 +217,28 @@ def main():
     straight = math.hypot(gx - start[0], gy - start[1])
     path_len = 0.0
     max_speed = 0.0
-    for (ta, xa, ya), (tb, xb, yb) in zip(samples, samples[1:]):
+    for (ta, _, xa, ya), (tb, _, xb, yb) in zip(samples, samples[1:]):
         d = math.hypot(xb - xa, yb - ya)
         path_len += d
         dt = tb - ta
         if dt > 0:
             max_speed = max(max_speed, d / dt)
+
+    def enemy_at(wall_t):
+        """移动模式：按墙钟时间在轨迹里线性插值敌车位置；静态模式返回固定点。"""
+        if not moving_track:
+            return ox_w, oy_w
+        lo, hi = moving_track[0], moving_track[-1]
+        if wall_t <= lo[0]:
+            return lo[1], lo[2]
+        if wall_t >= hi[0]:
+            return hi[1], hi[2]
+        for (t_a, xa, ya), (t_b, xb, yb) in zip(moving_track, moving_track[1:]):
+            if t_a <= wall_t <= t_b:
+                k = (wall_t - t_a) / max(1e-6, t_b - t_a)
+                return xa + (xb - xa) * k, ya + (yb - ya) * k
+        return hi[1], hi[2]
+
     # 横向偏移：相对起点→终点直线
     dx, dy = gx - start[0], gy - start[1]
     L = math.hypot(dx, dy) or 1.0
@@ -187,14 +248,15 @@ def main():
     min_static = 999.0
     longest_stall = 0.0
     stall_start = None
-    for _, x, y in samples:
+    for _, wall_t, x, y in samples:
         lat = abs((x - start[0]) * uy - (y - start[1]) * ux)
         max_lat = max(max_lat, lat)
-        min_obs = min(min_obs, math.hypot(x - ox_w, y - oy_w))
+        ex, ey = enemy_at(wall_t)
+        min_obs = min(min_obs, math.hypot(x - ex, y - ey))
         sc = static_clear(x, y)
         if sc >= 0:
             min_static = min(min_static, sc)
-    for (ta, xa, ya), (tb, xb, yb) in zip(samples, samples[1:]):
+    for (ta, _, xa, ya), (tb, _, xb, yb) in zip(samples, samples[1:]):
         if math.hypot(xb - xa, yb - ya) < 0.01:
             if stall_start is None:
                 stall_start = ta
@@ -244,6 +306,9 @@ def main():
         "longest_stall_sim_s": round(longest_stall, 2),
         "start": [round(start[0], 3), round(start[1], 3)],
         "goal": [gx, gy], "obstacle": [ox_w, oy_w],
+        "moving": bool(args.moving),
+        "moving_line": args.moving or None,
+        "moving_speed": args.moving_speed if args.moving else 0.0,
         "checks": {c[0]: {"pass": c[1], "detail": c[2]} for c in checks},
     }
     os.makedirs(os.path.dirname(out), exist_ok=True)

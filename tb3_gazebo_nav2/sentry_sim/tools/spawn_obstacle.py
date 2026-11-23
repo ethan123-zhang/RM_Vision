@@ -26,7 +26,7 @@ WORLD = "/world/rmul2027_3v3"
 SDF = """<?xml version="1.0"?>
 <sdf version="1.9">
   <model name="{name}">
-    <static>true</static>
+    <static>{static}</static>
     <pose>0 0 0 0 0 0</pose>
     <link name="body">
       <collision name="collision">
@@ -55,6 +55,8 @@ def main():
     ap.add_argument("--size", type=float, default=0.40, help="车体边长 m（RM 规则上限 0.6）")
     ap.add_argument("--height", type=float, default=0.25)
     ap.add_argument("--yaw", type=float, default=0.0, help="朝向 deg")
+    ap.add_argument("--dynamic", action="store_true",
+                    help="参与物理（可被 set_pose 推动、会与车相撞）；默认 static 只做感知障碍")
     args = ap.parse_args()
 
     node = Node()
@@ -70,7 +72,8 @@ def main():
     req = EntityFactory()
     req.name = args.name
     req.allow_renaming = False
-    req.sdf = SDF.format(name=args.name, size=args.size, height=args.height)
+    req.sdf = SDF.format(name=args.name, size=args.size, height=args.height,
+                         static="false" if args.dynamic else "true")
     req.pose.CopyFrom(Pose(name=args.name))
     req.pose.position.x = args.x
     req.pose.position.y = args.y
