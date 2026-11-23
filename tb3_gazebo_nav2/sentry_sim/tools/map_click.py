@@ -50,6 +50,7 @@ from rclpy.parameter import Parameter                           # noqa: E402
 from rclpy.signals import SignalHandlerOptions                  # noqa: E402
 from rclpy.time import Time                                     # noqa: E402
 from nav_msgs.msg import OccupancyGrid, Odometry, Path      # noqa: E402
+from geometry_msgs.msg import Twist                             # noqa: E402
 from nav2_msgs.action import NavigateToPose                     # noqa: E402
 from rclpy.qos import (DurabilityPolicy, QoSProfile,            # noqa: E402
                        ReliabilityPolicy)
@@ -111,6 +112,8 @@ class RosBackend:
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
         self.costmap = None
         self.costmap_t = 0.0
+        # 脱困用：和 teleop 同一条链（cmd_vel_nav → smoother → collision_monitor → /cmd_vel）
+        self.cmd_pub = self.node.create_publisher(Twist, "cmd_vel_nav", 10)
         self.node.create_subscription(OccupancyGrid, "/global_costmap/costmap",
                                       self._on_costmap, qos)
         self._stop = threading.Event()
@@ -193,6 +196,14 @@ class RosBackend:
 
     def wait_server(self, timeout=2.0):
         return self.client.wait_for_server(timeout_sec=timeout)
+
+    def drive(self, vx, vy, wz=0.0):
+        """给底盘发车体速度（走 cmd_vel_nav，和自主导航同一条安全链）。"""
+        t = Twist()
+        t.linear.x = float(vx)
+        t.linear.y = float(vy)
+        t.angular.z = float(wz)
+        self.cmd_pub.publish(t)
 
     def send_goal(self, x, y):
         goal = NavigateToPose.Goal()
@@ -281,6 +292,11 @@ class MapWindow(tk.Tk):
         self.canvas.bind("<Button-1>", self._on_left)
         self.canvas.bind("<Button-2>", self._on_middle)
         self.canvas.bind("<Button-3>", self._on_right)
+        tk.Button(self, text="脱困（车卡在墙边/贴墙时点这个，或按 R）",
+                  command=self.rescue_manual, font=("Consolas", 10)).pack(fill="x")
+        self.bind_all("<KeyPress-r>", lambda _e: self.rescue_manual())
+        self._rescuing = False
+        self._rescue_used = 0
         self.after(100, self._tick)
         self.after(800, self._print_geom)
 
@@ -359,6 +375,75 @@ class MapWindow(tk.Tk):
         gy = self.oy + (H - 1 - r) * self.res_m
         return gx, gy, clicked_clear, True
 
+    # ---- 脱困：车停在离墙 < robot_radius(0.60) 处时，全局规划器把起点判成致命区，
+#      之后点哪都 Failed to create plan（2026-11-23 实测 42 次失败、车"卡在墙里"）。
+#      这里先朝净空变大的方向把车开出来（走 cmd_vel_nav，安全链仍生效），再重发目标。
+    def _clear_here(self):
+        pose = self.backend.robot_pose()
+        if pose is None:
+            return None, None
+        return pose, self._clear_at(pose[0], pose[1])
+
+    def _escape_dir(self, x, y):
+        h = 0.10
+        gx = self._clear_at(x + h, y) - self._clear_at(x - h, y)
+        gy = self._clear_at(x, y + h) - self._clear_at(x, y - h)
+        n = math.hypot(gx, gy)
+        if n < 1e-6:
+            return None
+        return gx / n, gy / n
+
+    def rescue_manual(self):
+        self.rescue()
+        return "break"
+
+    def rescue(self, resend=None):
+        if self._rescuing:
+            return False
+        pose, clr = self._clear_here()
+        if pose is None:
+            return False
+        if clr >= 0.72:                      # 不贴墙：直接发目标（如果有）
+            if resend is not None:
+                self.backend.send_goal(*resend)
+            return True
+        d = self._escape_dir(pose[0], pose[1])
+        if d is None:
+            self.backend.status = "脱困失败：算不出净空梯度方向"
+            return False
+        yaw = pose[2]
+        # 世界系方向 → 车体速度
+        vx = d[0] * math.cos(yaw) + d[1] * math.sin(yaw)
+        vy = -d[0] * math.sin(yaw) + d[1] * math.cos(yaw)
+        self._rescuing = True
+        print(f"RESCUE start pose=({pose[0]:.2f},{pose[1]:.2f}) clear={clr:.2f} "
+              f"world_dir=({d[0]:+.2f},{d[1]:+.2f}) body=({vx:+.2f},{vy:+.2f})", flush=True)
+
+        def _run():
+            t0 = time.monotonic()
+            try:
+                while time.monotonic() - t0 < 6.0:
+                    p, c = self._clear_here()
+                    if p is None or c is None or c >= 0.80:
+                        break
+                    self.backend.drive(vx * 0.25, vy * 0.25)
+                    time.sleep(0.1)
+            finally:
+                self.backend.drive(0.0, 0.0)
+                self._rescuing = False
+                p, c = self._clear_here()
+                print(f"RESCUE done pose=({p[0]:.2f},{p[1]:.2f}) clear={c:.2f}", flush=True)
+                if c is not None and c >= 0.60:
+                    self.backend.status = f"已脱困：净空 {c:.2f} m"
+                    if resend is not None:
+                        time.sleep(0.3)
+                        self.backend.send_goal(*resend)
+                else:
+                    self.backend.status = f"脱困后仍贴墙（净空 {c:.2f} m），再点一次脱困或换个方向"
+
+        threading.Thread(target=_run, daemon=True).start()
+        return True
+
     # ---- 静态图 ---------------------------------------------------------
     def _map_image(self):
         out = Image.new("RGB", (int(round(self.w_m * self.ppm)),
@@ -435,7 +520,14 @@ class MapWindow(tk.Tk):
             self.backend.status = msg
         else:
             print(f"CLICK go ({gx:.3f}, {gy:.3f})", flush=True)
-        self.backend.send_goal(gx, gy)
+        pose, here = self._clear_here()
+        if here is not None and here < 0.72:
+            # 贴墙时规划器把起点判成致命区、点哪都失败 → 先脱困再发目标
+            self.backend.status = f"车现在贴墙（净空 {here:.2f} m），先脱困再过去..."
+            print(f"AUTO-RESCUE before goal: clear={here:.2f}", flush=True)
+            self.rescue(resend=(gx, gy))
+        else:
+            self.backend.send_goal(gx, gy)
 
     # ---- 临时障碍避让：目标不能落在 /global_costmap 的高代价格上 --------------
     def _dyn_cost(self, x, y):
@@ -530,6 +622,15 @@ class MapWindow(tk.Tk):
                 self.backend.status = "就绪：左键点地图派目标"
         else:
             self.backend.status = "等 action server ...（栈没起来？）"
+        # 目标被 ABORTED（多半是车贴墙导致起点致命区）→ 自动脱困一次再重发
+        if (self.backend.result_status == "ABORTED" and not self._rescuing
+                and self.goal_xy is not None and self._rescue_used < 2):
+            self.backend.result_status = None
+            self._rescue_used += 1
+            print(f"AUTO-RESCUE after ABORTED (#{self._rescue_used})", flush=True)
+            self.rescue(resend=self.goal_xy)
+        elif self.backend.result_status == "SUCCEEDED":
+            self._rescue_used = 0
         self.canvas.delete("dyn")
         with self.backend.lock:
             path = list(self.backend.path or [])
@@ -579,8 +680,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--map", default=DEFAULT_MAP)
     ap.add_argument("--ppm", type=int, default=70, help="每米多少像素（默认 70）")
-    ap.add_argument("--min-clear", type=float, default=0.65,
-                    help="落点最小净空 m（默认 0.65：goal 容差 0.2，停位净空仍 ≥0.45 > robot_radius 0.40）")
+    ap.add_argument("--min-clear", type=float, default=0.85,
+                    help="落点最小净空 m（默认 0.85：robot_radius 0.60 + goal 容差 0.2 + 余量，"
+                         "停位净空仍 >=0.65，不会再卡进致命区）")
     ap.add_argument("--truth-topic", default="/gt_odom", help="仿真真值话题（只用于显示偏差）")
     ap.add_argument("--click", nargs=2, type=float, metavar=("X", "Y"),
                     help="自检：启动后在该世界坐标点一次，等结果后打印 FINAL 并退出")
