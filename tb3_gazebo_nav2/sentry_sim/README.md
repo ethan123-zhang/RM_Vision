@@ -42,11 +42,35 @@ export ROS_DOMAIN_ID=45                    # 与旧 TB3 栈（42）隔离
 cd ~/sentry_ws
 ./run_sentry_sim.sh                        # 只起仿真 + 传感器 + Odin1 替身 + /scan
 ./run_sentry_nav.sh                        # 仿真 + Nav2（无 AMCL）
+./run_sentry_nav.sh gui:=true map_click:=true   # 上面 + Gazebo 窗口 + 地图点选窗口（点哪去哪）
 ./run_sentry_nav.sh map_offset_x:=0.30 map_offset_y:=-0.20 map_offset_yaw:=0.05236   # 注入帧偏移
 ./run_sentry_nav.sh stop                   # 停；status 看状态
 ```
 
 发目标（回归用）：`python3 tools/send_nav_goal.py 0 3`（或 `ros2 action send_goal`）。
+
+## 2.5 点地图导航（S3，2026-11-23 加）
+
+窗口脚本：`tools/map_click.py`（`run_sentry_nav.sh ... map_click:=true` 自动起，也可单独
+`./tools/run_map_click.sh`）。交互只有"地图 + 点击"，不用切 RViz 工具：
+
+| 操作 | 效果 |
+|---|---|
+| 左键点地图 | 发 `NavigateToPose`；落点先吸附到净空 ≥ `--min-clear`（默认 **0.65 m**）的最近格子 |
+| Shift+左键 | 探针：只报世界坐标 + 净空，不动车（指认障碍用） |
+| 右键 / 中键 | 取消当前目标 |
+| 画面 | 绿色箭头=机器人（TF `map→base_footprint`），蓝叉=目标，黄圈=原始点击（被吸附过时），灰线=当前 `/plan` |
+
+状态栏显示：ROS 状态 / 机器人位姿 / 与 `/gt_odom` 真值的偏差 / 当前位置净空（<0.45 m 会亮警告）。
+
+**为什么落点要 0.65 m 净空**：`goal_checker.xy_goal_tolerance = 0.2`，目标点净空 0.65 时停位仍有
+≥0.45 m，高于 `robot_radius 0.40`。若车停在离障碍 <0.40 m 处（自己开过去 / 中途取消），
+`global_costmap` 会把**规划起点**判成致命区，之后点哪都规划失败（日志
+`Failed to create plan ... tolerance 0.3`）—— 2026-11-23 实测踩到，表现就是"点了没反应"。
+真踩到就点一个远离墙的目标把车开出来，或 `./run_sentry_nav.sh stop` 重起（车回到原点）。
+
+自检（无鼠标环境）：`python3 tools/map_click.py --click 3 -2.5` 会按世界坐标点一次、等结果、
+打印 `SELFTEST result=... dist_to_goal=...`，到点 ≤0.4 m 且 SUCCEEDED 才返回 0。
 
 ## 3. 已验证读数（全部可复跑）
 
@@ -57,6 +81,7 @@ cd ~/sentry_ws
 | 传感器数据与真值 | 点云远点 7.23 m 为真实光线求交；`/scan` <1 m 回波 0 |
 | Nav2 单点 | (3,−2.5) SUCCEEDED 0.197 m；(0,3) SUCCEEDED 0.196 m（真值 0.194） |
 | 5 点巡逻 | **5/5 SUCCEEDED**，误差 0.005–0.197 m，最小离障 **0.371 m**，碰撞 0，RTF 0.864 |
+| 点地图导航（S3） | 点 (3,−2.5) → `Goal succeeded`，停位 (2.977,−2.339) = **0.163 m** 误差 |
 | 地图/SDF 一致性 | pgm 与 48 块 box 投影**逐格一致**（0/180224 格不同），边界偏差 0.000 cm |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
 
@@ -103,7 +128,7 @@ src/odin1_sim_bridge     # Odin1 接口替身：真值 → /odin1/odometry + TF�
 src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
 src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
 src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
-tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标
+tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标、点地图窗口（map_click.py）
 results/                 # 验收 JSON 证据
 ```
 
@@ -147,4 +172,7 @@ results/                 # 验收 JSON 证据
 - Odin1 在 12.6×8.6 m 大场地的量程/建图能力未实测（仿真按假设参数化）。
 - Mid-360 的 `/livox/imu` 加速度单位是 **g**，未接 EKF/Nav2；不跑 LIO 时暂无消费者。
 - `map_align_check` 连续模式只做过 6 帧冒烟；`--fix-yaml` 未自动回灌到 Odin1。
+- **规划起点贴障碍的陷阱**：车停在离障碍 <0.40 m（`robot_radius`）处时 `global_costmap` 把起点判成
+  致命区，NavFn 一律失败、恢复行为（spin/wait）也救不回来。点地图窗口用"落点净空 0.65 m + 状态栏
+  净空警告 + ABORTED 提示"缓解，但**中途取消 / 手动开进窄缝仍可能触发**；真触发只能先把车开出来或重起栈。
 - 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。

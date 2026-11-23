@@ -15,19 +15,26 @@ S2c: map_offset_x / map_offset_y / map_offset_yaw are forwarded to
 sentry_sim.launch.py (and from there to odin1_sim_bridge) so an Odin1 map-frame
 misalignment can be injected, e.g.
     ./run_sentry_nav.sh map_offset_x:=0.30 map_offset_y:=-0.20 map_offset_yaw:=0.05236
+
+S3: map_click:=true adds the "click the map, robot goes there" window
+(tools/map_click.py). It retries until /navigate_to_pose shows up, so it may be
+started at the same time as the rest of the stack.
 """
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription,
-                            TimerAction)
+from launch.actions import (DeclareLaunchArgument, ExecuteProcess,
+                            IncludeLaunchDescription, TimerAction)
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 MAP_YAML = '/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml'
+# S3: 点地图窗口的脚本（仓库是 source of truth；WSL 部署副本只是 rsync 的结果）
+MAP_CLICK_PY = '/mnt/e/RM/tb3_gazebo_nav2/sentry_sim/tools/map_click.py'
 
 REMAPPINGS = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
 CMD_VEL_NAV = [('cmd_vel', 'cmd_vel_nav')]
@@ -106,16 +113,30 @@ def generate_launch_description():
                          'use_sim_time': True}]),
     ]
 
+    # S3: 地图点选窗口（可选）。栈还没就绪时它自己在状态栏里等 action server，不挡其他节点。
+    map_click = ExecuteProcess(
+        cmd=['python3', LaunchConfiguration('map_click_script'),
+             '--map', LaunchConfiguration('map'),
+             '--ppm', LaunchConfiguration('map_click_ppm')],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('map_click')),
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='false'),
         DeclareLaunchArgument('spawn_x', default_value='0.0'),
         DeclareLaunchArgument('spawn_y', default_value='0.0'),
         DeclareLaunchArgument('map', default_value=MAP_YAML),
+        # S3: 点地图窗口
+        DeclareLaunchArgument('map_click', default_value='false'),
+        DeclareLaunchArgument('map_click_script', default_value=MAP_CLICK_PY),
+        DeclareLaunchArgument('map_click_ppm', default_value='70'),
         # S2c: Odin1 map -> field offset injected into odin1_sim_bridge.
         DeclareLaunchArgument('map_offset_x', default_value='0.0'),
         DeclareLaunchArgument('map_offset_y', default_value='0.0'),
         DeclareLaunchArgument('map_offset_yaw', default_value='0.0'),
         sim,
+        map_click,
         # map_server only needs the yaml; give gz a few seconds to settle so the
         # first costmap activation already has map -> odom from the odin bridge.
         TimerAction(period=4.0, actions=[map_server, map_lifecycle]),
