@@ -5,12 +5,13 @@
 ## 1. 当前状态
 
 - 现在做什么、卡在哪、下一步：[PROGRESS.md](PROGRESS.md)（顶部区块，最新的在最前）。
-- 最近一次交接：[docs/handoffs/2026-11-23-sentry-sim-session-closeout.md](docs/handoffs/2026-11-23-sentry-sim-session-closeout.md)。
+- 最近一次交接：[docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)（下一步：a 低位安全雷达 + c 5 Hz 重规划/缝宽判死路）。
 
 ## 2. 交接记录（docs/handoffs/）
 
 按会话追加，新文件优先于旧文件：
 
+- [2026-11-23 晚 哨兵仿真交互化+调参+"贴脸未识别"根因（下一步 a+c）](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)
 - [2026-11-23 收尾：哨兵仿真闭环 + S100 迁移准备](docs/handoffs/2026-11-23-sentry-sim-session-closeout.md) / [S100 实车迁移清单与上车判据](docs/handoffs/2026-11-23-sentry-s100-migration.md)
 - [2026-11-21 清场 domain 隔离 + 动态箱三档 + 0.62 m 超窄门（2.5 cm 栅格变体）](docs/handoffs/2026-11-21-domain-scope-cleanup-and-acceptance-tiers.md)
 - [2026-11-20 未建图障碍物把 AMCL 带偏（窄缝后漂走）根因+beam skip 修复+gate_deep 回归](docs/handoffs/2026-11-20-amcl-unmapped-obstacle-drift.md)

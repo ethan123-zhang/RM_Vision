@@ -1,9 +1,31 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-23（哨兵仿真栈落库：Odin1 定位 + Mid-360 感知 + Nav2 无 AMCL + 帧对齐校验）
+> 最后更新：2026-11-23 晚（哨兵仿真交互化 + 导航调参；遗留"贴脸未识别"待 a+c）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **🆕 2026-11-23 晚（哨兵仿真 S3 收尾，下一步做 a+c）**：把 sentry_sim 做成可交互 + 调导航，并把用户报的
+> "敌车突然出现撞上去 / 卡缝里挤过去"根因定位到**感知盲区**。详见
+> [2026-11-23-sentry-sim-nav-tuning-and-limits.md](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)。
+> ①**交互**：点地图开哨兵（左键点→自动走，到点误差 0.163–0.193 m）；遥控敌车窗口 `tools/enemy_teleop.py`
+> 3 s 把敌车从 (3.0,−2.5) 开到 (4.32,−2.5)；随机漫游敌车 `wander_obstacle.py` 保留。
+> ②**卡墙自愈**：车停在净空 0.35 m 处（< robot_radius 0.60）时全局规划器把起点判致命区（实测 42 次
+> `Failed to create plan`）→ 落点净空 0.65→**0.85 m**，面板加**自动脱困**（净空梯度倒车后重发目标，
+> 实测 clear 0.35→0.80 后到点 0.23 m）。③**不再断链**：裸模式不再 lifecycle deactivate
+> `collision_monitor`（那会断 bond、整套导航下线、车全不动），改动态参数 `FootprintApproach.enabled`。
+> ④**不钻缝**：`robot_radius 0.40→0.60`（后为半径 0.60 圆形 footprint）+ 全局 inflation **1.5 m**/5 Hz；
+> 静态敌车拦路面距 **+0.236 m**、移动敌车横穿 5/5 判据（12.3 s、峰值 1.38 m/s）。⑤**提速 2.7x**：MPPI 总闸是
+> `temperature`（0.3→**0.05**）+ `time_steps 56→40`/`batch 2000→1000`，同路线 **22.3 s→8.2 s**、峰值 1.35 m/s。
+> ⑥**未解（下一步 a+c）**："敌车半路突然出现在车前"仍会接触 —— 实测最小中心距 **0.450 m（面贴面）**、
+> 停滞 5.1 s；根因是**感知盲区**：敌车高 0.25 m、雷达高 0.30 m 且 `lidar_slices:=1` 稀疏单帧，1 m 内扫不到。
+> **a** = 加低位 2D 安全雷达（z≈0.10、360°、0.05–2.5 m）桥 `/scan_safety` 喂两张 costmap + collision_monitor；
+> **c** = 自定义 BT 重规划提到 5 Hz + 缝宽 <1.2 m 判死路（过不去就停）。
+> ⑦**注意**：别在 Gazebo GUI 里插模型（llvmpipe 重绘 → `gz sim gui` 349% CPU、RTF 0.10），用
+> `tools/spawn_obstacle.py`（server 侧 static）。
+> ⑧**下次进入点**：`cd ~/sentry_ws && DISPLAY=:0 ./run_sentry_nav.sh gui:=true map_click:=true`；
+> 复现用例 `python3 tools/verify_detour.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5`。
+> ⑨**提交**：`8281e49`（卡墙自愈）、`9d2406f`（双人模式）、`b647ffc`（footprint/inflation/NoTouch）。
 
 > **🆕 2026-11-22/23（副线：RM 哨兵仿真，新栈）**：在没有实车、没有地图的条件下，按哨兵真实技术路线
 > 搭出可跑可验收的仿真栈，源码落在 [tb3_gazebo_nav2/sentry_sim](tb3_gazebo_nav2/sentry_sim/README.md)，
