@@ -35,6 +35,9 @@
 - [Differential_Drive_Point_Arrival](E:/Document/Ethan'vault/aiVault/wiki/concepts/Differential_Drive_Point_Arrival.md) — 追点转弯半径必须大于到位容差
 - [Chassis_Command_Unit_Calibration](E:/Document/Ethan'vault/aiVault/wiki/concepts/Chassis_Command_Unit_Calibration.md) — 指令单位标定口径与死区
 - [Nav2_Map_And_Localization_Verification](E:/Document/Ethan'vault/aiVault/wiki/concepts/Nav2_Map_And_Localization_Verification.md) — 自建栅格地图方向/定位一致性；未建图障碍物把 AMCL 拉走 2.9 m 的机理与 beam skip 修法、全样本定位判据
+- [2D_Mapping_Low_Obstacle_BlindSpot](E:/Document/Ethan'vault/aiVault/wiki/concepts/2D_Mapping_Low_Obstacle_BlindSpot.md) — 3D 雷达建 2D 图漏低矮障碍（0.2 m 平台只检出 2–15%）；低矮按 CAD 先验
+- [SLAM_Map_Frame_Alignment_Check](E:/Document/Ethan'vault/aiVault/wiki/concepts/SLAM_Map_Frame_Alignment_Check.md) — 设备端 SLAM 的 map 帧与 CAD 图对齐：到"边界面"距离场 + 粗搜精修，mm 级
+- [ROS2_Humble_Jazzy_Compat_Traps](E:/Document/Ethan'vault/aiVault/wiki/concepts/ROS2_Humble_Jazzy_Compat_Traps.md) — 同一份代码双版本：tf2_sensor_msgs 纯头文件、C++17、ament_python、Nav2 参数不可跨版本搬
 
 ## 5. 证据与产物
 
