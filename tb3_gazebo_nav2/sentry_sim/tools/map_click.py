@@ -110,6 +110,7 @@ class RosBackend:
         qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
         self.costmap = None
+        self.costmap_t = 0.0
         self.node.create_subscription(OccupancyGrid, "/global_costmap/costmap",
                                       self._on_costmap, qos)
         self._stop = threading.Event()
@@ -177,6 +178,7 @@ class RosBackend:
         info = msg.info
         self.costmap = (msg.data, info.origin.position.x, info.origin.position.y,
                         info.resolution, info.width, info.height)
+        self.costmap_t = time.monotonic()
         if not getattr(self, "_costmap_seen", False):
             self._costmap_seen = True
             print(f"COSTMAP ready {info.width}x{info.height} res={info.resolution:.3f}", flush=True)
@@ -455,6 +457,11 @@ class MapWindow(tk.Tk):
         """
         cost = self._dyn_cost(gx, gy)
         if cost is None or cost < 85:
+            return gx, gy, cost, False
+        # 代价地图必须是新鲜的：旧面板进程可能只收到过一帧旧图（实测把空地误判成 99），
+        # 超过 2 s 没更新就不做临时障碍判断，避免"点空地也被挪走"。
+        if time.monotonic() - getattr(self.backend, "costmap_t", 0.0) > 2.0:
+            print("WARN 代价地图超过 2 s 没更新，跳过临时障碍检查", flush=True)
             return gx, gy, cost, False
         data, ox, oy, res, w, h = self.backend.costmap
         c0 = int((gx - ox) / res)
