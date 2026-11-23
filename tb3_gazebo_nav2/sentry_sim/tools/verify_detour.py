@@ -72,6 +72,8 @@ def main():
     ap.add_argument("--obstacle-size", type=float, default=0.40)
     ap.add_argument("--map", default=DEFAULT_MAP)
     ap.add_argument("--spawn", action="store_true", help="先 spawn 障碍")
+    ap.add_argument("--spawn-after", type=float, default=0.0,
+                    help="延迟这么多秒再 spawn（测'突然出现在路径上'）")
     ap.add_argument("--remove", action="store_true", help="结束后删障碍")
     ap.add_argument("--timeout", type=float, default=240.0, help="墙钟上限 s")
     ap.add_argument("--out", default="")
@@ -86,15 +88,29 @@ def main():
     moving_track = []        # (wall_t, x, y)，只在 --moving 时填
     mover_stop = None
 
-    if args.spawn:
+    def do_spawn():
         cmd = [sys.executable, os.path.join(HERE, "spawn_obstacle.py"),
                "spawn", str(ox_w), str(oy_w), "--size", str(args.obstacle_size)]
         if args.moving:
             cmd.append("--dynamic")
         rc = subprocess.run(cmd).returncode
         print(f"[spawn] rc={rc}")
-        if rc != 0:
-            return 4
+        return rc
+
+    if args.spawn:
+        if args.spawn_after > 0:
+            # "突然出现在路径上"：车先跑一会儿，再 spawn（测试它识别/停车能力）
+            import threading
+
+            def _later():
+                time.sleep(args.spawn_after)
+                do_spawn()
+
+            threading.Thread(target=_later, daemon=True).start()
+            print(f"[spawn] {args.spawn_after:.1f} s 后出现在 ({ox_w:.2f},{oy_w:.2f})")
+        else:
+            if do_spawn() != 0:
+                return 4
 
     if args.moving:
         import threading
@@ -153,7 +169,7 @@ def main():
         t = tr.transform.translation
         return t.x, t.y, yaw_of(tr.transform.rotation)
 
-    for _ in range(50):                                              # 等 TF
+    for _ in range(200):                                              # 等 TF（最多 20 s）
         if pose_now() is not None:
             break
         rclpy.spin_once(node, timeout_sec=0.1)
