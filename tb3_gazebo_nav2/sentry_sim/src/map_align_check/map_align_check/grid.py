@@ -94,15 +94,18 @@ class DistanceField(object):
         if backend == 'numpy':
             self.backend = 'numpy-wavefront'
             field = _wavefront_distance(padded, self.res, self.cap)
-        elif _ndimage is not None or backend == 'auto':
-            if _ndimage is None:  # pragma: no cover
-                raise RuntimeError('scipy backend requested but not importable')
+        elif _ndimage is not None:
             self.backend = 'scipy-edt'
             field = _ndimage.distance_transform_edt(~padded,
                                                     sampling=self.res)
             field = np.minimum(field, self.cap)
-        else:  # pragma: no cover
-            raise RuntimeError('unreachable backend selection')
+        elif backend == 'auto':
+            # scipy is optional (not in package.xml): fall back to the numpy
+            # wavefront so the tool still runs on a board without it.
+            self.backend = 'numpy-wavefront'
+            field = _wavefront_distance(padded, self.res, self.cap)
+        else:
+            raise RuntimeError('scipy backend requested but not importable')
         self.field = np.ascontiguousarray(field, dtype=np.float32)
         self.height, self.width = self.field.shape
 

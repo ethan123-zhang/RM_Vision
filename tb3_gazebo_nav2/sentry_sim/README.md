@@ -124,9 +124,26 @@ results/                 # 验收 JSON 证据
 10. **Jazzy 速度链**：`controller→cmd_vel_nav→velocity_smoother→cmd_vel_smoothed→collision_monitor→cmd_vel`，
     改错输出点车就不动。
 
-## 8. 已知限制 / 未做
+## 8. Humble / RDK S100 兼容
 
-- 未上实车/真 Odin1；S100（Ubuntu 22.04 + **Humble**）与本仿真的 Jazzy **未做双版本编译验证**。
+代码按 **Humble + Jazzy 双兼容**写，2026-11-23 在 `ros:humble-ros-base` 容器（Ubuntu 22.04 / Python 3.10，与 S100 同构）
+实测 **6/6 包编译通过**。为此改了三处（都已在代码里）：
+
+1. `pointcloud_to_laserscan/CMakeLists.txt`：Humble 的 `tf2_sensor_msgs` 是纯头文件（无 CMake 目标），
+   脚本加 `if(TARGET ...)` 守卫、补 `${sensor_msgs_TARGETS}`；反向节点依赖 `laser_geometry`，
+   改为 `option(BUILD_LASERSCAN_TO_POINTCLOUD OFF)` **默认不编**（我们的栈只用 pointcloud→laserscan）。
+2. `map_align_check/grid.py`：`backend='auto'` 在无 scipy 时曾直接崩（没走到文档承诺的 numpy 回退）→ 已修。
+3. 两个 python 包 `package.xml` 补 `<buildtool_depend>ament_python</buildtool_depend>`。
+
+**仍待实车核对**：`sentry_nav2.yaml` 由 Jazzy 生成，Humble 不认其中 8 个字段
+（`navigators`、`error_code_names`、`route_server`、`docking_server` 等；Humble 的 bt_navigator 用
+`plugin_lib_names` + `default_nav_to_pose_bt_xml`）。上 S100 时以
+[上游 humble 的 nav2_params.yaml](https://github.com/ros-navigation/navigation2/blob/humble/nav2_bringup/params/nav2_params.yaml)
+为底，只覆盖数值。详见 [迁移文档](../../docs/handoffs/2026-11-23-sentry-s100-migration.md)。
+
+## 9. 已知限制 / 未做
+
+- 未上实车/真 Odin1；Humble 编译已验证（§8），但 Nav2 参数与实车运行**未验证**。
 - Odin1 在 12.6×8.6 m 大场地的量程/建图能力未实测（仿真按假设参数化）。
 - Mid-360 的 `/livox/imu` 加速度单位是 **g**，未接 EKF/Nav2；不跑 LIO 时暂无消费者。
 - `map_align_check` 连续模式只做过 6 帧冒烟；`--fix-yaml` 未自动回灌到 Odin1。
