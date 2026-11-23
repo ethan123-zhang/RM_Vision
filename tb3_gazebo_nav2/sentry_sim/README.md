@@ -72,6 +72,24 @@ cd ~/sentry_ws
 自检（无鼠标环境）：`python3 tools/map_click.py --click 3 -2.5` 会按世界坐标点一次、等结果、
 打印 `SELFTEST result=... dist_to_goal=...`，到点 ≤0.4 m 且 SUCCEEDED 才返回 0。
 
+## 2.6 临时障碍 / 敌方机器人测试（S3）
+
+**不要用 Gazebo GUI 的 Insert 插模型**：WSL2 的 GUI 是 llvmpipe 软渲染，GUI 里插动态模型（球/箱）
+会让 GUI 持续重绘 —— 实测 `gz sim gui` 冲到 **349% CPU**、RTF 掉到 **0.10**，表现就是整个仿真"死机"，
+而且模型落下会砸/推车，车被推到墙边后就出现"点哪都不动"。用下面这套脚本（server 侧生成 static 模型）：
+
+```bash
+cd ~/sentry_ws
+python3 tools/spawn_obstacle.py spawn 1.5 -1.25          # 生成 0.40 m 敌方机器人（可 --size/--yaw/--name）
+python3 tools/spawn_obstacle.py remove                   # 删掉
+python3 tools/verify_detour.py --goal 3 -2.5 --obstacle 1.5 -1.25     # 验收：绕开而不是撞
+```
+
+`verify_detour.py` 判据（全过才返回 0，报告写到 `results/report_detour_*.json`）：
+到点 SUCCEEDED 且 ≤0.30 m / 绕障**面距** ≥0.05 m / 静态净空 ≥0.05 m（不蹭墙）/
+横向偏移 ≥0.40 m（证明真绕了）/ 最长停滞 ≤5 s（没有"规划失败→恢复"循环）。
+它同时打印 **用时 / 路径长度 / 最大速度**，可以直接当速度回归用。
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -82,6 +100,8 @@ cd ~/sentry_ws
 | Nav2 单点 | (3,−2.5) SUCCEEDED 0.197 m；(0,3) SUCCEEDED 0.196 m（真值 0.194） |
 | 5 点巡逻 | **5/5 SUCCEEDED**，误差 0.005–0.197 m，最小离障 **0.371 m**，碰撞 0，RTF 0.864 |
 | 点地图导航（S3） | 点 (3,−2.5) → `Goal succeeded`，停位 (2.977,−2.339) = **0.163 m** 误差 |
+| 绕障·敌方机器人在路上（S3） | (0,0)→(3,−2.5)、敌车 (1.5,−1.25)：**5/5 判据过**，到点 0.180 m，绕障面距 +0.156 m，横向偏移 0.649 m，静态净空 0.825 m，**8.2 s**，峰值 1.35 m/s |
+| 绕障·敌车在返程线上（S3） | (2.9,−2.4)→(0,3)、敌车 (1.5,0.25)：**5/5 判据过**，到点 0.189 m，绕障面距 +0.519 m，横向偏移 1.450 m，静态净空 0.675 m，30.6 s，峰值 1.05 m/s |
 | 地图/SDF 一致性 | pgm 与 48 块 box 投影**逐格一致**（0/180224 格不同），边界偏差 0.000 cm |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
 
@@ -128,7 +148,8 @@ src/odin1_sim_bridge     # Odin1 接口替身：真值 → /odin1/odometry + TF�
 src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
 src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
 src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
-tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标、点地图窗口（map_click.py）
+tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标、点地图窗口（map_click.py）、
+                         # 敌方机器人障碍（spawn_obstacle.py）、绕障验收（verify_detour.py）
 results/                 # 验收 JSON 证据
 ```
 
@@ -148,6 +169,19 @@ results/                 # 验收 JSON 证据
 9. **costmap 的 `width/height` 必须是 int**（写 `3.0` 会让 controller_server 崩）。
 10. **Jazzy 速度链**：`controller→cmd_vel_nav→velocity_smoother→cmd_vel_smoothed→collision_monitor→cmd_vel`，
     改错输出点车就不动。
+11. **局部代价地图必须加 `static_layer`**：只吃 `/scan` 时墙在局部图里是空的（雷达装在 0.39 m 高、
+    墙矮、又被车身挡住），躲临时障碍时 MPPI 就贴着墙切过去 → 撞墙 / 停在离墙 0.375 m。
+    一旦停在离墙 < `robot_radius` 0.40 的位置，`global_costmap` 把**规划起点**判成致命区，
+    之后点哪都 `Failed to create plan`（"点了没反应"的元凶）。
+12. **全局代价地图必须加 `obstacle_layer`**：否则 `/scan` 看到的临时障碍只在局部图里，全局路径照样
+    从障碍中间穿过，控制器只能硬挤。加上之后 NavFn 才会重规划绕行 —— 实测横向偏移 0.65–1.45 m。
+13. **MPPI 的速度总闸是 `temperature`，不是 `vx_max`**：`vx_max` 0.4→2.0 但 `temperature` 保持 0.3 时，
+    实际只跑 ~0.2 m/s（softmax 把采样轨迹平均掉了）；降到 **0.05** 后峰值 1.05–1.35 m/s，同一路线
+    22.3 s → **8.2 s**。另外 `time_steps 56 / batch_size 2000` 在本机（RTF≈0.7）控制器只到 0.9 Hz，
+    降到 **40 / 1000** 后回到 15 Hz。
+14. **别在 Gazebo GUI 里插模型**：llvmpipe 软渲染 + 动态模型持续重绘会让 GUI 冲到 349% CPU、
+    RTF 掉到 0.10（= 死机），落下的模型还会把车推/砸到墙边。用 `tools/spawn_obstacle.py`（server 侧
+    static 模型）。
 
 ## 8. Humble / RDK S100 兼容
 
@@ -175,4 +209,9 @@ results/                 # 验收 JSON 证据
 - **规划起点贴障碍的陷阱**：车停在离障碍 <0.40 m（`robot_radius`）处时 `global_costmap` 把起点判成
   致命区，NavFn 一律失败、恢复行为（spin/wait）也救不回来。点地图窗口用"落点净空 0.65 m + 状态栏
   净空警告 + ABORTED 提示"缓解，但**中途取消 / 手动开进窄缝仍可能触发**；真触发只能先把车开出来或重起栈。
+  （2026-11-23 加了局部 `static_layer` 后，车自己不会再开进这种位置。）
+- **开 GUI 时 RTF 只有 0.67–0.79**：`gz sim gui` 单进程吃 3.3 核（llvmpipe 软渲染），这也是"看起来慢"
+  的一半原因；要跑最快速度/最高 RTF 就 `gui:=false`。
+- 临时障碍测试目前只覆盖**静态**敌车（`spawn_obstacle.py`）；会动的敌车还没做（`/scan` 30 Hz + costmap
+  2 Hz 更新，快速横穿的物体会漏，需实测再定速度上限）。
 - 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。
