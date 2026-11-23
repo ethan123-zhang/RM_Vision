@@ -21,9 +21,16 @@
 > ⑤**帧对齐**（实车上线关键）：`odin1_sim_bridge` 可注入 `map_offset_x/y/yaw`；`map_align_check`（粗搜+精修，4.4–4.7 s）
 > 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) 三组恢复误差 **≤2.3 mm / 0.063°**；实车顺序：建图（起点固定）→重定位→
 > 拐角处跑校验→用 `correction` 修正。
-> ⑥**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh`（`stop` 停；`map_offset_*:=` 注入偏移）；
+> ⑥**Humble/S100 准备（11-23）**：在 `ros:humble-ros-base` 容器（Ubuntu 22.04 / Python 3.10，与 S100 同构）
+> 实测 **6/6 包编译通过**；修 3 处双兼容：`pointcloud_to_laserscan` CMake 对 `tf2_sensor_msgs`
+> 做 TARGET 守卫（Humble 是纯头文件、无 CMake 目标）+ 反向节点改可选（默认 OFF，**彻底去掉 laser_geometry**）、
+> `map_align_check` 的 `backend=auto` 无 scipy 时崩（实车会中招）已修、两个 python 包补 `ament_python`。
+> 迁移文档（S100 适配 10 项、上车 6 阶段判据、Odin1 大场地图测试方案）：[2026-11-23-sentry-s100-migration.md](docs/handoffs/2026-11-23-sentry-s100-migration.md)。
+> **仍缺**：Nav2 参数表按 Humble 重写（Jazzy 专属 8 字段：`navigators`/`route_server`/`docking_server` 等；Humble 用 `plugin_lib_names`），需能装 nav2 的 Humble 环境实测。
+> ⑦**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh gui:=true`（`stop` 停；`map_offset_*:=` 注入偏移）；
 > `ros2 run map_align_check map_align_check --sim-time --frames 5`；source of truth 在仓库 `sentry_sim/`，改完 rsync 进 WSL。
-> ⑦**未做**：S100/Humble 双版本编译验证、Odin1 大场地图实测、S3 比赛要素（敌方车/装甲板/让行）。
+> ⑧**未做**：Nav2 Humble 参数实测、Odin1 大场地图实测（等 S100/实车）、S3 比赛要素（敌方车/装甲板/让行）。
+> ⑨**提交**：`7116699`（栈落库）、`06b1164`（Humble 补丁 + 迁移文档）。
 
 > **✅ 2026-11-21（副线 Gazebo）：两笔欠账收口——①清场按 ROS domain 隔离（修跨 domain 误杀 / 误删 FastRTPS 共享内存）；②动态箱 three 档（slow/fast/faster 0.3/0.6/1.0 m/s）+ 0.62 m 超窄门的 2.5 cm 栅格变体。**
 > ①**A 清场**：新增 `domain_cleanup.sh`——进程按 `/proc/<pid>/environ` 的 `ROS_DOMAIN_ID` 过滤；共享内存只删没人 mmap/flock/fd 占用的段（`sem.*` 一律保留；端口 `X`/`X_el` 成对保护）。
