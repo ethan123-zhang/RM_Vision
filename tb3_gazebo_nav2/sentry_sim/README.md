@@ -120,7 +120,9 @@ collision_monitor 状态。两种模式：
 | 模式 | 链路 | 行为 |
 |---|---|---|
 | **安全模式**（默认） | `cmd_vel_nav → velocity_smoother → collision_monitor → /cmd_vel` | 前方有障碍时 collision_monitor 把车停住：实测按住前进 6 s，`cmd_vel_nav` 0.50 / `cmd_vel_smoothed` 0.50 / `/cmd_vel` **0.00**，车不动 |
-| **裸模式**（勾选） | 把 `collision_monitor` deactivate，直接发 `/cmd_vel` | 才能真撞上做碰撞测试；窗口打印 `CONTACT 车(...) 敌车(...) 中心距 0.46 m` |
+| **裸模式**（勾选） | 把 `FootprintApproach.enabled` 设成 false（动态参数，节点仍 active、bond 不断），命令原样直通 | 才能真撞上做碰撞测试；窗口打印 `CONTACT 车(...) 敌车(...) 中心距 0.46 m` |
+
+启动时窗口会**强制把碰撞保护设回 true**（安全模式），退出时如果还处于裸模式也会恢复。
 
 退出遥控窗口会自动把 collision_monitor 恢复成 active。
 
@@ -230,6 +232,10 @@ results/                 # 验收 JSON 证据
 16. **点目标要查代价地图**：点地图窗口的静态吸附（`min_clear`）看不见敌车/箱子 —— 它们只在
     `/global_costmap/costmap` 里。窗口现在订阅该图，目标落在高代价格（≥85，内切/致命区）就自动
     挪到 1 m 内最近空地（实测点敌车正中心 → 代价 99 → 挪到 0.6 m 外），挪不开就拒绝发目标。
+17. **别用 lifecycle 去 deactivate `collision_monitor`**：它和 lifecycle_manager 有 bond，
+    手动 deactivate 会被判定"节点失联"→ 管理器把 bt_navigator 等一起停掉，整套导航下线、
+    `/cmd_vel` 没人发，表现就是**车完全不动**（2026-11-23 踩过，遥控"打不开"就是这个）。
+    要临时关掉碰撞保护，改动态参数 `FootprintApproach.enabled=false`（节点保持 active、bond 不断）。
 
 ## 8. Humble / RDK S100 兼容
 

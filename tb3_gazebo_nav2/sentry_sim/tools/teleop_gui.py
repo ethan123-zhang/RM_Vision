@@ -45,8 +45,9 @@ from rclpy.signals import SignalHandlerOptions                      # noqa: E402
 from geometry_msgs.msg import PoseStamped, Twist                    # noqa: E402
 from nav_msgs.msg import Odometry                                   # noqa: E402
 from nav2_msgs.msg import CollisionMonitorState                     # noqa: E402
-from lifecycle_msgs.msg import Transition                           # noqa: E402
-from lifecycle_msgs.srv import ChangeState                          # noqa: E402
+from rcl_interfaces.msg import Parameter as RosParameter            # noqa: E402
+from rcl_interfaces.msg import ParameterValue, ParameterType        # noqa: E402
+from rcl_interfaces.srv import SetParameters                        # noqa: E402
 import tkinter as tk                                                # noqa: E402
 
 CONTACT_M = 0.47          # 0.5x0.5 车 + 0.4x0.4 敌车：面贴面时中心距 0.45，取 0.47 留 2 cm
@@ -56,12 +57,15 @@ class RosBackend:
     def __init__(self, topic):
         self.node = Node("teleop_gui",
                          parameter_overrides=[Parameter("use_sim_time", Parameter.Type.BOOL, True)])
-        # 安全模式：进 cmd_vel_nav（smoother + collision_monitor → /cmd_vel）
-        # 裸模式：关掉 collision_monitor 后直接发 /cmd_vel（能真撞上，用来做碰撞测试）
+        # 安全模式：进 cmd_vel_nav（smoother + collision_monitor → /cmd_vel）。
+        # "裸模式"不是去 deactivate collision_monitor —— 那会断 bond，lifecycle_manager 判定
+        # 节点失联后把整套导航节点一起关掉（2026-11-23 实测，车就彻底不动了）。
+        # 正确做法：只把碰撞保护多边形 FootprintApproach.enabled 设成 false（可动态改，
+        # 节点保持 active、bond 不断，命令原样直通）。
         self.pub_safe = self.node.create_publisher(Twist, topic, 10)
-        self.pub_raw = self.node.create_publisher(Twist, "cmd_vel", 10)
         self.raw = False
-        self.mon_client = self.node.create_client(ChangeState, "/collision_monitor/change_state")
+        self.param_client = self.node.create_client(SetParameters,
+                                                    "/collision_monitor/set_parameters")
         self.car = None
         self.enemy = None
         self.base_cmd = (0.0, 0.0, 0.0)
@@ -120,25 +124,30 @@ class RosBackend:
         t.linear.y = float(vy)
         t.linear.z = 0.0
         t.angular.z = float(wz)
-        (self.pub_raw if self.raw else self.pub_safe).publish(t)
+        self.pub_safe.publish(t)
 
-    def set_monitor(self, active):
-        """切换 collision_monitor：activate=3 / deactivate=4。"""
-        if not self.mon_client.service_is_ready():
-            if not self.mon_client.wait_for_service(timeout_sec=2.0):
-                print("SET_MONITOR 服务不可用", flush=True)
+    def set_guard(self, enabled):
+        """开关 collision_monitor 的碰撞保护（FootprintApproach.enabled，动态参数）。
+
+        不用 lifecycle deactivate：那会断 bond，lifecycle_manager 认为节点失联后会把整套
+        导航节点一起停掉（实测车完全不动）。这里节点保持 active，命令只是不再被拦。
+        """
+        if not self.param_client.service_is_ready():
+            if not self.param_client.wait_for_service(timeout_sec=2.0):
+                print("SET_GUARD 服务不可用", flush=True)
                 return False
-        req = ChangeState.Request()
-        req.transition.id = Transition.TRANSITION_ACTIVATE if active else \
-            Transition.TRANSITION_DEACTIVATE
-        fut = self.mon_client.call_async(req)
+        req = SetParameters.Request()
+        req.parameters.append(RosParameter(
+            name="FootprintApproach.enabled",
+            value=ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=enabled)))
+        fut = self.param_client.call_async(req)
 
         def _done(f):
             try:
-                ok = f.result().success
-                print(f"SET_MONITOR {'activate' if active else 'deactivate'} -> {ok}", flush=True)
+                res = f.result().results[0]
+                print(f"SET_GUARD enabled={enabled} -> {res.successful}", flush=True)
             except Exception as exc:                                # noqa: BLE001
-                print(f"SET_MONITOR 失败 {exc}", flush=True)
+                print(f"SET_GUARD 失败 {exc}", flush=True)
 
         fut.add_done_callback(_done)
         return True
@@ -185,7 +194,7 @@ class Win(tk.Tk):
         self.bind("<KeyPress>", self._press)
         self.bind("<KeyRelease>", self._release)
         self.raw_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(self, text="裸模式（关掉 collision_monitor → 能真撞上；取消勾选恢复安全模式）",
+        tk.Checkbutton(self, text="关碰撞保护（裸模式：能真撞上；取消勾选恢复安全模式）",
                        variable=self.raw_var, command=self._toggle_raw,
                        font=("Consolas", 10)).pack(fill="x")
         self.canvas = tk.Canvas(self, width=520, height=260, bg="#fafafa",
@@ -223,7 +232,7 @@ class Win(tk.Tk):
 
     def _toggle_raw(self):
         want = bool(self.raw_var.get())
-        if self.backend.set_monitor(not want):
+        if self.backend.set_guard(not want):
             self.backend.raw = want
             print(f"RAW {'ON（monitor 关闭，能撞）' if want else 'OFF（安全模式）'}", flush=True)
 
@@ -293,13 +302,15 @@ def main():
         rclpy.shutdown()
         return 0
     backend = RosBackend(args.topic)
+    backend.set_guard(True)          # 开局强制安全模式（碰撞保护开着），要撞自己勾裸模式
+    time.sleep(0.5)
     win = Win(backend, args.speed)
     try:
         win.mainloop()
     except KeyboardInterrupt:
         pass
     if backend.raw:                       # 退出前把安全模式恢复回来
-        backend.set_monitor(True)
+        backend.set_guard(True)
         time.sleep(1.0)
     backend.shutdown()
     if rclpy.ok():
