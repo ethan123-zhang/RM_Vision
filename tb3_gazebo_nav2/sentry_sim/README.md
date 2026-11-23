@@ -102,6 +102,32 @@ python3 tools/verify_detour.py --moving 1.5 0.65 1.5 -0.15 --moving-speed 0.3 --
 > 注意：横穿段如果**横扫过车当前停留的位置**，任何规划器都会被撞到——那是"敌车穿过车"
 > 而不是"车没躲"。验收要用"扫过路线但不扫过车身"的几何（上面的例子就是）。
 
+## 2.7 随机漫游敌车 + 键盘遥控（碰撞测试，S3）
+
+```bash
+cd ~/sentry_ws
+# 终端 A：敌车在地图自由区随机漫游（只挑净空 >=0.9 m 的格子；
+#           默认 --car-clear 0 = 不管我方车，要它别撞你就加 --car-clear 1.2）
+python3 tools/wander_obstacle.py --speed 0.45
+
+# 终端 B：键盘/按钮遥控（W/S 前后、A/D 平移、Q/E 转、空格停；没有窗管时用窗口里的按钮按住）
+python3 tools/teleop_gui.py --speed 0.5
+```
+
+窗口显示：指令速度 / 底盘实际速度 / 车位置 / 离敌车距离 / 最近距离 / **碰撞次数** /
+collision_monitor 状态。两种模式：
+
+| 模式 | 链路 | 行为 |
+|---|---|---|
+| **安全模式**（默认） | `cmd_vel_nav → velocity_smoother → collision_monitor → /cmd_vel` | 前方有障碍时 collision_monitor 把车停住：实测按住前进 6 s，`cmd_vel_nav` 0.50 / `cmd_vel_smoothed` 0.50 / `/cmd_vel` **0.00**，车不动 |
+| **裸模式**（勾选） | 把 `collision_monitor` deactivate，直接发 `/cmd_vel` | 才能真撞上做碰撞测试；窗口打印 `CONTACT 车(...) 敌车(...) 中心距 0.46 m` |
+
+退出遥控窗口会自动把 collision_monitor 恢复成 active。
+
+> collision_monitor 只能拦"我方车开向障碍"，拦不住"别的物体撞向我方车"。
+> `wander_obstacle.py` 默认 `--car-clear 0` 就是会撞上来的 —— 这正是这个测试要看的；
+> 想让它躲着你开，就加 `--car-clear 1.2`。
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -114,6 +140,8 @@ python3 tools/verify_detour.py --moving 1.5 0.65 1.5 -0.15 --moving-speed 0.3 --
 | 点地图导航（S3） | 点 (3,−2.5) → `Goal succeeded`，停位 (2.977,−2.339) = **0.163 m** 误差 |
 | 绕障·敌方机器人在路上（S3） | (0,0)→(3,−2.5)、敌车 (1.5,−1.25)：**5/5 判据过**，到点 0.107 m，绕障面距 **+0.236 m**，横向偏移 0.708 m，静态净空 0.861 m，8.4 s，峰值 0.98 m/s |
 | 绕障·敌车横穿路线（S3） | 敌车 (1.5,0.65)↔(1.5,−0.15) @0.3 m/s，(0,3)→(3,−2.5)：**5/5 判据过**，到点 0.169 m，与移动敌车最小中心距 1.082 m（面距 +0.632 m），静态净空 0.843 m，12.3 s，峰值 1.38 m/s |
+| 安全模式顶敌车（S3） | 按住前进 6 s：`cmd_vel_nav` 0.50 → `cmd_vel_smoothed` 0.50 → `/cmd_vel` **0.00**（monitor 停住），车不前进 |
+| 碰撞检测（S3） | 敌车漫游贴上车：`CONTACT 车(1.28,−0.37) 敌车(1.55,−0.74) 中心距 0.46 m`（裸模式/敌车主动靠近） |
 | 绕障·敌车在返程线上（S3） | (2.9,−2.4)→(0,3)、敌车 (1.5,0.25)：**5/5 判据过**，到点 0.189 m，绕障面距 +0.519 m，横向偏移 1.450 m，静态净空 0.675 m，30.6 s，峰值 1.05 m/s |
 | 地图/SDF 一致性 | pgm 与 48 块 box 投影**逐格一致**（0/180224 格不同），边界偏差 0.000 cm |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
@@ -162,7 +190,8 @@ src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
 src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
 src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
 tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标、点地图窗口（map_click.py）、
-                         # 敌方机器人障碍（spawn_obstacle.py）、绕障验收（verify_detour.py）
+                         # 敌方机器人障碍（spawn_obstacle.py）、移动/漫游敌车（moving_obstacle.py /
+                         # wander_obstacle.py）、键盘遥控（teleop_gui.py）、绕障验收（verify_detour.py）
 results/                 # 验收 JSON 证据
 ```
 
