@@ -1,0 +1,103 @@
+{
+ "map": {
+  "resolution": 0.025,
+  "origin": [
+   -6.4,
+   -4.4,
+   0.0
+  ]
+ },
+ "criterion": {
+  "clearance_min_m": 0.45,
+  "spawn": [
+   0.0,
+   0.0
+  ],
+  "connectivity": "8-connected, free & clear>=0.45, spawn component"
+ },
+ "reachable_cells": 81050,
+ "reachable_area_m2": 50.66,
+ "points": [
+  {
+   "name": "P1_spawn_near",
+   "x": -0.0375,
+   "y": 1.4875,
+   "edt_clear_m": 1.55,
+   "exact_clear_m": 1.5375,
+   "why": "best clearance in the 0.8-1.5 m annulus around spawn",
+   "yaw": 0.0
+  },
+  {
+   "name": "P2_NW",
+   "x": -4.3625,
+   "y": 2.3875,
+   "edt_clear_m": 1.625,
+   "exact_clear_m": 1.6079,
+   "why": "NW quadrant, max clearance",
+   "yaw": -0.5008
+  },
+  {
+   "name": "P3_SW",
+   "x": -4.7875,
+   "y": -1.6125,
+   "edt_clear_m": 1.225,
+   "exact_clear_m": 1.2125,
+   "why": "SW quadrant, max clearance",
+   "yaw": 0.3249
+  },
+  {
+   "name": "P4_SE",
+   "x": 4.3625,
+   "y": -2.3625,
+   "edt_clear_m": 1.6298,
+   "exact_clear_m": 1.6125,
+   "why": "SE quadrant, max clearance",
+   "yaw": 2.6453
+  },
+  {
+   "name": "P5_NE",
+   "x": 4.7625,
+   "y": 2.0125,
+   "edt_clear_m": 1.25,
+   "exact_clear_m": 1.2375,
+   "why": "NE quadrant, max clearance",
+   "yaw": -2.7418
+  }
+ ],
+ "pairwise_dijkstra_m": {
+  "P1_spawn_near->P1_spawn_near": 0.0,
+  "P1_spawn_near->P2_NW": 4.698,
+  "P1_spawn_near->P3_SW": 7.206,
+  "P1_spawn_near->P4_SE": 6.917,
+  "P1_spawn_near->P5_NE": 9.754,
+  "P2_NW->P1_spawn_near": 4.698,
+  "P2_NW->P2_NW": 0.0,
+  "P2_NW->P3_SW": 4.176,
+  "P2_NW->P4_SE": 10.839,
+  "P2_NW->P5_NE": 13.676,
+  "P3_SW->P1_spawn_near": 7.206,
+  "P3_SW->P2_NW": 4.176,
+  "P3_SW->P3_SW": 0.0,
+  "P3_SW->P4_SE": 13.305,
+  "P3_SW->P5_NE": 16.143,
+  "P4_SE->P1_spawn_near": 6.917,
+  "P4_SE->P2_NW": 10.839,
+  "P4_SE->P3_SW": 13.305,
+  "P4_SE->P4_SE": 0.0,
+  "P4_SE->P5_NE": 4.541,
+  "P5_NE->P1_spawn_near": 9.754,
+  "P5_NE->P2_NW": 13.676,
+  "P5_NE->P3_SW": 16.143,
+  "P5_NE->P4_SE": 4.541,
+  "P5_NE->P5_NE": 0.0
+ },
+ "tour_order": [
+  "P1_spawn_near",
+  "P2_NW",
+  "P3_SW",
+  "P4_SE",
+  "P5_NE"
+ ],
+ "tour_length_m": 26.72,
+ "tour_min_clearance_edt_m": 0.45
+}

@@ -1,9 +1,29 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-21（清场 domain 隔离 + 动态箱三档 + 0.62 m 超窄门）
+> 最后更新：2026-11-23（哨兵仿真栈落库：Odin1 定位 + Mid-360 感知 + Nav2 无 AMCL + 帧对齐校验）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **🆕 2026-11-22/23（副线：RM 哨兵仿真，新栈）**：在没有实车、没有地图的条件下，按哨兵真实技术路线
+> 搭出可跑可验收的仿真栈，源码落在 [tb3_gazebo_nav2/sentry_sim](tb3_gazebo_nav2/sentry_sim/README.md)，
+> 计划/结论见 [2026-11-22-sentry-simulation.md](docs/superpowers/plans/2026-11-22-sentry-simulation.md)。
+> ①**架构决定**（用户 11-22 定）：定位主力 **Odin1**（实车官方驱动/仿真接口替身），**不跑 FAST-LIO**（算力留 Nav2）；
+> 实车 **RDK S100 + Odin1 + Mid-360**，IMU 用 Mid-360 内置 6 轴 200 Hz；**2D 栅格图用场地 CAD 先验**，不现场建图。
+> ②**传感器**：`livox_gz_sim` 提供 Mid-360（Harmonic，rtf 0.91–0.96）；`livox_ros_driver2` 官方包 Jazzy 要 sudo 装 SDK2 →
+> 用**消息-only 替身包**；FAST-LIO ROS2 已编译验证（静止 60 s 漂移 11.6 mm / yaw 2.24 mrad）但**不启用**，存档待用。
+> ③**车与导航**：4 麦轮哨兵车（0.5×0.5×0.12，规则上限 600×600×600/28 kg；每轮 12 个 45° 被动滚子），
+> 全向运动误差 0.38%/4.98%/4.08%；Nav2 **不启 AMCL**、`map→odom` 由 Odin1 替身发、标准 TF 链无多父；
+> 单点 (3,−2.5) 0.197 m、(0,3) 0.196 m；**5 点巡逻 5/5 SUCCEEDED**（误差 ≤0.197 m、最小离障 0.371 m、碰撞 0）。
+> ④**地图**：复用 rm_field 翻转后 3V3 场地 CAD 图，复核**逐格一致**（0/180224 格不同，边界偏差 0.000 cm）；
+> 点云现场建图（`pcd_to_pgm`）实测**漏掉低矮平台**（0.2 m 平台仅 2–15% 占据）——雷达高于平台、光线从上方掠过，
+> 2D 投影必然空洞 → **判为不用于导航**，工具留作实验。
+> ⑤**帧对齐**（实车上线关键）：`odin1_sim_bridge` 可注入 `map_offset_x/y/yaw`；`map_align_check`（粗搜+精修，4.4–4.7 s）
+> 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) 三组恢复误差 **≤2.3 mm / 0.063°**；实车顺序：建图（起点固定）→重定位→
+> 拐角处跑校验→用 `correction` 修正。
+> ⑥**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh`（`stop` 停；`map_offset_*:=` 注入偏移）；
+> `ros2 run map_align_check map_align_check --sim-time --frames 5`；source of truth 在仓库 `sentry_sim/`，改完 rsync 进 WSL。
+> ⑦**未做**：S100/Humble 双版本编译验证、Odin1 大场地图实测、S3 比赛要素（敌方车/装甲板/让行）。
 
 > **✅ 2026-11-21（副线 Gazebo）：两笔欠账收口——①清场按 ROS domain 隔离（修跨 domain 误杀 / 误删 FastRTPS 共享内存）；②动态箱 three 档（slow/fast/faster 0.3/0.6/1.0 m/s）+ 0.62 m 超窄门的 2.5 cm 栅格变体。**
 > ①**A 清场**：新增 `domain_cleanup.sh`——进程按 `/proc/<pid>/environ` 的 `ROS_DOMAIN_ID` 过滤；共享内存只删没人 mmap/flock/fd 占用的段（`sem.*` 一律保留；端口 `X`/`X_el` 成对保护）。

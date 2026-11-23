@@ -1,0 +1,79 @@
+{
+  "backend": "scipy-edt",
+  "coarse": {
+    "grid": {
+      "n_dx": 49,
+      "n_dy": 49,
+      "n_yaw": 41,
+      "xy_step": 0.025,
+      "yaw_step_deg": 0.5
+    },
+    "n_points": 400,
+    "pose": {
+      "dx": 5.551115123125783e-16,
+      "dy": 5.551115123125783e-16,
+      "dyaw_deg": 0.5
+    }
+  },
+  "confidence": {
+    "best_m": 0.014687499962747097,
+    "gap_m": 0.006375000812113285,
+    "gap_xy_m": 0.12,
+    "gap_yaw_deg": 1.5,
+    "ratio": 1.4340426095852006,
+    "second_best_m": 0.021062500774860382,
+    "second_best_pose": {
+      "dx": 0.025000000000000577,
+      "dy": 5.551115123125783e-16,
+      "dyaw_deg": 2.5
+    }
+  },
+  "estimate": {
+    "dx": 0.001953125000000555,
+    "dy": 0.0015625000000005552,
+    "dyaw": 0.00995383089028016,
+    "dyaw_deg": 0.5703125
+  },
+  "input": {
+    "cloud_frame": "livox_frame",
+    "cloud_stamp": 46.4,
+    "cloud_topic": "/livox/lidar",
+    "frames": 5,
+    "height_band_m": [
+      0.1,
+      1.2
+    ],
+    "map_frame": "map",
+    "map_occupied_cells": 56240,
+    "map_origin": [
+      -6.4,
+      -4.4
+    ],
+    "map_resolution": 0.025,
+    "map_yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml",
+    "points": 3000,
+    "range_max_m": 8.0,
+    "raw_points": 14253
+  },
+  "points": {
+    "all": 3000,
+    "used_coarse": 400,
+    "used_fine": 3000
+  },
+  "residual": {
+    "inlier_ratio_005m": 0.9233333333333333,
+    "inlier_ratio_010m": 0.9983333333333333,
+    "mean_m": 0.013655588962137699,
+    "median_m": 0.0,
+    "p90_m": 0.044815640524029726,
+    "score_mean_capped_m": 0.013655588962137699
+  },
+  "timing": {
+    "capture_s": 2.2824953250000135,
+    "coarse_s": 1.0236974930000429,
+    "refine_s": 0.021871578999991925,
+    "rounds": 12,
+    "total_s": 1.0466107039999883,
+    "total_wall_s": 3.329106029000002
+  }
+}

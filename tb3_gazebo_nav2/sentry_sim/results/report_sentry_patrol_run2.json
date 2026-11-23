@@ -1,0 +1,466 @@
+{
+ "points_file": "/home/ethan/sentry_ws/src/sentry_bringup/config/patrol_points.yaml",
+ "points": [
+  {
+   "x": -0.037,
+   "y": 1.488,
+   "yaw": 0.0
+  },
+  {
+   "x": -4.362,
+   "y": 2.388,
+   "yaw": -0.501
+  },
+  {
+   "x": -4.787,
+   "y": -1.613,
+   "yaw": 0.325
+  },
+  {
+   "x": 4.362,
+   "y": -2.362,
+   "yaw": 2.645
+  },
+  {
+   "x": 4.763,
+   "y": 2.013,
+   "yaw": -2.742
+  }
+ ],
+ "ready_wall_s": 1.99,
+ "map": {
+  "width": 512,
+  "height": 352,
+  "resolution": 0.02500000037252903,
+  "origin": [
+   -6.4,
+   -4.4
+  ],
+  "occupied_cells": 56240
+ },
+ "scan_at_spawn": {
+  "frame": "base_footprint",
+  "rays": 720,
+  "finite": 705,
+  "r_min": 1.445,
+  "r_max": 7.167,
+  "r_median": 4.026,
+  "frac_3.3_3.5": 0.0199,
+  "hist_0p5m": {
+   "1.0": 50,
+   "1.5": 126,
+   "2.0": 41,
+   "2.5": 38,
+   "3.0": 32,
+   "3.5": 48,
+   "4.0": 168,
+   "4.5": 41,
+   "5.0": 29,
+   "5.5": 20,
+   "6.0": 62,
+   "6.5": 41,
+   "7.0": 9
+  },
+  "band_3.3_3.5_rays": 14,
+  "band_azimuth_deg": [
+   -123.0,
+   176.0
+  ],
+  "band_azimuth_hist": [
+   0,
+   1,
+   0,
+   0,
+   0,
+   8,
+   0,
+   0,
+   0,
+   0,
+   0,
+   5
+  ],
+  "band_azimuth_hist_bins_deg": [
+   -180,
+   -150,
+   -120,
+   -90,
+   -60,
+   -30,
+   0,
+   30,
+   60,
+   90,
+   120,
+   150
+  ],
+  "band_to_nearest_box_m": {
+   "median": 0.0,
+   "p90": 0.0,
+   "max": 0.0,
+   "frac_within_5cm": 1.0
+  },
+  "band_world_xy_sample": [
+   [
+    -1.814,
+    -2.793
+   ],
+   [
+    3.414,
+    -0.571
+   ],
+   [
+    3.381,
+    -0.536
+   ],
+   [
+    3.408,
+    -0.479
+   ],
+   [
+    3.406,
+    -0.448
+   ],
+   [
+    3.344,
+    -0.381
+   ],
+   [
+    3.371,
+    -0.325
+   ],
+   [
+    3.377,
+    -0.295
+   ]
+  ]
+ },
+ "start_gt": [
+  19.264,
+  -0.0,
+  0.0,
+  0.0
+ ],
+ "server_ready": true,
+ "rest": {
+  "sim_s": 5.25,
+  "wall_s": 5.0,
+  "rtf": 1.05,
+  "cpu_pct_of_one_core": 501.9,
+  "procs": 16
+ },
+ "legs": [
+  {
+   "index": 1,
+   "point": [
+    -0.037,
+    1.488,
+    0.0
+   ],
+   "accepted": true,
+   "status": 4,
+   "status_name": "SUCCEEDED",
+   "error_code": 0,
+   "error_msg": "",
+   "recoveries": 0,
+   "distance_remaining_fb": 0.24,
+   "sim_s": 10.73,
+   "wall_s": 12.25,
+   "start_gt": [
+    24.504,
+    -0.0,
+    0.0,
+    0.0
+   ],
+   "end_gt": [
+    35.244,
+    -0.002,
+    1.296,
+    -0.004
+   ],
+   "arrival_err_m_gt": 0.195,
+   "yaw_err_rad_gt": 0.004,
+   "min_clear_m_gt": 1.303,
+   "min_clear_at_gt": [
+    0.197,
+    1.207
+   ],
+   "costmap_at_goal": 0,
+   "truth_samples": 562
+  },
+  {
+   "index": 2,
+   "point": [
+    -4.362,
+    2.388,
+    -0.501
+   ],
+   "accepted": true,
+   "status": 4,
+   "status_name": "SUCCEEDED",
+   "error_code": 0,
+   "error_msg": "",
+   "recoveries": 0,
+   "distance_remaining_fb": 0.018,
+   "sim_s": 19.23,
+   "wall_s": 22.55,
+   "start_gt": [
+    35.244,
+    -0.002,
+    1.296,
+    -0.004
+   ],
+   "end_gt": [
+    54.464,
+    -4.372,
+    2.369,
+    -0.711
+   ],
+   "arrival_err_m_gt": 0.022,
+   "yaw_err_rad_gt": 0.21,
+   "min_clear_m_gt": 1.06,
+   "min_clear_at_gt": [
+    -0.825,
+    1.818
+   ],
+   "costmap_at_goal": 0,
+   "truth_samples": 986
+  },
+  {
+   "index": 3,
+   "point": [
+    -4.787,
+    -1.613,
+    0.325
+   ],
+   "accepted": true,
+   "status": 4,
+   "status_name": "SUCCEEDED",
+   "error_code": 0,
+   "error_msg": "",
+   "recoveries": 9,
+   "distance_remaining_fb": 0.202,
+   "sim_s": 34.83,
+   "wall_s": 42.2,
+   "start_gt": [
+    54.464,
+    -4.372,
+    2.369,
+    -0.711
+   ],
+   "end_gt": [
+    89.284,
+    -4.692,
+    -1.461,
+    0.103
+   ],
+   "arrival_err_m_gt": 0.179,
+   "yaw_err_rad_gt": 0.222,
+   "min_clear_m_gt": 0.357,
+   "min_clear_at_gt": [
+    -3.907,
+    0.142
+   ],
+   "costmap_at_goal": 0,
+   "truth_samples": 1766
+  },
+  {
+   "index": 4,
+   "point": [
+    4.362,
+    -2.362,
+    2.645
+   ],
+   "accepted": true,
+   "status": 4,
+   "status_name": "SUCCEEDED",
+   "error_code": 0,
+   "error_msg": "",
+   "recoveries": 5,
+   "distance_remaining_fb": 0.102,
+   "sim_s": 90.04,
+   "wall_s": 106.03,
+   "start_gt": [
+    89.284,
+    -4.692,
+    -1.461,
+    0.103
+   ],
+   "end_gt": [
+    179.324,
+    4.283,
+    -2.355,
+    2.429
+   ],
+   "arrival_err_m_gt": 0.079,
+   "yaw_err_rad_gt": 0.216,
+   "min_clear_m_gt": 0.363,
+   "min_clear_at_gt": [
+    -3.913,
+    -0.192
+   ],
+   "costmap_at_goal": 0,
+   "truth_samples": 4527
+  },
+  {
+   "index": 5,
+   "point": [
+    4.763,
+    2.013,
+    -2.742
+   ],
+   "accepted": true,
+   "status": 4,
+   "status_name": "SUCCEEDED",
+   "error_code": 0,
+   "error_msg": "",
+   "recoveries": 0,
+   "distance_remaining_fb": 0.118,
+   "sim_s": 18.21,
+   "wall_s": 21.45,
+   "start_gt": [
+    179.324,
+    4.283,
+    -2.355,
+    2.429
+   ],
+   "end_gt": [
+    197.544,
+    4.71,
+    1.895,
+    -2.952
+   ],
+   "arrival_err_m_gt": 0.129,
+   "yaw_err_rad_gt": 0.21,
+   "min_clear_m_gt": 0.446,
+   "min_clear_at_gt": [
+    3.946,
+    -0.266
+   ],
+   "costmap_at_goal": 0,
+   "truth_samples": 936
+  }
+ ],
+ "patrol": {
+  "n_points": 5,
+  "succeeded": 5,
+  "sim_s_total": 173.04,
+  "wall_s_total": 204.48,
+  "rtf_run": 0.846,
+  "cpu_pct_of_one_core": 503.5,
+  "cpu_pct_of_24_cores": 21.0,
+  "procs": 16
+ },
+ "safety": {
+  "min_clear_m_gt": 0.357,
+  "min_clear_at_gt": [
+   -3.907,
+   0.142
+  ],
+  "min_clear_sim_t": 66.06,
+  "truth_samples": 8777,
+  "below_0p35_m_samples": 0,
+  "below_0p25_m_samples": 0,
+  "collision": false,
+  "map_occupied_samples": 0,
+  "map_lethal_samples": 0
+ },
+ "scan_late": {
+  "frame": "base_footprint",
+  "rays": 720,
+  "finite": 689,
+  "r_min": 1.251,
+  "r_max": 10.838,
+  "r_median": 2.271,
+  "frac_3.3_3.5": 0.0131,
+  "hist_0p5m": {
+   "1.0": 119,
+   "1.5": 116,
+   "2.0": 163,
+   "2.5": 110,
+   "3.0": 58,
+   "3.5": 8,
+   "4.0": 7,
+   "4.5": 1,
+   "5.0": 5,
+   "5.5": 48,
+   "6.0": 26,
+   "6.5": 6,
+   "7.0": 4
+  },
+  "band_3.3_3.5_rays": 9,
+  "band_azimuth_deg": [
+   -43.0,
+   105.0
+  ],
+  "band_azimuth_hist": [
+   0,
+   0,
+   0,
+   0,
+   1,
+   0,
+   4,
+   0,
+   0,
+   4,
+   0,
+   0
+  ],
+  "band_azimuth_hist_bins_deg": [
+   -180,
+   -150,
+   -120,
+   -90,
+   -60,
+   -30,
+   0,
+   30,
+   60,
+   90,
+   120,
+   150
+  ],
+  "band_to_nearest_box_m": {
+   "median": 0.0,
+   "p90": 0.0208,
+   "max": 0.1038,
+   "frac_within_5cm": 0.8889
+  },
+  "band_world_xy_sample": [
+   [
+    1.762,
+    3.746
+   ],
+   [
+    1.746,
+    0.425
+   ],
+   [
+    1.741,
+    0.325
+   ],
+   [
+    1.775,
+    0.175
+   ],
+   [
+    1.76,
+    0.061
+   ],
+   [
+    6.13,
+    -1.238
+   ],
+   [
+    6.155,
+    -1.22
+   ],
+   [
+    6.149,
+    -1.139
+   ]
+  ]
+ },
+ "elapsed_wall_s": 209.6
+}

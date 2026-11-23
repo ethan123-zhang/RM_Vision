@@ -1,0 +1,133 @@
+# sentry_sim —— RM 哨兵仿真（Odin1 定位 + Mid-360 感知 + Nav2）
+
+> 2026-11-22/23 搭建。目标：在没有实车、没有地图的情况下，用**哨兵的真实技术路线**跑通
+> 「传感器 → 定位 → 2D 感知 → Nav2 导航 → 巡逻」，并把结论做成可迁移到实车的形式。
+> 场地与栅格图**复用** [`../rm_field`](../rm_field)：同一张 1:1 CAD 场地地图、同一套清场工具。
+
+## 0. 一句话架构
+
+```
+Gazebo Harmonic (rm_field 3V3 场地)
+  ├─ sentry_description : 4 麦轮 0.5×0.5×0.12 m 哨兵车 + Mid-360（livox_gz_sim）
+  ├─ /livox/lidar ──► pointcloud_to_laserscan ──► /scan          （2D 感知）
+  ├─ /livox/imu  200 Hz（当前无消费者，留给以后 LIO/融合）
+  ├─ odin1_sim_bridge : Gazebo 真值 ──► /odin1/odometry + TF map→odom   （定位替身）
+  └─ Nav2（不启 AMCL，map 由 map_server 加载 rm_field 的 CAD 栅格图）
+```
+
+关键决定（2026-11-22 用户确认）：
+- **定位主力是 Odin1**（实车为官方驱动，仿真为接口替身），不跑 FAST-LIO，算力留给 Nav2；
+- **2D 栅格图用场地 CAD 先验**，不用点云现场建图（原因见 §4）；
+- 实车计划：**RDK S100 + Odin1 + Mid-360**，IMU 用 Mid-360 内置 6 轴 200 Hz。
+
+## 1. 前置依赖
+
+| 依赖 | 说明 |
+|---|---|
+| WSL Ubuntu 24.04 + ROS 2 Jazzy + Gazebo Harmonic 8.15 | 本机已验证 8.15.0 |
+| [`livox_gz_sim`](https://github.com/mathaimp/livox_gz_sim)（另建 `~/lidar_ws`） | Mid-360/HAP 的 Harmonic 插件，输出与 `livox_ros_driver2` 一致 |
+| `livox_ros_driver2` 消息包 | 官方包在 Jazzy 上要 sudo 装 Livox-SDK2 → 用**消息-only 替身包**（同包名，只编 msg） |
+| `rm_field` 的场地世界与地图 | `../rm_field/worlds/rmul2027_3v3_up_nav2.sdf.xacro`、`../rm_field/maps/rmul2027_3v3_up.{pgm,yaml}` |
+
+> 源码在本目录；编译工作区在 WSL 的 `~/sentry_ws`（`colcon build --symlink-install`），
+> 本目录是 source of truth，改完再 `rsync` 过去。
+
+## 2. 快速开始
+
+```bash
+# WSL 内
+source /opt/ros/jazzy/setup.bash && source ~/lidar_ws/install/setup.bash && source ~/sentry_ws/install/setup.bash
+export ROS_DOMAIN_ID=45                    # 与旧 TB3 栈（42）隔离
+
+cd ~/sentry_ws
+./run_sentry_sim.sh                        # 只起仿真 + 传感器 + Odin1 替身 + /scan
+./run_sentry_nav.sh                        # 仿真 + Nav2（无 AMCL）
+./run_sentry_nav.sh map_offset_x:=0.30 map_offset_y:=-0.20 map_offset_yaw:=0.05236   # 注入帧偏移
+./run_sentry_nav.sh stop                   # 停；status 看状态
+```
+
+发目标（回归用）：`python3 tools/send_nav_goal.py 0 3`（或 `ros2 action send_goal`）。
+
+## 3. 已验证读数（全部可复跑）
+
+| 项 | 读数 |
+|---|---|
+| 全向运动（各 2 s @20 Hz） | 前进 0.598 m（0.38%）、横移 0.630 m（4.98%）、自转 0.959 rad（4.08%） |
+| `/livox/lidar` / `/livox/imu` / `/scan` | 10.0 Hz（2812–2891 点）/ 200.0 Hz / 10.0 Hz（720 束） |
+| 传感器数据与真值 | 点云远点 7.23 m 为真实光线求交；`/scan` <1 m 回波 0 |
+| Nav2 单点 | (3,−2.5) SUCCEEDED 0.197 m；(0,3) SUCCEEDED 0.196 m（真值 0.194） |
+| 5 点巡逻 | **5/5 SUCCEEDED**，误差 0.005–0.197 m，最小离障 **0.371 m**，碰撞 0，RTF 0.864 |
+| 地图/SDF 一致性 | pgm 与 48 块 box 投影**逐格一致**（0/180224 格不同），边界偏差 0.000 cm |
+| 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
+
+验证报告：`results/report_sentry_patrol.json`、`results/report_map_sdf.json`、
+`results/align_case{1,2,3}.json`；证据日志在 WSL `/tmp/sentry_nav/evidence.log`。
+
+## 4. 为什么不用点云现场建图（`src/pcd_to_pgm` 降级为实验工具）
+
+实测（636 帧、63 s，Mid-360 装在 0.39 m 高）：
+
+| 区域 | CAD 真值 | 点云建图 |
+|---|---|---|
+| box_011 西平台（1.85×1.85，高 0.2 m） | 100% 占据 | 仅 2.3% 占据（58% 自由 / 39% 未知） |
+| box_013 东平台（1.85×1.8，高 0.2 m） | 100% | 10.7% |
+| box_014 / box_009 | 100% | 15.3% / 2.3% |
+
+原因：雷达高于低矮平台，顶面只在 ~1.5 m 内可见；打向远端的光线**从平台上空掠过**，
+2D 投影把平台格擦成自由 → 平台中心永远观测不到。调 `min_occ_hits/block_hits` 只改边界。
+结论：**低矮障碍必须靠 CAD 先验**。`pcd_to_pgm` 保留为实验工具（支持 dump/replay，12 s 级离线调参）。
+
+## 5. 帧对齐（实车上线前的关键一步）
+
+工具：`src/map_align_check`
+
+```bash
+# 车停在有角结构处（长直墙前会退化），跑一次
+ros2 run map_align_check map_align_check --sim-time --frames 5 --max-points 3000 \
+    --out /tmp/align.json --fix-yaml /tmp/align_fix.yaml
+# 离线自检
+python3 src/map_align_check/test/test_estimator.py
+```
+
+符号约定：`p_map = R(dyaw) · p_field + (dx, dy)`。输出含残差与 `confidence.gap_m`（越大越可信）。
+
+**实车顺序**：建图（起点在场地原点、固定朝向）→ 重定位 → 停到拐角处跑校验 →
+把 `correction` 覆盖到 Odin1 的 map 修正。仿真里用 `run_sentry_nav.sh map_offset_*` 注入偏移回归。
+
+## 6. 目录
+
+```
+src/sentry_description   # 麦轮哨兵车 xacro（12 个 45° 被动滚子/轮）+ Mid-360 宏
+src/sentry_bringup       # launch（sim / nav2）、sentry_nav2.yaml、patrol_points.yaml
+src/odin1_sim_bridge     # Odin1 接口替身：真值 → /odin1/odometry + TF；可注入 map_offset_*
+src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
+src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
+src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
+tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标
+results/                 # 验收 JSON 证据
+```
+
+## 7. 坑（都已踩过）
+
+1. **麦轮不能用圆柱轮**：四轮力抵消，横移/自转位移为 0。每轮 12 个 45° 被动滚子（revolute，轴 `0 0 1`），
+   手性必须 FL+BR 一组、FR+BL 一组；接反会把横移变倒车。
+2. **`<max_jerk>` 会翻车**：gz-math SpeedLimiter 在停车穿零时反向加速，0.3 m/s 一停整车 roll=π。
+3. **话题冲突**：gz `MecanumDrive` 默认就用 `/cmd_vel`、`/odom`，必须显式换名，否则和 `OdometryPublisher` 抢。
+4. **插件保持最后一条 Twist**：脚本分段发 `cmd_vel` 后必须补 0 速，否则多走。
+5. **livox 插件直接发 ROS 话题**（rclcpp），不要再进 `ros_gz_bridge`；bridge 只桥 `/clock`、`/cmd_vel`、`/odom`。
+6. **`GZ_SIM_RESOURCE_PATH` 要指到 `install/livox_gz_sim/share`**（少一层会丢 `mid360.dae`）。
+7. **`pointcloud_to_laserscan` 参数**：`target_frame=base_footprint`、高度带 `0.05–0.60`，
+   否则地面回波会在 3–4 m 处形成一圈假墙。
+8. **TF 不能双父**：`map→imu_link` 与 `odom→base_footprint` 同时挂 base 会断 TF；必须标准链
+   `map→odom→base_footprint`。
+9. **costmap 的 `width/height` 必须是 int**（写 `3.0` 会让 controller_server 崩）。
+10. **Jazzy 速度链**：`controller→cmd_vel_nav→velocity_smoother→cmd_vel_smoothed→collision_monitor→cmd_vel`，
+    改错输出点车就不动。
+
+## 8. 已知限制 / 未做
+
+- 未上实车/真 Odin1；S100（Ubuntu 22.04 + **Humble**）与本仿真的 Jazzy **未做双版本编译验证**。
+- Odin1 在 12.6×8.6 m 大场地的量程/建图能力未实测（仿真按假设参数化）。
+- Mid-360 的 `/livox/imu` 加速度单位是 **g**，未接 EKF/Nav2；不跑 LIO 时暂无消费者。
+- `map_align_check` 连续模式只做过 6 帧冒烟；`--fix-yaml` 未自动回灌到 Odin1。
+- 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。

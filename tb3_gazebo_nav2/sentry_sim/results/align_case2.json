@@ -1,0 +1,107 @@
+{
+  "backend": "scipy-edt",
+  "coarse": {
+    "grid": {
+      "n_dx": 49,
+      "n_dy": 49,
+      "n_yaw": 41,
+      "xy_step": 0.025,
+      "yaw_step_deg": 0.5
+    },
+    "n_points": 400,
+    "pose": {
+      "dx": 0.3000000000000008,
+      "dy": -0.19999999999999962,
+      "dyaw_deg": 3.0000000000000004
+    }
+  },
+  "confidence": {
+    "best_m": 0.027872415259480476,
+    "gap_m": 0.023259738460183144,
+    "gap_xy_m": 0.12,
+    "gap_yaw_deg": 1.5,
+    "ratio": 1.8345074599256919,
+    "second_best_m": 0.05113215371966362,
+    "second_best_pose": {
+      "dx": 0.3000000000000008,
+      "dy": -0.19999999999999962,
+      "dyaw_deg": 5.0
+    }
+  },
+  "error": {
+    "dx": -0.00039062499999914513,
+    "dy": 0.001562500000000383,
+    "dyaw": 0.000954476934684402,
+    "dyaw_deg": 0.054687500000000444,
+    "xy_m": 0.0016105881350070629
+  },
+  "estimate": {
+    "dx": 0.29960937500000084,
+    "dy": -0.19843749999999963,
+    "dyaw": 0.05331435449451429,
+    "dyaw_deg": 3.0546875000000004
+  },
+  "expected": {
+    "dx": 0.3,
+    "dy": -0.2,
+    "dyaw": 0.05235987755982989,
+    "dyaw_deg": 3.0
+  },
+  "input": {
+    "cad": {
+      "height": 352,
+      "objective_field": "scipy-edt",
+      "occupied_cells": 56240,
+      "origin": [
+        -6.4,
+        -4.4
+      ],
+      "resolution": 0.025,
+      "surface_cells": 7002,
+      "width": 512
+    },
+    "cloud_frame": "livox_frame",
+    "cloud_stamp": 23.9,
+    "cloud_topic": "/livox/lidar",
+    "frames": 5,
+    "height_band_m": [
+      0.1,
+      1.2
+    ],
+    "map_frame": "map",
+    "map_occupied_cells": 56240,
+    "map_origin": [
+      -6.4,
+      -4.4
+    ],
+    "map_resolution": 0.025,
+    "map_surface_cells": 7002,
+    "map_yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml",
+    "points": 3000,
+    "range_max_m": 8.0,
+    "raw_points": 14148
+  },
+  "points": {
+    "all": 3000,
+    "used_coarse": 400,
+    "used_fine": 3000
+  },
+  "residual": {
+    "inlier_ratio_005m": 0.858,
+    "inlier_ratio_010m": 0.9023333333333333,
+    "mean_m": 0.03113359585404396,
+    "median_m": 0.00842411257326603,
+    "occupied_mean_m": 0.015550198964774609,
+    "occupied_p90_m": 0.04230393283069134,
+    "p90_m": 0.09864861890673633,
+    "score_mean_capped_m": 0.03113359585404396
+  },
+  "timing": {
+    "capture_s": 3.234720277000065,
+    "coarse_s": 1.102825130000042,
+    "refine_s": 0.021515985999940312,
+    "rounds": 10,
+    "total_s": 1.1257294000000684,
+    "total_wall_s": 4.360449677000133
+  }
+}

@@ -1,0 +1,8 @@
+# S2a patrol waypoints (map frame, metres, yaw=rad)
+# chosen on rmul2027_3v3_up.pgm: free & clearance >= 0.45 m,
+# all 5 in one connected component; see results/patrol_point_analysis.json
+- {x: -0.037, y: 1.488, yaw: 0.000}  # P1_spawn_near clear=1.54 m
+- {x: -4.362, y: 2.388, yaw: -0.501}  # P2_NW clear=1.61 m
+- {x: -4.787, y: -1.613, yaw: 0.325}  # P3_SW clear=1.21 m
+- {x: 4.362, y: -2.362, yaw: 2.645}  # P4_SE clear=1.61 m
+- {x: 4.763, y: 2.013, yaw: -2.742}  # P5_NE clear=1.24 m

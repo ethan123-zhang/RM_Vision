@@ -1,0 +1,1904 @@
+{
+ "inputs": {
+  "pgm": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.pgm",
+  "yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml",
+  "boxes_json": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/debug/box_collisions.json",
+  "sdf": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/models/rmul2027_3v3_field_up/model.sdf"
+ },
+ "map": {
+  "magic": "P5",
+  "width": 512,
+  "height": 352,
+  "maxval": 255,
+  "resolution": 0.025,
+  "origin": [
+   -6.4,
+   -4.4,
+   0.0
+  ],
+  "values": {
+   "0": 56240,
+   "254": 123984
+  },
+  "occupied_cells": 56240,
+  "free_cells": 123984,
+  "occupied_area_m2": 35.15
+ },
+ "sdf_vs_json": {
+  "sdf_boxes": 48,
+  "json_boxes": 48,
+  "mismatched": 0,
+  "max_abs_component_diff_m": 0.0
+ },
+ "raster_exactness": {
+  "regen_from_json_vs_pgm_mismatch_cells": 0,
+  "pgm_cells_total": 180224,
+  "extra_occupied_inside_field_not_in_any_box": 0,
+  "free_cells_inside_a_box": 0,
+  "occupied_cells_outside_field_rect": 26624,
+  "note": "regen = same cell-centre rule as make_nav_map_up.build_map; pgm row 0 is top-down, compare after np.flipud"
+ },
+ "per_box": [
+  {
+   "name": "box_001",
+   "cells": 136,
+   "occupied_cells": 136,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.085,
+   "raster_area_m2": 0.085,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 4,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_002",
+   "cells": 64,
+   "occupied_cells": 64,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.04,
+   "raster_area_m2": 0.04,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 32,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_003",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 32,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_004",
+   "cells": 60,
+   "occupied_cells": 60,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0375,
+   "raster_area_m2": 0.0375,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 30,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_005",
+   "cells": 60,
+   "occupied_cells": 60,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0375,
+   "raster_area_m2": 0.0375,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 30,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_006",
+   "cells": 204,
+   "occupied_cells": 204,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.1275,
+   "raster_area_m2": 0.1275,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 4,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_007",
+   "cells": 24,
+   "occupied_cells": 24,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.015,
+   "raster_area_m2": 0.015,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_008",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_009",
+   "cells": 3772,
+   "occupied_cells": 3772,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 2.3575,
+   "raster_area_m2": 2.3575,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 46,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 46,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_010",
+   "cells": 2880,
+   "occupied_cells": 2880,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.8,
+   "raster_area_m2": 1.8,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 36,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 36,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 80,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_011",
+   "cells": 5476,
+   "occupied_cells": 5476,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 3.4225,
+   "raster_area_m2": 3.4225,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 74,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_012",
+   "cells": 2952,
+   "occupied_cells": 2952,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.845,
+   "raster_area_m2": 1.845,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 36,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 36,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 82,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_013",
+   "cells": 5328,
+   "occupied_cells": 5328,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 3.33,
+   "raster_area_m2": 3.33,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 72,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_014",
+   "cells": 3840,
+   "occupied_cells": 3840,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 2.4,
+   "raster_area_m2": 2.4,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 48,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 48,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_015",
+   "cells": 24,
+   "occupied_cells": 24,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.015,
+   "raster_area_m2": 0.015,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_016",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 2,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_017",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 2,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_018",
+   "cells": 60,
+   "occupied_cells": 60,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0375,
+   "raster_area_m2": 0.0375,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 2,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 30,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_019",
+   "cells": 60,
+   "occupied_cells": 60,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0375,
+   "raster_area_m2": 0.0375,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 30,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_020",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 32,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_021",
+   "cells": 192,
+   "occupied_cells": 192,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.12,
+   "raster_area_m2": 0.12,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 32,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_022",
+   "cells": 672,
+   "occupied_cells": 672,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.42,
+   "raster_area_m2": 0.42,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 30,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 30,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_023",
+   "cells": 4,
+   "occupied_cells": 4,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0025,
+   "raster_area_m2": 0.0025,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_024",
+   "cells": 4,
+   "occupied_cells": 4,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0025,
+   "raster_area_m2": 0.0025,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_025",
+   "cells": 4,
+   "occupied_cells": 4,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0025,
+   "raster_area_m2": 0.0025,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_026",
+   "cells": 4,
+   "occupied_cells": 4,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0025,
+   "raster_area_m2": 0.0025,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_027",
+   "cells": 672,
+   "occupied_cells": 672,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.42,
+   "raster_area_m2": 0.42,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 30,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_028",
+   "cells": 2024,
+   "occupied_cells": 2024,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.265,
+   "raster_area_m2": 1.265,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_029",
+   "cells": 12,
+   "occupied_cells": 12,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.0075,
+   "raster_area_m2": 0.0075,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_030",
+   "cells": 992,
+   "occupied_cells": 992,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.62,
+   "raster_area_m2": 0.62,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_031",
+   "cells": 1984,
+   "occupied_cells": 1984,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.24,
+   "raster_area_m2": 1.24,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_032",
+   "cells": 16,
+   "occupied_cells": 16,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.01,
+   "raster_area_m2": 0.01,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_033",
+   "cells": 8,
+   "occupied_cells": 8,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.005,
+   "raster_area_m2": 0.005,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_034",
+   "cells": 2024,
+   "occupied_cells": 2024,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.265,
+   "raster_area_m2": 1.265,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 368,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_035",
+   "cells": 792,
+   "occupied_cells": 792,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.495,
+   "raster_area_m2": 0.495,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 18,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 30,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_036",
+   "cells": 592,
+   "occupied_cells": 592,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.37,
+   "raster_area_m2": 0.37,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 74,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_037",
+   "cells": 432,
+   "occupied_cells": 432,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.27,
+   "raster_area_m2": 0.27,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 72,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_038",
+   "cells": 3600,
+   "occupied_cells": 3600,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 2.25,
+   "raster_area_m2": 2.25,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 300,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_039",
+   "cells": 4228,
+   "occupied_cells": 4228,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 2.6425,
+   "raster_area_m2": 2.6425,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 302,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_040",
+   "cells": 840,
+   "occupied_cells": 840,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.525,
+   "raster_area_m2": 0.525,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 20,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 30,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_041",
+   "cells": 1012,
+   "occupied_cells": 1012,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.6325,
+   "raster_area_m2": 0.6325,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 370,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_042",
+   "cells": 996,
+   "occupied_cells": 996,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.6225,
+   "raster_area_m2": 0.6225,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_043",
+   "cells": 8,
+   "occupied_cells": 8,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.005,
+   "raster_area_m2": 0.005,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_044",
+   "cells": 16,
+   "occupied_cells": 16,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.01,
+   "raster_area_m2": 0.01,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_045",
+   "cells": 2000,
+   "occupied_cells": 2000,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 1.25,
+   "raster_area_m2": 1.25,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_046",
+   "cells": 996,
+   "occupied_cells": 996,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.6225,
+   "raster_area_m2": 0.6225,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_047",
+   "cells": 8,
+   "occupied_cells": 8,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.005,
+   "raster_area_m2": 0.005,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  },
+  {
+   "name": "box_048",
+   "cells": 1012,
+   "occupied_cells": 1012,
+   "free_cells": 0,
+   "occupancy_ratio": 1.0,
+   "analytic_area_m2": 0.6325,
+   "raster_area_m2": 0.6325,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   },
+   "max_abs_edge_cm": 0.0
+  }
+ ],
+ "box_occupancy": {
+  "n_boxes": 48,
+  "min": 1.0,
+  "max": 1.0,
+  "n_full_1p0000": 48
+ },
+ "edge_offset_stats_cm": {
+  "samples": 2630,
+  "median_abs": 0.0,
+  "max_abs": 0.0,
+  "p95_abs": 0.0,
+  "half_cell_quantisation_bound_cm": 1.25
+ },
+ "worst3": [
+  {
+   "name": "box_001",
+   "max_abs_edge_cm": 0.0,
+   "cells": 136,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 4,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   }
+  },
+  {
+   "name": "box_002",
+   "max_abs_edge_cm": 0.0,
+   "cells": 64,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 2,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 32,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   }
+  },
+  {
+   "name": "box_003",
+   "max_abs_edge_cm": 0.0,
+   "cells": 192,
+   "edge_offsets_cm": {
+    "x1": {
+     "samples": 6,
+     "median_cm": 0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "x0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    },
+    "y1": {
+     "samples": 32,
+     "median_cm": -0.0,
+     "max_abs_cm": 0.0,
+     "straddle_mismatch": 0
+    },
+    "y0": {
+     "samples": 0,
+     "median_cm": null,
+     "max_abs_cm": null,
+     "straddle_mismatch": 0
+    }
+   }
+  }
+ ],
+ "worst3_note": "all 48 boxes tie at 0.000 cm: box coordinates are multiples of 0.05 m (= 2 map cells) and the origin is cell aligned, so every edge lands exactly on a cell boundary",
+ "s1b_goal_3_0_0": {
+  "covering_boxes": [
+   [
+    "box_013",
+    1.6500000000000001,
+    3.5,
+    -0.09999999999999998,
+    1.7000000000000002
+   ]
+  ],
+  "map_cell": [
+   176,
+   376
+  ],
+  "map_value": 0,
+  "inset_inside_box_m": 0.09999999999999998
+ },
+ "s1b_0p2_0p35_explanation": {
+  "goal_tolerance_m": 0.2,
+  "robot_radius_m": 0.35,
+  "inflation_radius_m": 0.55,
+  "map_raster_error_cm": 1.25,
+  "verdict": "map/SDF boundary error is 0.000 cm (<= 1.25 cm quant bound); 0.2 / 0.35 m are Nav2 xy_goal_tolerance and robot_radius (inscribed inflation), not a map-vs-SDF offset"
+ }
+}

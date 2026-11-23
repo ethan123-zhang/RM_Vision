@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>map_align_check</name>
+  <version>0.1.0</version>
+  <description>S2c: estimate the Odin1 map frame vs field/CAD frame (dx, dy, dyaw)
+    from /livox/lidar against the CAD occupancy map, with residual + confidence.</description>
+  <maintainer email="ethan@example.com">ethan</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <!-- optional, only for the exact Euclidean distance transform:
+  <exec_depend>python3-scipy</exec_depend> -->
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

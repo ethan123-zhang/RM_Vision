@@ -1,0 +1,21 @@
+{
+  "cloud_topic": "/livox/lidar",
+  "clouds": 2889,
+  "free_area_m2": 85.459,
+  "free_cells": 136735,
+  "map_frame": "map",
+  "max_range": 10.0,
+  "occ_area_m2": 10.696,
+  "occ_cells": 17114,
+  "points": 6669549,
+  "raw_points": 8212088,
+  "ray_origin": "sensor",
+  "rays": 5249262,
+  "scans": 2889,
+  "tf_misses": 0,
+  "unknown_area_m2": 16.484,
+  "unknown_cells": 26375,
+  "used_points": 6669549,
+  "z_max": 1.2,
+  "z_min": 0.1
+}

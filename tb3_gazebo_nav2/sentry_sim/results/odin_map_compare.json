@@ -1,0 +1,105 @@
+{
+  "connectivity": {
+    "ours": {
+      "components_all": 526,
+      "components_ge_min": 8,
+      "connected": false,
+      "free_cells": 136735,
+      "largest_cells": 135446,
+      "largest_frac": 0.9906,
+      "min_component_cells": 25
+    },
+    "truth": {
+      "components_all": 1,
+      "components_ge_min": 1,
+      "connected": true,
+      "free_cells": 123984,
+      "largest_cells": 123984,
+      "largest_frac": 1.0,
+      "min_component_cells": 25
+    }
+  },
+  "diff_image": "/home/ethan/sentry_ws/results/odin_map_diff.png",
+  "free_area": {
+    "err_m2": 7.969,
+    "err_pct": 10.28,
+    "err_tol_m2": 15.681,
+    "err_tol_pct": 20.24,
+    "extra_m2": 12.757,
+    "extra_pct": 16.46,
+    "extra_tol_m2": 12.469,
+    "extra_tol_pct": 16.09,
+    "missed_m2": 4.788,
+    "missed_pct": 6.18,
+    "missed_tol_m2": 3.212,
+    "missed_tol_pct": 4.14,
+    "ours_m2": 85.459,
+    "truth_m2": 77.49
+  },
+  "map_stats": {
+    "cloud_topic": "/livox/lidar",
+    "clouds": 2889,
+    "free_area_m2": 85.459,
+    "free_cells": 136735,
+    "map_frame": "map",
+    "max_range": 10.0,
+    "occ_area_m2": 10.696,
+    "occ_cells": 17114,
+    "points": 6669549,
+    "raw_points": 8212088,
+    "ray_origin": "sensor",
+    "rays": 5249262,
+    "scans": 2889,
+    "tf_misses": 0,
+    "unknown_area_m2": 16.484,
+    "unknown_cells": 26375,
+    "used_points": 6669549,
+    "wall_seconds": 330.07,
+    "z_max": 1.2,
+    "z_min": 0.1
+  },
+  "observable": {
+    "detected_visible_cells": 1882,
+    "poses_total": 2889,
+    "poses_used": 140,
+    "recall_visible": 0.7884,
+    "recall_visible_1cell": 0.9874,
+    "traj": "/home/ethan/sentry_ws/results/odin_map_traj.json",
+    "unobservable_pct": 95.76,
+    "unobservable_truth_occ_cells": 53853,
+    "visible_truth_occ_area_m2": 1.492,
+    "visible_truth_occ_cells": 2387
+  },
+  "occupancy": {
+    "detected_cells": 9549,
+    "false_occupied_cells": 5450,
+    "precision_1cell": 0.6815,
+    "recall_all": 0.1698,
+    "recall_all_1cell": 0.3247
+  },
+  "ours": {
+    "cells_cropped_free": 0,
+    "cells_cropped_occ": 0,
+    "free_area_m2": 85.459,
+    "free_cells": 136735,
+    "height": 352,
+    "occupied_area_m2": 10.696,
+    "occupied_cells": 17114,
+    "width": 512,
+    "yaml": "/home/ethan/sentry_ws/results/odin_map.yaml"
+  },
+  "truth": {
+    "free_area_m2": 77.49,
+    "free_cells": 123984,
+    "height": 352,
+    "occupied_area_m2": 35.15,
+    "occupied_cells": 56240,
+    "origin": [
+      -6.4,
+      -4.4
+    ],
+    "resolution": 0.025,
+    "width": 512,
+    "yaml": "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml"
+  }
+}
