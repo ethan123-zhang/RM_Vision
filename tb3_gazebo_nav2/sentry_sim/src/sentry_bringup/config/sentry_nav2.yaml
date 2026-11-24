@@ -165,7 +165,10 @@ local_costmap:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
         footprint_clearing_enabled: true
-        observation_sources: scan
+        # S3a: 两个源。scan = Mid-360 拍成 2D（看得远，但装在 0.30 m 高、slices=1 单帧，
+        # 0.25 m 高的敌车贴到 1 m 内就成了盲区）；scan_safety = 低位 2D 安全雷达
+        # （离地 0.18 m、0.05-2.5 m）专补低矮障碍。两条都 marking+clearing。
+        observation_sources: scan scan_safety
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -176,6 +179,16 @@ local_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 4.5
           obstacle_min_range: 0.1
+        scan_safety:
+          topic: /scan_safety
+          max_obstacle_height: 1.0
+          clearing: true
+          marking: true
+          data_type: LaserScan
+          raytrace_max_range: 2.5
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.4
+          obstacle_min_range: 0.05
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 4.0
@@ -204,7 +217,9 @@ global_costmap:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
         footprint_clearing_enabled: true
-        observation_sources: scan
+        # S3a: 同局部图 —— 低位雷达进全局图，NavFn 才会为"低矮临时障碍"重规划绕行。
+        # 2.5 m 量程 → obstacle_max_range 收到 2.4，避免超量程读数被当成障碍。
+        observation_sources: scan scan_safety
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -214,9 +229,24 @@ global_costmap:
           raytrace_max_range: 6.0
           obstacle_max_range: 4.5
           obstacle_min_range: 0.1
+        scan_safety:
+          topic: /scan_safety
+          max_obstacle_height: 1.0
+          clearing: true
+          marking: true
+          data_type: LaserScan
+          raytrace_max_range: 2.5
+          obstacle_max_range: 2.4
+          obstacle_min_range: 0.05
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 3.0
+        # 保持 b647ffc 的 1.5 m。S3a 在干净环境（RTF 0.98/0.77）实测把它改成 0.9 对
+        # "敌车摆在车头 1.2 m"那一场景没有任何改善：仍然在起点附近抖动 200 s、11 次
+        # Failed to make progress、到点失败。原因不是 inflation（0.9 时一样）——敌车两侧
+        # 净空各 1.2~1.3 m，footprint 半径 0.6 的 inscribed 半径也是 0.6，走廊里"非致命"
+        # 格子只剩约 0.1 m 宽，MPPI 的 CostCritic(near_collision 253/critical 300) 让每条
+        # 前向轨迹都接近临界 → 车只会小幅转/爬。判死路与重规划属于 c 的范围。
         inflation_radius: 1.5
       always_send_full_costmap: true
 map_saver:
@@ -362,17 +392,33 @@ collision_monitor:
       type: polygon
       action_type: approach
       footprint_topic: /local_costmap/published_footprint
-      time_before_collision: 1.0
+      # S3a: 1.0 s 前瞻在 1.0 m/s 时等于"前方约 1.6 m 内有障碍就开始减速"。实测一趟
+      # 200 s 的跑法在 approach/continue 之间切了 1099 次（该轮同时有孤儿进程抢 CPU，
+      # 计数偏大，但机制是真的），车被压到 0.05~0.2 m/s、每 15 s 一次 Failed to make
+      # progress。按 1.2 m/s 上限、3 m/s^2 减速算停车距离 0.24 m，0.4 s（约 0.5 m）够用；
+      # 硬停仍由 NoTouch 0.5 m 兜底。改后同样 200 s 的跑法 approach 事件降到 10~17 次。
+      time_before_collision: 0.4
       simulation_time_step: 0.1
       min_points: 6
       visualize: false
       enabled: true
     observation_sources:
     - scan
+    - scan_safety
     scan:
       type: scan
       topic: scan
       min_height: 0.15
+      max_height: 2.0
+      enabled: true
+    # S3a: 低位雷达也接进安全层 —— 敌车贴脸时 costmap 可能还没来得及让 MPPI 让开，
+    # 这一层是最后一道硬停（NoTouch 0.5 m 多边形）。min_height 用 0.0 而不是 0.15：
+    # LaserScan 的点在自身帧里 z=0，用 0.15 会把整帧过滤掉（原来那条 /scan 源很可能
+    # 一直就是空转的，见交接 §5 的 "0 次触发"）。
+    scan_safety:
+      type: scan
+      topic: scan_safety
+      min_height: 0.0
       max_height: 2.0
       enabled: true
 docking_server:

@@ -153,6 +153,41 @@ python3 tools/enemy_teleop.py --start 0.5 2.5 --speed 0.6     # 敌车生成在 
 > 点地图窗口的代价地图检查有新鲜度保护：超过 2 s 没收到新图就跳过"临时障碍"判断
 > （旧进程只收到一帧旧图时会把空地误判成致命格，表现为"点空地也被挪走"）。
 
+## 2.9 低位 2D 安全雷达（S3a，2026-11-24）
+
+**要解决的问题**：敌车高 0.25 m，Mid-360 装在 0.30 m 且 `lidar_slices:=1`（单层）→ 0.25 m 高的
+物体在 1.2 m 处就从 `/scan` 里消失（实测把敌车摆到车头 1.2 m：`/scan` 最小有限量程仍是 1.426 m
+的墙；`/scan_safety` 读到 **1.000 m** = 敌车正面）。于是"敌车半路突然出现在车前"只能面贴面
+（旧报告 `gap_face -0.000 m`）。
+
+**四处改动**：
+
+1. `sentry_description/urdf/sentry.urdf.xacro`：`base_link` 上加 `gpu_lidar`，
+   `<pose>0 0 0.09 0 0 0</pose>`（离地 **0.18 m**）、360°/360 线/10 Hz/量程 0.05–2.5 m，
+   gz 话题 `/scan_safety_raw`。**为什么不取"离地 0.10 m"**：底盘占 z 0.03–0.15 m，装在 0.10 m
+   等于把 360° 每一束先打在自己壳上（满格自身回波 → NoTouch 永久停车）。0.18 m 掠过车顶 3 cm，
+   又比敌车顶面 0.25 m 低 7 cm，正好横切敌车侧面；x/y 偏移为 0。
+2. `sentry_bringup/launch/sentry_sim.launch.py`：桥 `/scan_safety_raw`，并起 `safety_scan_relay.py`。
+3. `config/sentry_nav2.yaml`：两张 costmap 的 `obstacle_layer` 都加 `scan_safety` 源（量程 2.5 m →
+   `obstacle_max_range 2.4`）；`collision_monitor.observation_sources` 加 `scan_safety`（`min_height 0`，
+   因为 LaserScan 的点在自身帧里 z=0，旧 `scan` 源的 0.15 会把它整帧过滤掉）。
+   顺带把 `FootprintApproach.time_before_collision` 1.0 → **0.4**：1.0 s 在 1 m/s 时等于"前方 1.6 m
+   有障碍就开始减速"，一趟 200 s 的跑法在 approach/continue 之间切了 1099 次、车被压到 0.05–0.2 m/s。
+4. `scripts/safety_scan_relay.py`：gz 传感器把帧名写成作用域名 `sentry/base_footprint/safety_lidar`，
+   TF 里没有 → 两张 costmap 只报 `Message Filter dropping message: frame '...'`，症状和"雷达没工作"
+   一模一样。relay 只做 `header.frame_id = base_footprint`（传感器 x/y 偏移 0，所以精确）。
+   兜底：raw 超 0.5 s 没数据就发**空扫描** —— 否则 `collision_monitor` 报
+   `Robot to stop due to invalid source` 把车永久钉住（实测 `safety_lidar:=false` 时整车 216 s 不动）。
+
+```bash
+./run_sentry_nav.sh gui:=false                      # 默认就带安全雷达
+python3 tools/check_scan_safety.py --frames 8       # 体检 5 项：频率/束数/量程/无自身回波/TF
+./run_sentry_nav.sh gui:=false safety_lidar:=false  # 回到旧行为（复现"贴脸看不见"）
+```
+
+`safety_lidar:=false` 时 costmap 仍列着 `scan_safety`，由 relay 发空扫描顶上 →
+语义是"安全层是瞎的、但导航不冻"，正好当 A/B 对照。
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -171,6 +206,10 @@ python3 tools/enemy_teleop.py --start 0.5 2.5 --speed 0.6     # 敌车生成在 
 | 双人模式：遥控敌车（S3） | 按住前进 3 s：敌车 (3.00,−2.50)→(4.32,−2.50)；开歪撞墙被拦（`BLOCKED`）；贴到哨兵旁触发 `CONTACT ... 0.46 m` |
 | 绕障·敌车在返程线上（S3） | (2.9,−2.4)→(0,3)、敌车 (1.5,0.25)：**5/5 判据过**，到点 0.189 m，绕障面距 +0.519 m，横向偏移 1.450 m，静态净空 0.675 m，30.6 s，峰值 1.05 m/s |
 | 地图/SDF 一致性 | pgm 与 48 块 box 投影**逐格一致**（0/180224 格不同），边界偏差 0.000 cm |
+| 低位安全雷达（S3a） | `/scan_safety` **10.0 Hz / 360 束 / 0.05–2.5 m**；空旷处最小有限量程 1.500 m（墙）、**无自身回波**；frame_id `base_footprint`（5/5 项体检过），RTF 0.98–1.00 |
+| 盲区对比（S3a，敌车 0.4×0.4×0.25 摆到车头 1.2 m） | `/scan` 最小有限量程 **1.426 m**（只有墙，看不见敌车）vs `/scan_safety` **1.000 m**（= 敌车正面）；两张 costmap 在敌车处 99/100 |
+| 贴脸场景 A/B（S3a，goal (0,2.6)、敌车 (0,1.2) 1.5 s 后出现，同一条命令） | 雷达**关**：`SUCCEEDED` 到点 0.184 m、**面距 −0.000 m（撞上）**、90.6 s；雷达**开**：**面距 +0.479 m**、到点失败（原因见 §9） |
+| 开阔场地绕行（S3a，雷达开） | (0,0)→(3,−2.5)、敌车 (1.5,−1.25)：**5/5 判据过**，到点 0.168/0.109 m，面距 +1.06/+0.94 m，0.1 s 停滞，9.4/18.6 s |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
 
 验证报告：`results/report_sentry_patrol.json`、`results/report_map_sdf.json`、
@@ -261,6 +300,18 @@ results/                 # 验收 JSON 证据
     手动 deactivate 会被判定"节点失联"→ 管理器把 bt_navigator 等一起停掉，整套导航下线、
     `/cmd_vel` 没人发，表现就是**车完全不动**（2026-11-23 踩过，遥控"打不开"就是这个）。
     要临时关掉碰撞保护，改动态参数 `FootprintApproach.enabled=false`（节点保持 active、bond 不断）。
+18. **gz 传感器的 frame_id 是作用域名**（`<模型>/<链接>/<传感器>`），ros_gz_bridge 原样搬进
+    `header.frame_id`；TF 里没有这名字时 costmap 只打一句 `Message Filter dropping message: frame ...`，
+    然后整帧丢掉 —— 别去查传感器，先看 frame。修法两种：加 relay 改帧名（本仓库做法），
+    或者给这个怪名字补一条 static TF（不推荐，`/` 在帧名里会污染 RViz/其他工具）。
+19. **清场规则要覆盖新加的节点**：`run_sentry_nav.sh stop` 按 PATTERN 杀进程，新增
+    `safety_scan_relay` 后忘了加进 PATTERN → 每次重启漏一个孤儿进程（实测攒到 13 个、各吃 40% CPU，
+    load 13、RTF 1.0→0.48）。症状不是"报错"，而是**车变慢、爬不动、每 15 s 一次 Failed to make
+    progress**，非常像调参问题。重启次数多了先 `pgrep -af safety_scan_relay` 数一数。
+20. **验收脚本自己也算"被测对象"**：`verify_detour.py` 等 TF 原来写"200 次 spin"，WSL 上消息密集时
+    200 次不到 1 s 就转完 → 开局偶发"拿不到 map->base_footprint"；改为按墙钟等 20 s。
+    `/navigate_to_pose` 的 `wait_for_server` 也从 15 s 放宽到 30 s（重启后 DDS 发现偶发要十几秒，
+    必要时先 `run_sentry_nav.sh stop` 再 `rm -f /dev/shm/fastrtps_*`）。
 
 ## 8. Humble / RDK S100 兼容
 
@@ -293,4 +344,10 @@ results/                 # 验收 JSON 证据
   的一半原因；要跑最快速度/最高 RTF 就 `gui:=false`。
 - 临时障碍测试：**静态敌车**与**慢速横穿敌车**（0.3–0.4 m/s）已验收；**追击/迎面而来的敌车**没做
   （`set_pose` 推的敌车不会决策；横穿段若扫过车身所在位置，任何规划器都会被撞 —— 见 §2.6 注）。
+- **贴脸场景"不撞了但到不了点"（S3a 遗留）**：敌车 (0,1.2) 摆在车头 1.2 m 时，两侧净空各
+  1.2–1.3 m，而 footprint 半径 0.6 的 inscribed 半径也是 0.6 → 走廊里"非致命"格子只剩约 0.1 m 宽，
+  MPPI 的 `CostCritic`（near_collision 253 / critical 300）让每条前向轨迹都接近临界 →
+  车只在起点附近小幅转/爬（17–20 m 轨迹耗 200 s、10–11 次 Failed to make progress、到点 2.4 m）。
+  这不是感知问题：同一目标无障时 **9.6 s 到达**；把全局 inflation 降到 0.9 也无效。
+  归属 c：**缝宽判死路（过不去就停，而不是磨 200 s）+ 5 Hz 重规划**。
 - 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。

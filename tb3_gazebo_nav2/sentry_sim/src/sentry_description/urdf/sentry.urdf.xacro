@@ -5,6 +5,8 @@
   <!-- lidar render cost knobs (llvmpipe: keep the rendered image small) -->
   <xacro:arg name="lidar_slices" default="1"/>
   <xacro:arg name="lidar_resolution" default="1.0"/>
+  <!-- S3a low safety lidar switch; set false to reproduce "enemy appears in your face" -->
+  <xacro:arg name="safety_lidar" default="true"/>
 
   <xacro:property name="base_x" value="0.50"/>
   <xacro:property name="base_y" value="0.50"/>
@@ -157,6 +159,51 @@
                 resolution="$(arg lidar_resolution)">
     <origin xyz="0.05 0 0.30" rpy="0 0 0"/>
   </xacro:mid360>
+
+  <!-- S3a: 低位 2D 安全雷达 —— 专治"敌车半路出现，贴脸才看见"。
+       为什么不是"离地 0.10 m"（任务书原写法）：底盘占 z 0.03..0.15 m，装在 0.10 m 会被
+       自己的车体包住，360° 每一束先打到自己壳体上（≈0.2 m 的自身回波），代价地图瞬间
+       满格、NoTouch 永久停车。所以改成"车顶上方 3 cm"：base_link 原点 +0.09 m = 离地
+       0.18 m。这一层比车顶（0.15）高 3 cm 掠过去，又比敌方机器人顶面（0.25 m）低 7 cm，
+       正好横切敌车侧面；对 0.2 m 高的平台边沿同理。
+       传感器挂在 base_link 上（不新建 link）：URDF 固定关节在转 SDF 时可能被合并，传感器
+       会跟着丢；挂在 base_link 并给 <pose> 偏移最稳。x/y 偏移保持 0，所以 frame_id 就是
+       base_link，2D 数据原点误差为 0。
+       量程 0.05..2.5 m / 360 线 / 10 Hz：渲染成本只有一行（llvmpipe 下实测 RTF 不降），
+       2.5 m 对 0.5 s 刹停（1.3 m/s 峰值）够用。 -->
+  <xacro:if value="$(arg safety_lidar)">
+    <gazebo reference="base_link">
+      <sensor name="safety_lidar" type="gpu_lidar">
+        <pose>0 0 ${base_z_size/2.0 + 0.03} 0 0 0</pose>
+        <!-- gz 侧叫 _raw：帧号是 gz 作用域名，必须过 safety_scan_relay 改成 base_footprint -->
+        <topic>/scan_safety_raw</topic>
+        <update_rate>10</update_rate>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.05</min>
+            <max>2.5</max>
+            <resolution>0.01</resolution>
+          </range>
+        </lidar>
+      </sensor>
+    </gazebo>
+  </xacro:if>
 
   <gazebo>
     <plugin filename="gz-sim-mecanum-drive-system" name="gz::sim::systems::MecanumDrive">

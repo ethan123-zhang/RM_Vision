@@ -1,9 +1,37 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-23 晚（哨兵仿真交互化 + 导航调参；遗留"贴脸未识别"待 a+c）
+> 最后更新：2026-11-24 晚（S3a 低位安全雷达：贴脸不再撞，窄处仍到不了点 → 下一步 c）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **🆕 2026-11-24 晚（S3a = a 完成，下一步 c）**：给哨兵仿真补上"低位 2D 安全雷达"，把
+> "敌车 0.25 m 高、Mid-360 在 0.30 m 看不见"的盲区堵住。详见
+> [2026-11-24-sentry-safety-lidar.md](docs/handoffs/2026-11-24-sentry-safety-lidar.md)。
+> ①**改动**：`sentry.urdf.xacro` 给 base_link 加 gpu_lidar（离地 **0.18 m**、360°/360 线/10 Hz/
+> 0.05–2.5 m，gz 话题 `/scan_safety_raw`）→ `safety_scan_relay.py` 把 gz 作用域名
+> `sentry/base_footprint/safety_lidar` 改成 `base_footprint`（不改的话 costmap 只报
+> `Message Filter dropping message` 丢整帧）→ 两张 costmap 的 obstacle_layer 与 collision_monitor
+> 都接 `scan_safety`。**为什么不是"离地 0.10 m"**：底盘占 0.03–0.15 m，0.10 m 会被自己壳体挡住，
+> 360° 全是自身回波 → NoTouch 永久停。
+> ②**盲区实测**：敌车摆到车头 1.2 m，`/scan` 最小有限量程仍是 **1.426 m**（只有墙），
+> `/scan_safety` **1.000 m**（= 敌车正面）；两张 costmap 在敌车处 99/100。
+> ③**A/B（同一条命令，goal (0,2.6)、敌车 (0,1.2) 1.5 s 后出现）**：雷达**关** → `SUCCEEDED` 0.184 m、
+> **面距 −0.000 m（面贴面）**、90.6 s；雷达**开** → **面距 +0.479 m**、但到点失败 2.427 m、202.9 s。
+> 开阔场地（敌车 (1.5,−1.25)）**5/5 判据过**（到点 0.109/0.168 m、面距 +0.94/+1.06 m、停滞 0.1 s）。
+> ④**踩到的两个事故**：`run_sentry_nav.sh` 清场 PATTERN 漏了新节点 → 重启攒了 13 个
+> `safety_scan_relay` 孤儿（各 40% CPU、load 13、RTF 1.0→0.48），症状是"车变慢爬不动"而非报错；
+> `safety_lidar:=false` 时 collision_monitor 报 `invalid source` 把车冻 216 s → relay 改为超 0.5 s
+> 无数据就发空扫描兜底。⑤**顺带**：`FootprintApproach.time_before_collision` 1.0→0.4 s（1.6 m 前瞻
+> 让车全程在 approach/continue 之间切，压到 0.05–0.2 m/s）；`verify_detour.py` 等 TF 改墙钟、
+> 新增 `--dump` 轨迹；新增 `tools/check_scan_safety.py`（5 项体检全过）。
+> ⑥**未解（下一步 c）**：贴脸场景"不撞了但到不了点"——敌车两侧净空各 1.2–1.3 m，footprint 0.6 的
+> inscribed 半径也是 0.6，走廊里非致命格只剩 ~0.1 m，MPPI CostCritic(253/300) 让前向轨迹都接近临界 →
+> 小幅转/爬 200 s、10–11 次 Failed to make progress。**无障同目标 9.6 s 到达**、全局 inflation
+> 1.5→0.9 实测无效 ⇒ 不是感知/inflation，是 c 的活：缝宽判死路（过不去就快速停）+ 5 Hz 重规划。
+> ⑦**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh gui:=false`（默认带雷达）→
+> `python3 tools/check_scan_safety.py --frames 8`（5/5）→ 贴脸用例
+> `python3 tools/verify_detour.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove`。
 
 > **🆕 2026-11-23 晚（哨兵仿真 S3 收尾，下一步做 a+c）**：把 sentry_sim 做成可交互 + 调导航，并把用户报的
 > "敌车突然出现撞上去 / 卡缝里挤过去"根因定位到**感知盲区**。详见

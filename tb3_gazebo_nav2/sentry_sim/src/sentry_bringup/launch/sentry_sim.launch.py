@@ -34,6 +34,10 @@ BRIDGE_ARGS = [
     '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
     # S1b ground truth for map -> odom (world frame == map frame).
     '/gt_odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+    # S3a low safety lidar (0.18 m high, 0.05..2.5 m) -> safety_scan_relay -> /scan_safety.
+    # The gz sensor names its frame "sentry/base_footprint/safety_lidar", which no TF
+    # knows, so the raw topic is bridged and the relay rewrites header.frame_id.
+    '/scan_safety_raw@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
 ]
 
 # /livox/imu note (S1b): the livox gz plugin reports linear_acceleration in g
@@ -68,7 +72,9 @@ def _launch_setup(context, *args, **kwargs):
     robot_description = ParameterValue(
         Command(['xacro ', xacro_path,
                  ' lidar_slices:=', LaunchConfiguration('lidar_slices'),
-                 ' lidar_resolution:=', LaunchConfiguration('lidar_resolution')]),
+                 ' lidar_resolution:=', LaunchConfiguration('lidar_resolution'),
+                 # S3a: safety lidar on/off, forwarded from run_sentry_nav.sh
+                 ' safety_lidar:=', LaunchConfiguration('safety_lidar')]),
         value_type=str)
 
     gz_cmd = ['gz', 'sim', '-r'] + ([] if gui else ['-s']) + ['-v', '2', WORLD_SDF]
@@ -105,6 +111,18 @@ def _launch_setup(context, *args, **kwargs):
             executable='parameter_bridge',
             arguments=BRIDGE_ARGS,
             parameters=[{'use_sim_time': True}],
+            output='screen',
+        ),
+        # S3a: gz frame "sentry/base_footprint/safety_lidar" -> base_footprint.
+        Node(
+            package='sentry_bringup',
+            executable='safety_scan_relay.py',
+            parameters=[{
+                'use_sim_time': True,
+                'input_topic': '/scan_safety_raw',
+                'output_topic': '/scan_safety',
+                'frame_id': 'base_footprint',
+            }],
             output='screen',
         ),
         Node(
@@ -164,6 +182,8 @@ def generate_launch_description():
         DeclareLaunchArgument('spawn_z', default_value='0.09'),
         DeclareLaunchArgument('lidar_slices', default_value='1'),
         DeclareLaunchArgument('lidar_resolution', default_value='1.0'),
+        # S3a: low safety lidar; false = old behaviour (reproduce the blind spot).
+        DeclareLaunchArgument('safety_lidar', default_value='true'),
         DeclareLaunchArgument('p2l_min_height', default_value='0.05'),
         DeclareLaunchArgument('p2l_max_height', default_value='0.60'),
         # S2c: Odin1 map -> field offset injected into odin1_sim_bridge.

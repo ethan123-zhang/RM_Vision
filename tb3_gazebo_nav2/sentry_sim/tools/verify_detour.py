@@ -76,6 +76,8 @@ def main():
                     help="延迟这么多秒再 spawn（测'突然出现在路径上'）")
     ap.add_argument("--remove", action="store_true", help="结束后删障碍")
     ap.add_argument("--timeout", type=float, default=240.0, help="墙钟上限 s")
+    ap.add_argument("--dump", default="",
+                    help="把 TF 轨迹写成 CSV（sim_s,wall_s,x,y），供事后看绕行/抖动")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
     gx, gy = args.goal
@@ -155,8 +157,9 @@ def main():
     tf = Buffer()
     TransformListener(tf, node)
     client = ActionClient(node, NavigateToPose, "navigate_to_pose")
-    if not client.wait_for_server(timeout_sec=15.0):
-        print("FAIL: /navigate_to_pose 15 s 内没就绪（栈起了吗？）")
+    # 30 s：WSL 上两次重启之间 DDS 发现偶发要十几秒（早先 15 s 会假失败）
+    if not client.wait_for_server(timeout_sec=30.0):
+        print("FAIL: /navigate_to_pose 30 s 内没就绪（栈起了吗？）")
         node.destroy_node()
         rclpy.shutdown()
         return 3
@@ -169,9 +172,10 @@ def main():
         t = tr.transform.translation
         return t.x, t.y, yaw_of(tr.transform.rotation)
 
-    for _ in range(200):                                              # 等 TF（最多 20 s）
-        if pose_now() is not None:
-            break
+    # 等 TF：按墙钟计上限（早先是"200 次 spin"，WSL 上消息密集时 200 次不到 1 s 就转完，
+    # 栈刚起来时偶发"拿不到 map->base_footprint"假失败）。
+    deadline = time.monotonic() + 20.0
+    while pose_now() is None and time.monotonic() < deadline:
         rclpy.spin_once(node, timeout_sec=0.1)
     start = pose_now()
     if start is None:
@@ -331,6 +335,12 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     print(f"报告: {os.path.abspath(out)}")
+    if args.dump:
+        with open(args.dump, "w", encoding="utf-8") as f:
+            f.write("sim_s,wall_s,x,y\n")
+            for sim_t, wall_t, x, y in samples:
+                f.write(f"{sim_t:.3f},{wall_t:.3f},{x:.4f},{y:.4f}\n")
+        print(f"轨迹: {os.path.abspath(args.dump)}")
 
     if args.remove:
         subprocess.run([sys.executable, os.path.join(HERE, "spawn_obstacle.py"), "remove"])

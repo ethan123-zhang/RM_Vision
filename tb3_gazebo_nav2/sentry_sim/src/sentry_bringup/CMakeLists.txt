@@ -10,6 +10,7 @@ install(DIRECTORY launch config
 install(PROGRAMS
   scripts/verify_s1a.py
   scripts/verify_s1b.py
+  scripts/safety_scan_relay.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

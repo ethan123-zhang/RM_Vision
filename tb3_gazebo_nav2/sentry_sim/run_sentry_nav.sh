@@ -11,7 +11,7 @@ WS="${HOME}/sentry_ws"
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-45}"
 LOG="${SENTRY_NAV_LOG:-/tmp/sentry_nav/nav.log}"
 
-PATTERN='gz sim|gz-sim-server|ros2 launch sentry|parameter_bridge|ros_gz_sim|odin1_sim_bridge|pointcloud_to_laserscan|robot_state_publisher|map_click\.py|nav2_|map_server|controller_server|planner_server|bt_navigator|behavior_server|smoother_server|waypoint_follower|velocity_smoother|collision_monitor|route_server|docking_server|lifecycle_manager'
+PATTERN='gz sim|gz-sim-server|ros2 launch sentry|parameter_bridge|ros_gz_sim|odin1_sim_bridge|pointcloud_to_laserscan|robot_state_publisher|safety_scan_relay|map_click\.py|nav2_|map_server|controller_server|planner_server|bt_navigator|behavior_server|smoother_server|waypoint_follower|velocity_smoother|collision_monitor|route_server|docking_server|lifecycle_manager'
 
 domain_pids() {
   local p d
