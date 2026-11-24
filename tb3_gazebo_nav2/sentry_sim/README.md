@@ -188,6 +188,40 @@ python3 tools/check_scan_safety.py --frames 8       # 体检 5 项：频率/束�
 `safety_lidar:=false` 时 costmap 仍列着 `scan_safety`，由 relay 发空扫描顶上 →
 语义是"安全层是瞎的、但导航不冻"，正好当 A/B 对照。
 
+## 2.10 5 Hz 重规划 + 缝窄判死路（S3c，2026-11-24）
+
+**为什么要 5 Hz**：Nav2 默认 BT 是 **1 Hz** 重规划。车速 1.3 m/s 时 1 s 能跑 1.3 m，等于
+"路径永远慢一拍"：临时障碍进代价地图后，全局路径最多要等 1 s 才更新。
+`src/sentry_bringup/bt/sentry_navigate_to_pose.xml` 把 `RateController hz` 改成 **5.0**，
+由 `sentry_nav2.launch.py` 以 `default_nav_to_pose_bt_xml` 注入。实测 `/plan` 平均 **4.48 Hz**。
+
+**为什么还要"判死路"**：5 Hz 只能让路径跟上代价地图，跟随路径的还是 MPPI。当路径要从
+一条 1.2–1.3 m 的缝里挤过去时，footprint 半径 0.6 的 inscribed 区已经把两侧都吃掉，
+路径只能贴着内切边界走（实测路径最小净空 **0.05 m**）—— MPPI 于是原地小幅转/爬
+**200 s**、10–11 次 `Failed to make progress`，既不撞也不走。这时正确行为是**判死路、取消、停住**。
+
+判定口径（`tools/path_guard.py`）：把全局代价地图里 `>=99`（99=内切/100=致命）的格子当障碍做
+距离变换，沿 `/plan`（去掉起点 0.6 m 与终点附近 0.4 m）取**最小净空**：
+
+| 场景 | 路径最小净空 | 结论 |
+|---|---|---|
+| 开阔：goal (3,−2.5) | **0.43–0.65 m** | 能过 |
+| 窄缝：敌车 0.4 m 卡在 1.3 m 走廊里、goal (0,2.6) | **0.05 m** | 判死路 |
+
+阈值 **0.20 m**（对上面两组读数有 3 倍以上裕度），连续 2 帧命中才认（防单帧噪声）。
+
+**为什么判定在客户端**：ROS 2 没有"按条件取消别人目标"的公开 API，取消要发起方手上的
+goal handle。所以判定挂在点地图窗口（`map_click.py` 的 `RosBackend.dead_end()`）和验收脚本
+（`tools/verify_dead_end.py`）里 —— 自己发目标、自己判、自己取消。**直接 `ros2 action send_goal`
+发的目标不受这个保护**（没有客户端在盯路径）。
+
+```bash
+# 死路：判出来就取消并停车（0.8 s 内判定，取消后位移 0.00 m，面距 +0.665 m）
+python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove
+# 反向回归：开阔场地不该误判
+python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-end
+```
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -210,6 +244,9 @@ python3 tools/check_scan_safety.py --frames 8       # 体检 5 项：频率/束�
 | 盲区对比（S3a，敌车 0.4×0.4×0.25 摆到车头 1.2 m） | `/scan` 最小有限量程 **1.426 m**（只有墙，看不见敌车）vs `/scan_safety` **1.000 m**（= 敌车正面）；两张 costmap 在敌车处 99/100 |
 | 贴脸场景 A/B（S3a，goal (0,2.6)、敌车 (0,1.2) 1.5 s 后出现，同一条命令） | 雷达**关**：`SUCCEEDED` 到点 0.184 m、**面距 −0.000 m（撞上）**、90.6 s；雷达**开**：**面距 +0.479 m**、到点失败（原因见 §9） |
 | 开阔场地绕行（S3a，雷达开） | (0,0)→(3,−2.5)、敌车 (1.5,−1.25)：**5/5 判据过**，到点 0.168/0.109 m，面距 +1.06/+0.94 m，0.1 s 停滞，9.4/18.6 s |
+| 5 Hz 重规划（S3c） | `/plan` 平均 **4.48 Hz**（默认 BT 是 1 Hz）；绕障回归 5/5 过、14.2/15.6 s、峰值 0.96/1.16 m/s |
+| 缝窄判死路（S3c） | 敌车卡 1.3 m 走廊、goal 在它后面：**0.8 s 判出死路**（路径最小净空 0.05 m < 0.20），取消后位移 **0.00 m**，面距 **+0.665 m**（不撞、不磨） |
+| 死路误判反向回归（S3c） | 开阔 goal (3,−2.5)：不判定，`SUCCEEDED` 0.16 m，14.6 s，全程路径净空最小 0.43 m |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
 
 验证报告：`results/report_sentry_patrol.json`、`results/report_map_sdf.json`、
@@ -312,6 +349,13 @@ results/                 # 验收 JSON 证据
     200 次不到 1 s 就转完 → 开局偶发"拿不到 map->base_footprint"；改为按墙钟等 20 s。
     `/navigate_to_pose` 的 `wait_for_server` 也从 15 s 放宽到 30 s（重启后 DDS 发现偶发要十几秒，
     必要时先 `run_sentry_nav.sh stop` 再 `rm -f /dev/shm/fastrtps_*`）。
+21. **换 BT XML 要三件齐**：XML 文件进 `install(DIRECTORY ... bt)`、launch 里用
+    `default_nav_to_pose_bt_xml` 传真名、然后**用量测确认**（`ros2 topic hz /plan` 应从 1 Hz 变
+    5 Hz，实测 4.48 Hz）。少任何一件都不报错，只是安静地还是 1 Hz。
+    `RateController` 之外别忘 `ComputePathToPose` 外面还要包 `RecoveryNode`，否则规划失败时没有清图重试。
+22. **判死路的阈值要用"发布尺度"**：nav2 发布的 `OccupancyGrid` 里 100=致命、99=内切、
+    其余是 `cost*100/255` —— 拿原始 costmap 的 253/254 当阈值会永远判不出来（第一版就是这样，
+    全程 `max_cost=100` 而阈值写 200）。本项目改成"对内切区做距离变换取净空(m)"，可读且好标定。
 
 ## 8. Humble / RDK S100 兼容
 
@@ -344,10 +388,13 @@ results/                 # 验收 JSON 证据
   的一半原因；要跑最快速度/最高 RTF 就 `gui:=false`。
 - 临时障碍测试：**静态敌车**与**慢速横穿敌车**（0.3–0.4 m/s）已验收；**追击/迎面而来的敌车**没做
   （`set_pose` 推的敌车不会决策；横穿段若扫过车身所在位置，任何规划器都会被撞 —— 见 §2.6 注）。
-- **贴脸场景"不撞了但到不了点"（S3a 遗留）**：敌车 (0,1.2) 摆在车头 1.2 m 时，两侧净空各
-  1.2–1.3 m，而 footprint 半径 0.6 的 inscribed 半径也是 0.6 → 走廊里"非致命"格子只剩约 0.1 m 宽，
-  MPPI 的 `CostCritic`（near_collision 253 / critical 300）让每条前向轨迹都接近临界 →
-  车只在起点附近小幅转/爬（17–20 m 轨迹耗 200 s、10–11 次 Failed to make progress、到点 2.4 m）。
-  这不是感知问题：同一目标无障时 **9.6 s 到达**；把全局 inflation 降到 0.9 也无效。
-  归属 c：**缝宽判死路（过不去就停，而不是磨 200 s）+ 5 Hz 重规划**。
+- **贴脸场景"不撞了但到不了点"（S3a 遗留，S3c 已按"判死路停住"处理）**：敌车 (0,1.2) 摆在车头
+  1.2 m 时，两侧净空各 1.2–1.3 m，而 footprint 半径 0.6 的 inscribed 半径也是 0.6 → 走廊里
+  "非致命"格子只剩约 0.1 m 宽，MPPI 的 `CostCritic`（near_collision 253 / critical 300）让每条
+  前向轨迹都接近临界 → 车只在起点附近小幅转/爬（17–20 m 轨迹耗 200 s、10–11 次 Failed to make
+  progress、到点 2.4 m）。这不是感知问题：同一目标无障时 **9.6 s 到达**；把全局 inflation 降到
+  0.9 也无效。**S3c 的处理**：这种缝直接判死路 → 取消 + 停住（0.8 s），不再磨 200 s；
+  想真的过去只能改 footprint/底盘参数，属于调参，不在本轮范围。
+- **死路判定在客户端**：`ros2 action send_goal` 直接发的目标没有客户端盯路径 → 不会自动取消。
+  要用这个保护就走点地图窗口或 `verify_dead_end.py`。
 - 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。

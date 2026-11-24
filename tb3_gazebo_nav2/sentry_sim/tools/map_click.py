@@ -62,6 +62,10 @@ from PIL import Image, ImageTk                                  # noqa: E402
 from scipy import ndimage                                       # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:                     # 供 path_guard / 其它同目录工具复用
+    sys.path.insert(0, HERE)
+from path_guard import clearance_grid, peek_plan_clearance  # noqa: E402  S3c 死路判定
+
 DEFAULT_MAP = "/mnt/e/RM/tb3_gazebo_nav2/rm_field/maps/rmul2027_3v3_up.yaml"
 SNAP_MAX_DIST = 1.0        # m，吸附搜索上限（再远就不猜了，直接拒绝，免得"点这里去了那里"）
 
@@ -100,6 +104,8 @@ class RosBackend:
         self.tf = Buffer()
         self.tf_listener = TransformListener(self.tf, self.node)
         self.path = None
+        self.path_msg = None
+        self._clear_grid = None      # 代价地图净空缓存（per 帧，见 dead_end）
         self.lock = threading.Lock()
         self.truth = None                # Gazebo 真值（/gt_odom），用来显示定位链路偏差
         self.last_goal = None
@@ -175,6 +181,26 @@ class RosBackend:
     def _on_plan(self, msg):
         with self.lock:
             self.path = [(p.pose.position.x, p.pose.position.y) for p in msg.poses]
+            self.path_msg = msg
+
+    def dead_end(self, threshold=0.20):
+        """S3c：路径（去掉首尾）最小净空 < threshold → 地形上过不去（口径见 tools/path_guard.py）。
+
+        返回 (dead: bool, info: dict|None)。只判当前这一帧 /plan，连续命中由调用方数
+        （避免一帧代价图噪声就把目标取消掉）。
+        """
+        if self.goal_handle is None or self.costmap is None:
+            return False, None
+        if time.monotonic() - self.costmap_t > 3.0:
+            return False, None
+        with self.lock:
+            msg = getattr(self, "path_msg", None)
+        if self._clear_grid is None:          # 每帧代价地图只做一次距离变换
+            self._clear_grid = clearance_grid(self.costmap)
+        info = peek_plan_clearance(msg, self.costmap, grid=self._clear_grid)
+        if info is None:
+            return False, None
+        return info["min_clear"] < threshold, info
 
     def _on_costmap(self, msg):
         """保存最新一帧全局代价地图（map 系，0.05 m/格，0=空 100=致命 -1=未知）。"""
@@ -182,6 +208,7 @@ class RosBackend:
         self.costmap = (msg.data, info.origin.position.x, info.origin.position.y,
                         info.resolution, info.width, info.height)
         self.costmap_t = time.monotonic()
+        self._clear_grid = None
         if not getattr(self, "_costmap_seen", False):
             self._costmap_seen = True
             print(f"COSTMAP ready {info.width}x{info.height} res={info.resolution:.3f}", flush=True)
@@ -297,6 +324,9 @@ class MapWindow(tk.Tk):
         self.bind_all("<KeyPress-r>", lambda _e: self.rescue_manual())
         self._rescuing = False
         self._rescue_used = 0
+        # S3c：死路（路径最窄处代价过高）→ 连续命中 2 次就取消目标并停车
+        self._dead_end_hits = 0
+        self._dead_cancelled = False
         self.after(100, self._tick)
         self.after(800, self._print_geom)
 
@@ -507,6 +537,9 @@ class MapWindow(tk.Tk):
         gx, gy, dyn_cost, dyn_moved = dg
         self.clicked_xy = (x, y) if (moved or dyn_moved) else None
         self.goal_xy = (gx, gy)
+        # 新目标：死路判定重新计数
+        self._dead_end_hits = 0
+        self._dead_cancelled = False
         if moved or dyn_moved:
             why = []
             if moved:
@@ -631,6 +664,24 @@ class MapWindow(tk.Tk):
             self.rescue(resend=self.goal_xy)
         elif self.backend.result_status == "SUCCEEDED":
             self._rescue_used = 0
+        # S3c：死路判定（路径最窄处代价过高 → 取消目标，车停下，别原地磨）。
+        # 连续 2 帧命中才认，避免代价图单帧噪声。判定口径见 tools/path_guard.py。
+        if self.backend.goal_handle is not None and not self._dead_cancelled:
+            dead, dinfo = self.backend.dead_end()
+            if dead:
+                self._dead_end_hits += 1
+            else:
+                self._dead_end_hits = 0
+            if self._dead_end_hits >= 2:
+                self._dead_cancelled = True
+                self.backend.cancel()
+                wx, wy = dinfo["worst_xy"]
+                print(f"DEAD END cancel min_clear={dinfo['min_clear']:.2f} "
+                      f"worst=({wx:.2f},{wy:.2f})", flush=True)
+                self.backend.status = (f"过不去：路径最窄处净空仅 {dinfo['min_clear']:.2f} m"
+                                       f"（{wx:.2f},{wy:.2f}）→ 已取消，停在这里")
+        elif self._dead_cancelled and self.backend.goal_handle is None:
+            self._dead_end_hits = 0
         self.canvas.delete("dyn")
         with self.backend.lock:
             path = list(self.backend.path or [])

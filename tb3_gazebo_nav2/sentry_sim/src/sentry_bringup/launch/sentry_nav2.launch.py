@@ -86,17 +86,22 @@ def generate_launch_description():
             'node_names': ['map_server'],
         }])
 
-    def nav_node(package, executable, name, extra_remaps=()):
+    def nav_node(package, executable, name, extra_remaps=(), extra_params=None):
+        params = [params_file, {'use_sim_time': True}]
+        if extra_params:
+            params.append(extra_params)
         return Node(
             package=package,
             executable=executable,
             name=name,
             output='screen',
-            parameters=[params_file, {'use_sim_time': True}],
+            parameters=params,
             arguments=['--ros-args', '--log-level', 'info'],
             remappings=REMAPPINGS + list(extra_remaps),
         )
 
+    # S3c: 5 Hz 重规划的 BT（默认 XML 是 1 Hz）
+    bt_xml = os.path.join(bringup, 'bt', 'sentry_navigate_to_pose.xml')
     nav = [
         nav_node('nav2_controller', 'controller_server', 'controller_server', CMD_VEL_NAV),
         nav_node('nav2_smoother', 'smoother_server', 'smoother_server'),
@@ -104,7 +109,8 @@ def generate_launch_description():
         nav_node('nav2_behaviors', 'behavior_server', 'behavior_server', CMD_VEL_NAV),
         nav_node('nav2_velocity_smoother', 'velocity_smoother', 'velocity_smoother', CMD_VEL_NAV),
         nav_node('nav2_collision_monitor', 'collision_monitor', 'collision_monitor'),
-        nav_node('nav2_bt_navigator', 'bt_navigator', 'bt_navigator'),
+        nav_node('nav2_bt_navigator', 'bt_navigator', 'bt_navigator',
+                 extra_params={'default_nav_to_pose_bt_xml': bt_xml}),
         Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',

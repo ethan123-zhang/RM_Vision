@@ -2,8 +2,8 @@
 
 > 一句话：把"敌车 0.25 m 高、Mid-360 在 0.30 m 看不见"的盲区补上了 —— 新增离地 0.18 m 的
 > 360° 安全雷达 `/scan_safety`，进两张 costmap + `collision_monitor`。**同一场景从"面贴面
-> (−0.000 m)"变成"面距 +0.479 m"**；但那个"敌车摆在车头 1.2 m"的窄处仍然到不了点，
-> 根因不是感知而是 footprint/MPPI 在 1.2–1.3 m 走廊里过不去（归属 c）。
+> (−0.000 m)"变成"面距 +0.479 m"**。贴脸场景"过不去"的部分由 c 收口：**5 Hz 重规划 +
+> 缝窄判死路（0.8 s 判定 → 取消 → 停住）**，不再原地磨 200 s。
 
 ## 1. 环境与分支
 
@@ -52,38 +52,61 @@
 报告：`results/report_detour_191713.json`（关）、`report_detour_191452.json`（开）、
 `report_detour_185403.json` / `_185444.json`（开阔场地）、`report_detour_192500.json`（inflation 0.9 反证）。
 
-## 5. 未完成 / 卡点（交给 c）
+## 5. c（同日完成）：5 Hz 重规划 + 缝窄判死路
+
+| 项 | 做法 | 实测 |
+|---|---|---|
+| 5 Hz 重规划 | `src/sentry_bringup/bt/sentry_navigate_to_pose.xml`（复制 Nav2 默认 BT，只把 `RateController hz` 1.0 → 5.0），launch 用 `default_nav_to_pose_bt_xml` 注入 | `/plan` 平均 **4.48 Hz**（改前 1 Hz） |
+| 缝窄判死路 | `tools/path_guard.py`：把全局代价地图 `>=99`（99=内切/100=致命）当障碍做距离变换，取 `/plan`（跳过起点 0.6 m、终点附近 0.4 m）的**最小净空**；< **0.20 m** 连续 2 帧 → 判死路 | 开阔路径净空 **0.43–0.65 m**；窄缝 **0.05 m** → 阈值 0.20 有 3 倍余量 |
+| 判出来之后 | 客户端取消目标（ROS 2 没有"按条件取消别人目标"的公开 API，取消要发起方的 goal handle）：`map_click.py` 的 `RosBackend.dead_end()` + `tools/verify_dead_end.py` | 起点后 **0.8 s** 判定 → `CANCELED`，取消后位移 **0.00 m**，面距 **+0.665 m** |
+| 反向回归 | 开阔场地不许误判 | 不判定、`SUCCEEDED` 0.16 m、14.6 s、路径净空最小 0.43 m |
+| 绕障回归 | 5 Hz 后重跑 S3 两个用例 | 各 **5/5 判据过**：静态敌车 14.2 s、面距 +0.978 m；半路出现 15.6 s、面距 +0.927 m |
+
+**踩到的坑**：①第一版判据用"代价阈值 200"，但 nav2 发布的 OccupancyGrid 是 0–100 尺度
+（100=致命/99=内切），永远判不出来（全程 `max_cost=100`）→ 改成"对内切区做距离变换取净空(m)"。
+②算距离变换要按"新的一帧 /plan"节流（5 Hz），否则 GUI 10 Hz tick 里每帧都做一次 180k 格 EDT。
+③换 BT XML 三件事必须齐：装到 `share/.../bt`、launch 传真名、**用量测确认**（`ros2 topic hz /plan`），
+少一件不报错、只是安静地还是 1 Hz。
+
+## 6. 未完成 / 卡点
 
 | 项 | 卡在哪 |
 |---|---|
-| 贴脸场景"到不了点" | 敌车两侧净空各 **1.2–1.3 m**，footprint 半径 0.6 的 inscribed 半径也是 0.6 → 走廊里非致命格只剩 ~0.1 m；MPPI `CostCritic`（253/300）让每条前向轨迹都接近临界 → 小幅转/爬 200 s、10–11 次 Failed to make progress。**无障同目标 9.6 s 到达**，全局 inflation 1.5→0.9 实测无效（`report_detour_192500`） |
-| 缝宽判死路（c） | 应在"路径最窄处代价 ≥ 阈值"或"缝宽 < 1.2 m"时**快速 ABORT/停车**，而不是磨 200 s |
-| 5 Hz 重规划（c） | 自定义 BT XML（`RateController hz=5` 包 `ComputePathToPose`），未做 |
+| 1.2–1.3 m 走廊"真的过去" | 现在按死路处理（取消+停）。要真过只能调 footprint/底盘参数（footprint 半径 0.6 的 inscribed 已是 0.6），属调参，未做 |
+| 死路判定只在客户端 | `ros2 action send_goal` 直接发的目标没人盯路径 → 不自动取消；要保护就走点地图窗口/`verify_dead_end.py` |
+| 5 点巡逻长跑回归 | 5 Hz 后只回归了绕障两例，`patrol_s2a` 未重跑 |
+| 敌车物理推力 | 仍是 static 模型（`set_pose` 推），真实对抗未验证 |
 
-## 6. 下次进入点
+## 7. 下次进入点
 
 ```bash
-cd ~/sentry_ws && ./run_sentry_nav.sh gui:=false          # 默认带安全雷达
+cd ~/sentry_ws && ./run_sentry_nav.sh gui:=false          # 默认带安全雷达 + 5 Hz BT
 python3 tools/check_scan_safety.py --frames 8             # 5/5
-# A/B：关掉安全雷达复现旧行为
-./run_sentry_nav.sh gui:=false safety_lidar:=false
-# 贴脸场景（c 的目标：不撞 + 不通就快速停）
-python3 tools/verify_detour.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove
+# 贴脸场景：不撞 + 判死路 → 0.8 s 内取消并停住（c 的验收）
+python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove
+# 开阔场地：不误判、5/5 绕障（a+c 的回归）
+python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-end
+python3 tools/verify_detour.py --goal 3 -2.5 --obstacle 1.5 -1.25 --spawn --spawn-after 1.5 --remove
+# 还没跑的长跑回归
+python3 tools/patrol_s2a.py        # 5 点巡逻（改 5 Hz 后未重跑）
 ```
 
-## 7. 相关文件
+## 8. 相关文件
 
-- 工具：`tools/check_scan_safety.py`（新）、`tools/verify_detour.py`（`--dump`）、`tools/spawn_obstacle.py`
-- 配置：`src/sentry_bringup/config/sentry_nav2.yaml`、`src/sentry_description/urdf/sentry.urdf.xacro`
-- 继电器/兜底：`src/sentry_bringup/scripts/safety_scan_relay.py`
+- 工具：`tools/check_scan_safety.py`（新）、`tools/path_guard.py`（新，死路判定）、
+  `tools/verify_dead_end.py`（新，c 验收）、`tools/verify_detour.py`（`--dump`）、`tools/map_click.py`
+- 配置：`src/sentry_bringup/config/sentry_nav2.yaml`、`src/sentry_bringup/bt/sentry_navigate_to_pose.xml`（新）、
+  `src/sentry_description/urdf/sentry.urdf.xacro`
+- 网关/兜底：`src/sentry_bringup/scripts/safety_scan_relay.py`
 
-## 8. 提交
+## 9. 提交
 
-见 `git log`（本轮提交：`feat(sentry): S3a 低位 2D 安全雷达 + 帧名 relay + 贴脸 A/B 验收`）。
+见 `git log`（本轮：`feat(sentry): S3a 低位 2D 安全雷达…`、`feat(sentry): S3c 5 Hz 重规划 + 缝窄判死路…`）。
 
-## 9. 风险 / 注意
+## 10. 风险 / 注意
 
 - 安全雷达进 `collision_monitor` 后，NoTouch 0.5 m 硬停变"真的有效"（旧 `/scan` 源因 `min_height 0.15`
-  一直空转）。窄通道里可能偶发停车 —— c 里连着"缝宽判死路"一起做长跑回归。
-- 全局 inflation 仍 1.5 m（b647ffc 的值）；c 里若要动，必须同时回归 5 点巡逻/静态绕障。
+  一直空转）。窄通道里可能偶发停车 —— 建议下一次做 5 点巡逻长跑回归。
+- 全局 inflation 仍 1.5 m（b647ffc 的值），本轮实测降到 0.9 对窄缝无效也未回退验证其他场景 → 未改动。
+- 死路判定在客户端；`ros2 action send_goal` 直发的目标不享受该保护。
 - 敌车是 static 模型（`set_pose` 推），不参与物理；真实对抗仍未验证。

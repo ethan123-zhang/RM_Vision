@@ -1,7 +1,7 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-24 晚（S3a 低位安全雷达：贴脸不再撞，窄处仍到不了点 → 下一步 c）
+> 最后更新：2026-11-24 晚（a 低位安全雷达 + c 5 Hz 重规划/缝窄判死路，均验收）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
 
@@ -29,9 +29,21 @@
 > inscribed 半径也是 0.6，走廊里非致命格只剩 ~0.1 m，MPPI CostCritic(253/300) 让前向轨迹都接近临界 →
 > 小幅转/爬 200 s、10–11 次 Failed to make progress。**无障同目标 9.6 s 到达**、全局 inflation
 > 1.5→0.9 实测无效 ⇒ 不是感知/inflation，是 c 的活：缝宽判死路（过不去就快速停）+ 5 Hz 重规划。
-> ⑦**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh gui:=false`（默认带雷达）→
-> `python3 tools/check_scan_safety.py --frames 8`（5/5）→ 贴脸用例
-> `python3 tools/verify_detour.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove`。
+> ⑦**c 同日完成**：`bt/sentry_navigate_to_pose.xml` 把 `RateController hz` 1.0→**5.0**（launch 用
+> `default_nav_to_pose_bt_xml` 注入），实测 `/plan` **4.48 Hz**；`tools/path_guard.py` 判死路 ——
+> 把全局代价地图 `>=99`（99=内切/100=致命）当障碍做距离变换，取 `/plan`（去掉起点 0.6 m、终点
+> 附近 0.4 m）最小净空，<**0.20 m** 连续 2 帧即判"过不去"；开阔路径实测 **0.43–0.65 m**、窄缝
+> **0.05 m**（3 倍余量）。判定在**客户端**（`map_click.py` / `tools/verify_dead_end.py`）——ROS 2
+> 没有"按条件取消别人目标"的公开 API，取消要用发起方的 goal handle；`ros2 action send_goal` 直发的
+> 目标不享受该保护。**实测**：窄缝 **0.8 s 判定** → `CANCELED`、取消后位移 **0.00 m**、面距 **+0.665 m**
+> （不撞也不磨）；开阔反向回归不误判、`SUCCEEDED` 14.6 s；5 Hz 后绕障回归两例各 **5/5**（14.2/15.6 s、
+> 峰值 0.96/1.16 m/s）。坑：nav2 发布的 OccupancyGrid 是 **0–100 尺度**，第一版拿 253/254 当阈值
+> 全程只看到 100、永远判不出来 → 改成"对内切区做距离变换取净空(m)"。
+> ⑧**下次进入点**：`cd ~/sentry_ws && ./run_sentry_nav.sh gui:=false`（默认带雷达 + 5 Hz BT）→
+> `python3 tools/check_scan_safety.py --frames 8`（5/5）→
+> `python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove`
+> （0.8 s 判死路）→ `--expect-no-dead-end` 反向回归。**未做**：5 点巡逻长跑回归（`patrol_s2a.py`）、
+> 1.2–1.3 m 走廊"真的过去"（要动 footprint，属调参）、敌车动力学化。
 
 > **🆕 2026-11-23 晚（哨兵仿真 S3 收尾，下一步做 a+c）**：把 sentry_sim 做成可交互 + 调导航，并把用户报的
 > "敌车突然出现撞上去 / 卡缝里挤过去"根因定位到**感知盲区**。详见
