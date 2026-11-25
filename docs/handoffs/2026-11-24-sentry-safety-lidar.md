@@ -61,6 +61,8 @@
 | 判出来之后 | 客户端取消目标（ROS 2 没有"按条件取消别人目标"的公开 API，取消要发起方的 goal handle）：`map_click.py` 的 `RosBackend.dead_end()` + `tools/verify_dead_end.py` | 起点后 **0.8 s** 判定 → `CANCELED`，取消后位移 **0.00 m**，面距 **+0.665 m** |
 | 反向回归 | 开阔场地不许误判 | 不判定、`SUCCEEDED` 0.16 m、14.6 s、路径净空最小 0.43 m |
 | 绕障回归 | 5 Hz 后重跑 S3 两个用例 | 各 **5/5 判据过**：静态敌车 14.2 s、面距 +0.978 m；半路出现 15.6 s、面距 +0.927 m |
+| 5 点巡逻长跑回归 | `patrol_s2a.py`（5 个航点、真值判据、48 块 box 解析净空） | **5/5 SUCCEEDED**，到点 0.017–0.190 m、最小离障 **1.083 m**、碰撞 0、RTF 0.839、总 126.3 s |
+| 5 Hz 归因对照 | 同一脚本把 BT 临时改回 1 Hz 再跑一遍 | 1 Hz：5/5、总 **116.7 s**、leg4 **74.5 s**、`Failed to create plan` **11 次**（5 Hz：77.1 s / 20 次）⇒ 慢腿与瞬态规划失败是既有现象，**不是 5 Hz 引入的**（失败点静态净空 1.45–1.61 m，也排除"起点贴墙"） |
 
 **踩到的坑**：①第一版判据用"代价阈值 200"，但 nav2 发布的 OccupancyGrid 是 0–100 尺度
 （100=致命/99=内切），永远判不出来（全程 `max_cost=100`）→ 改成"对内切区做距离变换取净空(m)"。
@@ -72,9 +74,10 @@
 
 | 项 | 卡在哪 |
 |---|---|
+| 巡逻里的瞬态 `Failed to create plan`（20 次） | 5 Hz 下每个目标约 4 次，1 Hz 对照也有 11 次；全部瞬态（下一周期恢复），静态净空 1.45–1.61 m，不是"起点贴墙"。要彻底消掉得在导航栈里做规划失败遥测/退避，未做 |
+| 巡逻 leg4（(4.36,−2.36) 一段）约 75 s | 5 Hz 与 1 Hz 都慢（77.1 / 74.5 s），属既有行为；未定位（怀疑终点在无障碍区但路径需穿场中心，恢复次数多） |
 | 1.2–1.3 m 走廊"真的过去" | 现在按死路处理（取消+停）。要真过只能调 footprint/底盘参数（footprint 半径 0.6 的 inscribed 已是 0.6），属调参，未做 |
 | 死路判定只在客户端 | `ros2 action send_goal` 直接发的目标没人盯路径 → 不自动取消；要保护就走点地图窗口/`verify_dead_end.py` |
-| 5 点巡逻长跑回归 | 5 Hz 后只回归了绕障两例，`patrol_s2a` 未重跑 |
 | 敌车物理推力 | 仍是 static 模型（`set_pose` 推），真实对抗未验证 |
 
 ## 7. 下次进入点
@@ -87,8 +90,9 @@ python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-a
 # 开阔场地：不误判、5/5 绕障（a+c 的回归）
 python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-end
 python3 tools/verify_detour.py --goal 3 -2.5 --obstacle 1.5 -1.25 --spawn --spawn-after 1.5 --remove
-# 还没跑的长跑回归
-python3 tools/patrol_s2a.py        # 5 点巡逻（改 5 Hz 后未重跑）
+# 长跑回归（已跑通：5/5、最小离障 1.083 m、碰撞 0）
+python3 tools/patrol_s2a.py
+# 归因对照（想复现"1 Hz vs 5 Hz"）：临时把 bt XML 的 RateController 改回 1.0 再跑一遍
 ```
 
 ## 8. 相关文件
@@ -106,7 +110,7 @@ python3 tools/patrol_s2a.py        # 5 点巡逻（改 5 Hz 后未重跑）
 ## 10. 风险 / 注意
 
 - 安全雷达进 `collision_monitor` 后，NoTouch 0.5 m 硬停变"真的有效"（旧 `/scan` 源因 `min_height 0.15`
-  一直空转）。窄通道里可能偶发停车 —— 建议下一次做 5 点巡逻长跑回归。
+  一直空转）。5 点巡逻长跑回归已过（5/5、0 次 stop、最小离障 1.083 m），窄通道偶发停车暂时没有出现。
 - 全局 inflation 仍 1.5 m（b647ffc 的值），本轮实测降到 0.9 对窄缝无效也未回退验证其他场景 → 未改动。
 - 死路判定在客户端；`ros2 action send_goal` 直发的目标不享受该保护。
 - 敌车是 static 模型（`set_pose` 推），不参与物理；真实对抗仍未验证。

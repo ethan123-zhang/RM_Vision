@@ -1,0 +1,39 @@
+{
+  "pass": true,
+  "expect_no_dead_end": true,
+  "result": "SUCCEEDED",
+  "judge_s": null,
+  "judge_max_cost": null,
+  "threshold": 200,
+  "max_cost_seen": 99,
+  "stopped_after_cancel_m": null,
+  "min_obstacle_center_m": 8.485,
+  "gap_face_m": 8.035,
+  "duration_sim_s": 13.67,
+  "start": [
+    -0.0,
+    0.0
+  ],
+  "goal": [
+    3.0,
+    -2.5
+  ],
+  "obstacle": [
+    6.0,
+    6.0
+  ],
+  "checks": {
+    "没有误判死路": {
+      "pass": true,
+      "detail": "judge=none"
+    },
+    "目标到达": {
+      "pass": true,
+      "detail": "SUCCEEDED"
+    },
+    "用时 <= timeout": {
+      "pass": true,
+      "detail": "13.7 s"
+    }
+  }
+}

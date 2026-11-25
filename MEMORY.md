@@ -5,7 +5,7 @@
 ## 1. 当前状态
 
 - 现在做什么、卡在哪、下一步：[PROGRESS.md](PROGRESS.md)（顶部区块，最新的在最前）。
-- 最近一次交接：[docs/handoffs/2026-11-24-sentry-safety-lidar.md](docs/handoffs/2026-11-24-sentry-safety-lidar.md)（a 低位安全雷达完成；下一步 c 缝宽判死路 + 5 Hz 重规划）。
+- 最近一次交接：[docs/handoffs/2026-11-24-sentry-safety-lidar.md](docs/handoffs/2026-11-24-sentry-safety-lidar.md)（a 低位安全雷达 + c 5 Hz 重规划/缝窄判死路均完成；5 点巡逻回归 5/5，1 Hz 归因对照已做）。
 - 上一轮：[docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)（哨兵仿真交互化 + 导航调参）。
 
 ## 2. 交接记录（docs/handoffs/）

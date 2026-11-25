@@ -247,10 +247,14 @@ python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-e
 | 5 Hz 重规划（S3c） | `/plan` 平均 **4.48 Hz**（默认 BT 是 1 Hz）；绕障回归 5/5 过、14.2/15.6 s、峰值 0.96/1.16 m/s |
 | 缝窄判死路（S3c） | 敌车卡 1.3 m 走廊、goal 在它后面：**0.8 s 判出死路**（路径最小净空 0.05 m < 0.20），取消后位移 **0.00 m**，面距 **+0.665 m**（不撞、不磨） |
 | 死路误判反向回归（S3c） | 开阔 goal (3,−2.5)：不判定，`SUCCEEDED` 0.16 m，14.6 s，全程路径净空最小 0.43 m |
+| **5 点巡逻长跑回归（S3a+c 后）** | **5/5 SUCCEEDED**，到点 0.017–0.190 m、最小离障 **1.083 m**、碰撞 0、RTF 0.839、总 126.3 s；`Failed to create plan` **20 次（瞬态，下一周期即恢复）** |
+| 5 Hz 归因对照（同一图跑 1 Hz BT） | 5/5 SUCCEEDED、总 116.7 s、leg4 **74.5 s**（5 Hz 时 77.1 s）、`Failed to create plan` **11 次** ⇒ 慢腿与瞬态规划失败是**既有现象**，不是 5 Hz 带来的 |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
 
-验证报告：`results/report_sentry_patrol.json`、`results/report_map_sdf.json`、
-`results/align_case{1,2,3}.json`；证据日志在 WSL `/tmp/sentry_nav/evidence.log`。
+验证报告（本轮新增，全部在 `results/`）：`report_patrol_5hz.json`、`report_patrol_1hz_control.json`、
+`report_dead_end_narrow_pass.json`、`report_dead_end_open_pass.json`、`report_detour_narrow_lidar_{on,off}.json`、
+`report_detour_regress_{static,spawnafter}_5hz.json`；历史报告 `report_sentry_patrol.json`、
+`report_map_sdf.json`、`align_case{1,2,3}.json`；证据日志在 WSL `/tmp/sentry_nav/nav.log`。
 
 ## 4. 为什么不用点云现场建图（`src/pcd_to_pgm` 降级为实验工具）
 
