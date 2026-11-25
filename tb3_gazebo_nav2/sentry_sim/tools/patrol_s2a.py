@@ -8,7 +8,12 @@ Run inside ~/sentry_ws after ./run_sentry_nav.sh, with
   source ~/sentry_ws/install/setup.bash
   python3 tools/patrol_s2a.py
 
-Records per goal: action status/error code, arrival error vs /gt_odom, sim time.
+Records per goal: action status/error code, arrival error vs /gt_odom, sim time,
+plus per-leg telemetry (2026-11-25): travelled distance, avg speed, first /plan
+length, /cmd_vel_smoothed mean/peak/zero fraction, longest stall, and counts of
+`Failed to create plan` / `Failed to make progress` parsed from the nav2 log
+(those only exist in the log, not on a topic). Set SENTRY_PATROL_DUMP_PLANS=<dir>
+to dump each leg's first /plan polyline for offline geometry analysis.
 Whole run: min clearance to the 48 box collision rects (analytic), collision
 flag, lethal-map/costmap hits, RTF, CPU of the whole ROS domain, /scan stats.
 Writes ~/sentry_ws/results/report_sentry_patrol.json and prints a summary.
@@ -16,19 +21,20 @@ Writes ~/sentry_ws/results/report_sentry_patrol.json and prints a summary.
 import json
 import math
 import os
+import re
 import time
 
 import numpy as np
 import rclpy
 import yaml
-from nav_msgs.msg import OccupancyGrid, Odometry
+from nav_msgs.msg import OccupancyGrid, Odometry, Path
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist
 
 from nav2_msgs.action import NavigateToPose
 
@@ -37,6 +43,11 @@ BOXES = '/mnt/e/RM/tb3_gazebo_nav2/rm_field/debug/box_collisions.json'
 POINTS = os.path.join(WS, 'src/sentry_bringup/config/patrol_points.yaml')
 OUT = os.path.join(WS, 'results/report_sentry_patrol.json')
 LOG = '/tmp/sentry_nav/patrol.log'
+# run_sentry_nav.sh 把整栈日志写到这里；规划失败/推进失败只存在于日志里（没有话题）
+NAVLOG = os.environ.get('SENTRY_NAV_LOG', '/tmp/sentry_nav/nav.log')
+PLANNER_FAIL_PAT = 'Failed to create plan'
+PROGRESS_FAIL_PAT = 'Failed to make progress'
+LOG_TS_RE = re.compile(r'\[(\d{9,}\.\d+)\]')
 
 STATUS = {0: 'UNKNOWN', 1: 'ACCEPTED', 2: 'EXECUTING', 3: 'CANCELING',
           4: 'SUCCEEDED', 5: 'CANCELED', 6: 'ABORTED'}
@@ -124,6 +135,50 @@ def cpu_seconds(pids):
     return total
 
 
+def path_len(msg):
+    """路径总长（m）。"""
+    if msg is None or not msg.poses:
+        return None
+    total = 0.0
+    prev = None
+    for p in msg.poses:
+        cur = (p.pose.position.x, p.pose.position.y)
+        if prev is not None:
+            total += math.hypot(cur[0] - prev[0], cur[1] - prev[1])
+        prev = cur
+    return total
+
+
+def log_hits(t0, t1, pattern, tail_bytes=4_000_000):
+    """数 nav2 日志在**墙钟 epoch** 窗口 [t0, t1] 内命中 pattern 的行数。
+
+    注意 t0/t1 必须是 time.time()（epoch），不是 time.monotonic()——日志时间戳是 epoch。
+    nav2 的日志行形如 `[planner_server-12] [WARN] [1795601520.964] [...]`。
+    只读文件尾部，避免每腿都全量扫一个几十 MB 的日志。
+    """
+    if not os.path.exists(NAVLOG):
+        return 0
+    try:
+        size = os.path.getsize(NAVLOG)
+        with open(NAVLOG, 'r', errors='ignore') as f:
+            if size > tail_bytes:
+                f.seek(size - tail_bytes)
+                f.readline()          # 丢掉可能被截断的首行
+            n = 0
+            for line in f:
+                if pattern not in line:
+                    continue
+                m = LOG_TS_RE.search(line)
+                if m is None:
+                    continue
+                ts = float(m.group(1))
+                if t0 <= ts <= t1:
+                    n += 1
+            return n
+    except OSError:
+        return 0
+
+
 class Patrol(Node):
 
     def __init__(self):
@@ -140,7 +195,20 @@ class Patrol(Node):
         self.create_subscription(OccupancyGrid, '/global_costmap/costmap',
                                  self.on_cost, MAP_QOS)
         self.create_subscription(LaserScan, '/scan', self.on_scan, SCAN_QOS)
+        # 遥测（2026-11-25）：每腿的 /plan 长度/更新率 + 速度 + 规划失败次数。
+        # 规划失败只有日志里能看到，没有话题。
+        self.plans = []
+        self.cmds = []
+        self.create_subscription(Path, '/plan', self.on_plan, 10)
+        self.create_subscription(Twist, '/cmd_vel_smoothed', self.on_cmd, 20)
         self.client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+
+    def on_plan(self, msg):
+        self.plans.append((self.get_clock().now().nanoseconds * 1e-9, msg))
+
+    def on_cmd(self, msg):
+        v = math.hypot(msg.linear.x, msg.linear.y)
+        self.cmds.append((self.get_clock().now().nanoseconds * 1e-9, v, abs(msg.angular.z)))
 
     def on_gt(self, msg):
         p = msg.pose.pose
@@ -263,6 +331,9 @@ def main():
         before = node.gt
         sim_start = node.get_clock().now().nanoseconds * 1e-9
         wall_start = time.monotonic()
+        node.plans = []      # 遥测窗口：本腿的 /plan 与 /cmd_vel
+        node.cmds = []
+        epoch_start = time.time()
         goal = NavigateToPose.Goal()
         goal.pose.header.frame_id = 'map'
         goal.pose.header.stamp = node.get_clock().now().to_msg()
@@ -310,6 +381,32 @@ def main():
         if after is not None:
             yaw_err = abs((after[3] - gyaw + math.pi) % (2 * math.pi) - math.pi)
         cost = cost_at(node.cost, after[1], after[2]) if after is not None else None
+        # ---- 遥测：本腿的规划/速度/失败次数
+        plans = [pm for t, pm in node.plans if sim_start <= t <= sim_end]
+        first_plan = plans[0] if plans else None
+        cmds = [c for c in node.cmds if sim_start <= c[0] <= sim_end]
+        speeds = np.asarray([c[1] for c in cmds], dtype=float) if cmds else np.zeros(0)
+        stall = None
+        if cmds:
+            worst = cur = 0.0
+            prev_t = None
+            for t, speed, _wz in cmds:
+                dt = (t - prev_t) if prev_t is not None else 0.0
+                prev_t = t
+                if speed < 0.05:
+                    cur += dt
+                    worst = max(worst, cur)
+                else:
+                    cur = 0.0
+            stall = worst
+        planner_fail = log_hits(epoch_start, time.time(), PLANNER_FAIL_PAT)
+        progress_fail = log_hits(epoch_start, time.time(), PROGRESS_FAIL_PAT)
+        travelled = None
+        if len(trace) > 1:
+            travelled = sum(math.hypot(trace[k][1] - trace[k - 1][1],
+                                       trace[k][2] - trace[k - 1][2])
+                            for k in range(1, len(trace)))
+        plen = path_len(first_plan)
         legs.append({
             'index': i + 1, 'point': [gx, gy, gyaw],
             'accepted': bool(accepted), 'status': status,
@@ -328,11 +425,38 @@ def main():
             'min_clear_at_gt': [round(v, 3) for v in (leg_at[1:3] if leg_at else ())],
             'costmap_at_goal': cost,
             'truth_samples': len(trace),
+            'travelled_m': None if travelled is None else round(travelled, 2),
+            'avg_speed_mps': (None if not travelled else round(travelled / (sim_end - sim_start), 3)),
+            'plan_msgs': len(plans),
+            'plan_len_m': None if plen is None else round(plen, 2),
+            'cmd_mean_speed': None if speeds.size == 0 else round(float(speeds.mean()), 3),
+            'cmd_peak_speed': None if speeds.size == 0 else round(float(speeds.max()), 3),
+            'cmd_zero_frac': None if speeds.size == 0 else round(float((speeds < 0.05).mean()), 3),
+            'longest_stall_sim_s': None if stall is None else round(stall, 2),
+            'planner_fail_log': planner_fail,
+            'progress_fail_log': progress_fail,
         })
-        print('leg %d %s: %s err=%.3f m clear=%.3f sim=%.1fs'
+        # 可选：把每腿的首帧 /plan 折线 dump 出来（SENTRY_PATROL_DUMP_PLANS=<dir>），
+        # 用来离线分析"慢腿"的路线几何（长度/转角/曲率）。
+        dumpdir = os.environ.get('SENTRY_PATROL_DUMP_PLANS')
+        if dumpdir and first_plan is not None:
+            os.makedirs(dumpdir, exist_ok=True)
+            poly = [[round(q.pose.position.x, 3), round(q.pose.position.y, 3)]
+                    for q in first_plan.poses]
+            json.dump({'leg': i + 1, 'plan_len_m': plen, 'polyline': poly},
+                      open(os.path.join(dumpdir, 'plan_leg%d.json' % (i + 1)), 'w'),
+                      ensure_ascii=False)
+        print('leg %d %s: %s err=%.3f m clear=%.3f sim=%.1fs trav=%.2f m '
+              'plan=%.2f m vmean=%.2f vpeak=%.2f stall=%.1fs plfail=%d progfail=%d'
               % (i + 1, [gx, gy, gyaw], legs[-1]['status_name'],
                  gt_err if gt_err is not None else -1,
-                 leg_min if leg_min is not None else -1, legs[-1]['sim_s']),
+                 leg_min if leg_min is not None else -1, legs[-1]['sim_s'],
+                 legs[-1]['travelled_m'] or -1,
+                 legs[-1]['plan_len_m'] or -1,
+                 legs[-1]['cmd_mean_speed'] or -1,
+                 legs[-1]['cmd_peak_speed'] or -1,
+                 legs[-1]['longest_stall_sim_s'] or -1,
+                 planner_fail, progress_fail),
               flush=True)
 
     wall_end = time.monotonic()
@@ -350,6 +474,8 @@ def main():
         'cpu_pct_of_24_cores': round((c2 - c1) / max(1e-9, wall_end - wall0) * 100
                                      / os.cpu_count(), 1),
         'procs': len(cpu_pids),
+        'planner_fail_log_total': sum(l['planner_fail_log'] for l in legs),
+        'progress_fail_log_total': sum(l['progress_fail_log'] for l in legs),
     }
     if all_clear:
         mn = min(all_clear, key=lambda t: t[0])

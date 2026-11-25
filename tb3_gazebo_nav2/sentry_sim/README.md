@@ -222,6 +222,65 @@ python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-a
 python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-end
 ```
 
+## 2.11 footprint 换 0.62 方形：1.2–1.3 m 走廊真能过去（S3d，2026-11-25）
+
+**问题**：§2.10 把"1.2–1.3 m 走廊"按死路处理，根因不是感知也不是 inflation，是 **footprint**：
+半径 0.60 的圆（inscribed 0.60）要求 1.2 m 净宽，走廊里路径净空只剩 **0.05 m** < 判死路阈值 0.20，
+MPPI 只能原地磨。把 footprint 换成**真实车体 0.5×0.5 + 每侧 0.06 m 安全边 = 0.62 方形**
+（inscribed 0.31 / circumscribed 0.438）后，同一场景路径净空回到 **0.30–0.32 m**，13.8–15.1 s 到点。
+inflation(1.5) / CostCritic / MPPI 参数全部没动。
+
+**为什么不是纯 0.5 方形**：纯 0.5（inscribed 0.25）也能过走廊（净空 0.35），但会**放行 0.8 m 缝**，
+而且开阔路线擦墙角时净空 0.18 m 会被判死路（误判）。加 0.06 m 安全边把两边都拉开。
+
+**边界是换算出来的，不是拍脑袋**：判死路阈值仍是 0.20 m（`path_guard.py` 未改），
+它量的"到内切区边界距离"随 inscribed 半径平移，所以**能过的缝宽 = 2×(0.31+0.20) = 1.02 m**。
+三档实测（两块 wall 夹出精确缝宽，每档重启栈）：
+
+| 缝宽 | 路径最小净空 | 结果 |
+|---|---|---|
+| 0.9 m | 0.13 m | 0.2 s 判死路、取消后位移 0.00 m |
+| 1.0 m | 0.18 m | 0.4 s 判死路 |
+| 1.1 m | 0.20 m（正好压线） | 不判、`SUCCEEDED` 11.8 s、面距 +0.293 m |
+| 1.2–1.3 m（敌车挡路） | 0.30–0.32 m | `SUCCEEDED` 13.8–15.1 s、面距 +0.40 m |
+
+```bash
+# 应该走得通（guard 照常生效，判据是"不误判+到点+不撞"）
+python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove --expect-pass
+# 应该判死路（0.75 m 缝：两块 1.25 m wall 在 ±1.0）
+python3 tools/spawn_obstacle.py spawn -1.0 1.2 --size 1.25 --name wall_l
+python3 tools/spawn_obstacle.py spawn 1.0 1.2 --size 1.25 --name wall_r
+python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle -1.0 1.2 --obstacle-size 1.25 --timeout 60
+```
+
+实测：走廊 `verify_detour` 5/5（到点 0.188 m、面距 +0.402 m、横向偏移 0.919 m、最长停滞 0.3 s、14.2 s）；
+开阔 (0,0)→(3,−2.5) `SUCCEEDED` 13.9 s、净空 0.46 m、不误判；5 点巡逻仍 5/5（114.7 s、最小离障 1.095 m）。
+
+## 2.12 动力学敌车（`tools/enemy_drive.py`，2026-11-25）
+
+之前"会动的敌车"都是 `set_pose` 瞬移（`moving_obstacle.py` / `wander_obstacle.py` / `enemy_teleop.py`）：
+落点精确、但不产生物理接触，也测不了速度/惯性。现在 `spawn_obstacle.py --dynamic` 生成的模型
+带 `<inertial>` + **gz-sim-velocity-control-system**，接受 `/model/<name>/cmd_vel`（`gz.msgs.Twist`），
+由物理积分、与我们的车真实碰撞：
+
+```bash
+# 生成 + 0.5 m/s 直行 2.5 s（结束后自动停住；--remove 顺带删除）
+python3 tools/enemy_drive.py --spawn -1.0 1.2 --yaw 0 --linear 0.5 --duration 2.5 --remove
+# 只驱动已存在的敌车（可加 --angular）
+python3 tools/enemy_drive.py --linear 0.4 --angular 0.5 --duration 2.5
+```
+
+自检判据（对 `/world/<w>/pose/info` 采样，1 s 窗口测速、逐帧查瞬移）：
+
+| 指令 | 1 s 窗口速度（中位） | 逐帧最大 | 位移 |
+|---|---|---|---|
+| 0.5 m/s × 2.5 s | 0.468 m/s | 0.491 m/s（无瞬移尖峰） | 1.12 m |
+| 0.3 m/s × 3.0 s | 0.291 m/s | 0.291 m/s | 0.81 m |
+| 0.4 m/s 撞向静止哨兵（yaw −90°） | 0.382 m/s | 0.391 m/s | 哨兵被推 **0.241 m**（真接触） |
+
+两个工具的取舍：**要精确落点用 `moving_obstacle.py`（set_pose），要动力学/接触/可测速用
+`enemy_drive.py`（velocity control）**。
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -250,11 +309,19 @@ python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 6 6 --expect-no-dead-e
 | **5 点巡逻长跑回归（S3a+c 后）** | **5/5 SUCCEEDED**，到点 0.017–0.190 m、最小离障 **1.083 m**、碰撞 0、RTF 0.839、总 126.3 s；`Failed to create plan` **20 次（瞬态，下一周期即恢复）** |
 | 5 Hz 归因对照（同一图跑 1 Hz BT） | 5/5 SUCCEEDED、总 116.7 s、leg4 **74.5 s**（5 Hz 时 77.1 s）、`Failed to create plan` **11 次** ⇒ 慢腿与瞬态规划失败是**既有现象**，不是 5 Hz 带来的 |
 | 帧对齐校验（S2c） | 注入 (0,0,0)/(+0.30,−0.20,+3°)/(−0.15,+0.25,−5°) → 恢复误差 ≤2.3 mm / ≤0.063°，单次 4.4–4.7 s |
+| **走廊通过（S3d，2026-11-25）** | 敌车 (0,1.2)、goal (0,2.6)：`SUCCEEDED` **13.8 / 14.2 / 15.1 s**，路径净空 **0.30–0.32 m**，面距 **+0.40~+0.42 m**；`verify_detour` **5/5**（到点 0.188 m、横向偏移 0.919 m、最长停滞 0.3 s） |
+| 缝宽边界三档（S3d） | 0.9 m 净空 0.13 → 判死路；1.0 m 净空 0.18 → 判死路；1.1 m 净空 0.20 → 通过 11.8 s；边界 = **2×(0.31+0.20) = 1.02 m**（解析与实测一致） |
+| 开阔不误判（S3d） | (0,0)→(3,−2.5)：`SUCCEEDED` 13.9 s，路径净空 **0.46 m**，guard 不触发 |
+| 5 点巡逻（S3d 后） | **5/5 SUCCEEDED**，113.6–121.5 s，到点 ≤0.191 m，最小离障 **1.021–1.095 m**，碰撞 0，RTF 0.85 |
+| 巡逻遥测（2026-11-25 新增字段） | leg4 是**最长腿**不是"慢腿"：plan 15.0 m、实走 16.9 m；单位里程耗时与其它腿一致（0.26 vs 0.27–0.44 m/s），零停顿、`Failed to create plan` 0–3 次瞬态 |
+| 动力学敌车（S3d） | 指令 0.5/0.3/0.4 m/s → 1 s 窗口测速 **0.468/0.291/0.382 m/s**，逐帧无瞬移尖峰；撞静止哨兵把车**推 0.241 m**（真物理接触） |
 
 验证报告（本轮新增，全部在 `results/`）：`report_patrol_5hz.json`、`report_patrol_1hz_control.json`、
 `report_dead_end_narrow_pass.json`、`report_dead_end_open_pass.json`、`report_detour_narrow_lidar_{on,off}.json`、
-`report_detour_regress_{static,spawnafter}_5hz.json`；历史报告 `report_sentry_patrol.json`、
-`report_map_sdf.json`、`align_case{1,2,3}.json`；证据日志在 WSL `/tmp/sentry_nav/nav.log`。
+`report_detour_regress_{static,spawnafter}_5hz.json`；2026-11-25 新增
+`report_dead_end_{180643,180913,181234,181238,181903,182016,182045,182643,191704,191740,191829}.json`
+（footprint 前后 / 缝宽三档）、`report_detour_182155.json`、`report_sentry_patrol.json`（含每腿遥测）；
+历史报告 `report_map_sdf.json`、`align_case{1,2,3}.json`；证据日志在 WSL `/tmp/sentry_nav/nav.log`。
 
 ## 4. 为什么不用点云现场建图（`src/pcd_to_pgm` 降级为实验工具）
 
@@ -296,9 +363,10 @@ src/odin1_sim_bridge     # Odin1 接口替身：真值 → /odin1/odometry + TF�
 src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
 src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
 src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
-tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行、发目标、点地图窗口（map_click.py）、
+tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行（含每腿遥测）、发目标、点地图窗口（map_click.py）、
                          # 敌方机器人障碍（spawn_obstacle.py）、移动/漫游敌车（moving_obstacle.py /
-                         # wander_obstacle.py）、键盘遥控（teleop_gui.py）、绕障验收（verify_detour.py）
+                         # wander_obstacle.py）、动力学敌车（enemy_drive.py）、键盘遥控（teleop_gui.py）、
+                         # 绕障验收（verify_detour.py）、判死路验收（verify_dead_end.py）
 results/                 # 验收 JSON 证据
 ```
 
@@ -360,6 +428,17 @@ results/                 # 验收 JSON 证据
 22. **判死路的阈值要用"发布尺度"**：nav2 发布的 `OccupancyGrid` 里 100=致命、99=内切、
     其余是 `cost*100/255` —— 拿原始 costmap 的 253/254 当阈值会永远判不出来（第一版就是这样，
     全程 `max_cost=100` 而阈值写 200）。本项目改成"对内切区做距离变换取净空(m)"，可读且好标定。
+23. **footprint 的 inscribed 半径就是"能不能过"的总闸，判死路阈值必须跟着换口径**：半径 0.6 的圆
+    换成 0.62 方形后，同一条 1.2–1.3 m 走廊的路径净空 0.05 → 0.30 m；阈值 0.20 的物理含义也
+    从"缝宽 ≥1.2 m"变成"缝宽 ≥1.02 m = 2×(0.31+0.20)"。只改 footprint 不重算阈值 = 两种行为
+    同时错（该过的过不去、该拒的放行）。
+24. **gz 的 `/world/<w>/remove` 必须给 `type=MODEL`**：只填 `name` 时服务返回 `true` 但**模型没删**
+    （2026-11-25 踩：`/scan_safety` 仍能量到 1.000 m、`gz model --list` 还在，代价地图留一块
+    "幽灵障碍"，后续用例被污染）。删完必须用 `gz model --list` 回读校验（`spawn_obstacle.py`
+    已内置 `verified_gone`）。
+25. **动力学敌车**：模型 SDF 要带 `<inertial>` + `gz-sim-velocity-control-system` 插件才吃
+    `/model/<name>/cmd_vel`。测速别用"到达时刻"算 dt —— gz 传输会批量到达，dt 可能 ~0，
+    逐帧速度会算出 83 m/s 的假尖峰；用 `pose/info` 消息头里的**仿真时间**、并跳过起步加速段（0.6 s）。
 
 ## 8. Humble / RDK S100 兼容
 
@@ -390,15 +469,12 @@ results/                 # 验收 JSON 证据
   （2026-11-23 加了局部 `static_layer` 后，车自己不会再开进这种位置。）
 - **开 GUI 时 RTF 只有 0.67–0.79**：`gz sim gui` 单进程吃 3.3 核（llvmpipe 软渲染），这也是"看起来慢"
   的一半原因；要跑最快速度/最高 RTF 就 `gui:=false`。
-- 临时障碍测试：**静态敌车**与**慢速横穿敌车**（0.3–0.4 m/s）已验收；**追击/迎面而来的敌车**没做
-  （`set_pose` 推的敌车不会决策；横穿段若扫过车身所在位置，任何规划器都会被撞 —— 见 §2.6 注）。
-- **贴脸场景"不撞了但到不了点"（S3a 遗留，S3c 已按"判死路停住"处理）**：敌车 (0,1.2) 摆在车头
-  1.2 m 时，两侧净空各 1.2–1.3 m，而 footprint 半径 0.6 的 inscribed 半径也是 0.6 → 走廊里
-  "非致命"格子只剩约 0.1 m 宽，MPPI 的 `CostCritic`（near_collision 253 / critical 300）让每条
-  前向轨迹都接近临界 → 车只在起点附近小幅转/爬（17–20 m 轨迹耗 200 s、10–11 次 Failed to make
-  progress、到点 2.4 m）。这不是感知问题：同一目标无障时 **9.6 s 到达**；把全局 inflation 降到
-  0.9 也无效。**S3c 的处理**：这种缝直接判死路 → 取消 + 停住（0.8 s），不再磨 200 s；
-  想真的过去只能改 footprint/底盘参数，属于调参，不在本轮范围。
+- 临时障碍测试：**静态敌车**与**慢速横穿敌车**（0.3–0.4 m/s）已验收；**动力学敌车**已可用
+  （`enemy_drive.py`，§2.12），但**追击/迎面拦截**的战术行为没做（敌车不会决策，只会按指令速度走）。
+- ~~贴脸场景"不撞了但到不了点"（S3a 遗留）~~ **已解决（S3d，2026-11-25）**：根因不是感知也不是
+  inflation，是 footprint 半径 0.6 的圆（inscribed 0.6）把 1.2–1.3 m 走廊的路径净空压到 0.05 m。
+  换成 0.62 方形（车体 0.5 + 0.06 安全边）后同场景净空 0.30–0.32 m、13.8–15.1 s 到点、面距 +0.40 m；
+  窄缝仍由 `path_guard` 的 0.20 m 阈值判死路（等价缝宽 1.02 m）。详见 §2.11。
 - **死路判定在客户端**：`ros2 action send_goal` 直接发的目标没有客户端盯路径 → 不会自动取消。
   要用这个保护就走点地图窗口或 `verify_dead_end.py`。
 - 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。

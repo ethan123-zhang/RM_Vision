@@ -49,6 +49,14 @@ SDF = """<?xml version="1.0"?>
     <static>{static}</static>
     <pose>0 0 0 0 0 0</pose>
     <link name="body">
+      <inertial>
+        <mass>15.0</mass>
+        <inertia>
+          <ixx>0.35</ixx><ixy>0.0</ixy><ixz>0.0</ixz>
+          <iyy>0.35</iyy><iyz>0.0</iyz>
+          <izz>0.45</izz>
+        </inertia>
+      </inertial>
       <collision name="collision">
         <geometry><box><size>{size} {size} {height}</size></box></geometry>
       </collision>
@@ -60,10 +68,19 @@ SDF = """<?xml version="1.0"?>
           <specular>0.15 0.15 0.15 1</specular>
         </material>
       </visual>
-    </link>
+    </link>{extra}
   </model>
 </sdf>
 """
+
+# 动力学的敌车：VelocityControl 系统让模型接受 /model/<name>/cmd_vel（gz.msgs.Twist）
+# 的速度指令，由物理积分、与机器人真实碰撞 —— 取代"set_pose 瞬移"的测法。
+# 注意它只认速度、不认位置：要精确落点仍用 moving_obstacle.py 的 set_pose。
+VEL_CTRL = """
+    <plugin filename="gz-sim-velocity-control-system"
+            name="gz::sim::systems::VelocityControl">
+      <topic>/model/{name}/cmd_vel</topic>
+    </plugin>"""
 
 
 def main():
@@ -103,7 +120,8 @@ def main():
     req.name = args.name
     req.allow_renaming = False
     req.sdf = SDF.format(name=args.name, size=args.size, height=args.height,
-                         static="false" if args.dynamic else "true")
+                         static="false" if args.dynamic else "true",
+                         extra=VEL_CTRL.format(name=args.name) if args.dynamic else "")
     req.pose.CopyFrom(Pose(name=args.name))
     req.pose.position.x = args.x
     req.pose.position.y = args.y
