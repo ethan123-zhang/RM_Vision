@@ -1,0 +1,43 @@
+{
+  "pass": true,
+  "expect_no_dead_end": false,
+  "result": "CANCELED",
+  "judge_s": 0.18,
+  "judge_min_clear_m": 0.05,
+  "threshold_clear_m": 0.2,
+  "min_clear_seen_m": 0.05,
+  "stopped_after_cancel_m": 0.006,
+  "min_obstacle_center_m": 1.187,
+  "gap_face_m": 0.737,
+  "duration_sim_s": 0.22,
+  "start": [
+    -0.0,
+    0.0
+  ],
+  "goal": [
+    0.0,
+    2.6
+  ],
+  "obstacle": [
+    0.0,
+    1.2
+  ],
+  "checks": {
+    "死路及时判定": {
+      "pass": true,
+      "detail": "判定 0.2 s（上限 20 s），路径最小净空 0.05 m（阈值 0.20 m）"
+    },
+    "取消后停住": {
+      "pass": true,
+      "detail": "取消后 3 s 内位移 0.01 m"
+    },
+    "不撞敌车(面距>=0.05 m)": {
+      "pass": true,
+      "detail": "最小中心距 1.187 m → 面距 +0.737 m"
+    },
+    "没有磨满超时": {
+      "pass": true,
+      "detail": "总用时 0.2 s（上限 60 s）, 结果 CANCELED"
+    }
+  }
+}

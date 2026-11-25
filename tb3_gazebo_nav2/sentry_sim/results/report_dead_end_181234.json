@@ -1,0 +1,43 @@
+{
+  "pass": false,
+  "expect_no_dead_end": false,
+  "result": "SUCCEEDED",
+  "judge_s": null,
+  "judge_min_clear_m": null,
+  "threshold_clear_m": 0.2,
+  "min_clear_seen_m": 0.354,
+  "stopped_after_cancel_m": null,
+  "min_obstacle_center_m": 0.808,
+  "gap_face_m": 0.358,
+  "duration_sim_s": 13.86,
+  "start": [
+    -0.0,
+    0.0
+  ],
+  "goal": [
+    0.0,
+    2.6
+  ],
+  "obstacle": [
+    0.0,
+    1.2
+  ],
+  "checks": {
+    "死路及时判定": {
+      "pass": false,
+      "detail": "根本没判定"
+    },
+    "取消后停住": {
+      "pass": false,
+      "detail": "未测到"
+    },
+    "不撞敌车(面距>=0.05 m)": {
+      "pass": true,
+      "detail": "最小中心距 0.808 m → 面距 +0.358 m"
+    },
+    "没有磨满超时": {
+      "pass": true,
+      "detail": "总用时 13.9 s（上限 60 s）, 结果 SUCCEEDED"
+    }
+  }
+}

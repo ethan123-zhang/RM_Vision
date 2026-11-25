@@ -11,12 +11,19 @@ goal handle；点地图窗口/本脚本自己发目标，所以自己判、自�
   4) 没有跑满 --timeout（默认 60 s）
 
 反向回归（--expect-no-dead-end）：开阔场地应当**不**误判，目标 SUCCEEDED。
+    （该模式会关掉判定，所以只证明"能走"，不证明"没被误判"。）
+
+应该走通的窄缝回归（--expect-pass）：guard 照常生效，判据是"不误判 + 到点 + 不撞"。
+  2026-11-25 footprint 换成 0.62 方形后，1.2~1.3 m 走廊用这个模式验收（净空 0.32 m）。
 
 用法（栈已在跑，ROS_DOMAIN_ID=45）：
   # 窄缝：敌车 (0,1.2) 挡在车头，目标 (0,2.6) 在它后面
   python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 --remove
   # 开阔：不该误判
   python3 tools/verify_dead_end.py --goal 3 -2.5 --obstacle 5 5 --expect-no-dead-end
+  # 1.2~1.3 m 走廊：应该走得通
+  python3 tools/verify_dead_end.py --goal 0 2.6 --obstacle 0 1.2 --spawn --spawn-after 1.5 \
+      --remove --expect-pass
 """
 import argparse
 import json
@@ -61,6 +68,9 @@ def main():
     ap.add_argument("--judge-timeout", type=float, default=20.0, help="多少仿真秒内必须判定")
     ap.add_argument("--timeout", type=float, default=60.0, help="总仿真时间上限")
     ap.add_argument("--expect-no-dead-end", action="store_true")
+    ap.add_argument("--expect-pass", action="store_true",
+                    help="应该走得通：guard 照常生效，但判据换成"
+                         "'不误判死路 + 到点 + 不撞'（窄缝用例别用）")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
     gx, gy = args.goal
@@ -224,7 +234,17 @@ def main():
     moved = locals().get("moved", None)
     stopped = moved is not None and moved < 0.15
 
-    if args.expect_no_dead_end:
+    if args.expect_pass:
+        checks = [
+            ("没有误判死路(guard 生效但不触发)", judge_t is None,
+             f"judge={'none' if judge_t is None else f'{judge_t:.1f} s'}"),
+            ("目标到达", name == "SUCCEEDED", f"{name}，到点 {args.timeout:.0f} s 内"),
+            ("不撞敌车(面距>=0.05 m)", gap_face >= 0.05,
+             f"最小中心距 {min_obs:.3f} m → 面距 {gap_face:+.3f} m"
+             if args.obstacle else "无碍"),
+            ("用时 <= timeout", duration <= args.timeout, f"{duration:.1f} s"),
+        ]
+    elif args.expect_no_dead_end:
         checks = [
             ("没有误判死路", judge_t is None, f"judge={'none' if judge_t is None else f'{judge_t:.1f} s'}"),
             ("目标到达", name == "SUCCEEDED", f"{name}"),
@@ -256,6 +276,7 @@ def main():
     payload = {
         "pass": ok,
         "expect_no_dead_end": bool(args.expect_no_dead_end),
+        "expect_pass": bool(args.expect_pass),
         "result": name,
         "judge_s": round(judge_t, 2) if judge_t is not None else None,
         "judge_min_clear_m": round(judge_info["min_clear"], 3) if judge_info else None,
