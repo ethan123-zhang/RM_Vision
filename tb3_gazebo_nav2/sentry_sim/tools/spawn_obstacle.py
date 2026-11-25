@@ -11,9 +11,14 @@ RTF 掉到 0.10，表现就是"死机"。这个脚本在 server 侧生成一个 
   python3 tools/spawn_obstacle.py spawn 2.0 1.0 --yaw 90 --name enemy2
   python3 tools/spawn_obstacle.py remove                   # 删掉默认名字
   python3 tools/spawn_obstacle.py remove --name enemy2
+
+remove 会显式带 `type=MODEL` 并回读 `gz model --list` 校验（2026-11-25：只给 name 时
+服务返回 true 但不删模型 → 世界/雷达/代价地图里留"幽灵障碍"，后一个用例被环境污染）。
 """
 import argparse
+import subprocess
 import sys
+import time
 
 from gz.msgs10.boolean_pb2 import Boolean
 from gz.msgs10.entity_factory_pb2 import EntityFactory
@@ -22,6 +27,21 @@ from gz.msgs10.pose_pb2 import Pose
 from gz.transport13 import Node
 
 WORLD = "/world/rmul2027_3v3"
+
+
+def _model_list():
+    """当前世界里的模型名集合（走 gz CLI；读不到就当空集合，不阻塞主流程）。"""
+    try:
+        out = subprocess.run(["gz", "model", "--list"], capture_output=True,
+                             text=True, timeout=15).stdout
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    names = set()
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("- "):
+            names.add(line[2:].strip())
+    return names
 
 SDF = """<?xml version="1.0"?>
 <sdf version="1.9">
@@ -62,11 +82,21 @@ def main():
     node = Node()
 
     if args.action == "remove":
+        if args.name not in _model_list():
+            print(f"remove {args.name}: 世界里没有这个模型（already gone）")
+            return 0
         req = Entity()
         req.name = args.name
+        # 必须显式给 type=MODEL：只给 name 时 gz 的 /world/<w>/remove 返回 true 却不删模型
+        # （2026-11-25 实测：模型还在，/scan_safety 仍量到 1.000 m，代价地图留"幽灵障碍"，
+        #  后续用例被环境污染）。type 缺失 → 服务当成空实体，静默成功。
+        req.type = getattr(Entity, "MODEL", 2)
         ok, resp = node.request(WORLD + "/remove", req, Entity, Boolean, 3000)
-        print(f"remove {args.name}: rc={ok} result={getattr(resp, 'data', None)}")
-        return 0 if ok and getattr(resp, "data", False) else 1
+        result = getattr(resp, "data", None)
+        time.sleep(0.5)
+        gone = args.name not in _model_list()
+        print(f"remove {args.name}: rc={ok} result={result} verified_gone={gone}")
+        return 0 if (ok and result and gone) else 1
 
     import math
     req = EntityFactory()
