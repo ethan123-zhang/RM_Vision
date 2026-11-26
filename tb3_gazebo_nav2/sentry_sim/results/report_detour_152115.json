@@ -1,0 +1,57 @@
+{
+  "pass": true,
+  "result": "SUCCEEDED",
+  "arrival_m": 0.182,
+  "straight_m": 3.905,
+  "path_m": 4.732,
+  "max_speed_mps": 0.869,
+  "duration_sim_s": 14.88,
+  "min_obstacle_center_m": 1.479,
+  "gap_face_m": 1.029,
+  "gap_circumscribed_m": 0.925,
+  "min_static_clearance_m": 1.325,
+  "max_lateral_offset_m": 1.325,
+  "longest_stall_sim_s": 0.1,
+  "start": [
+    -0.0,
+    0.0
+  ],
+  "goal": [
+    3.0,
+    -2.5
+  ],
+  "obstacle": [
+    1.5,
+    0.65
+  ],
+  "moving": true,
+  "moving_line": [
+    1.5,
+    0.65,
+    1.5,
+    -0.15
+  ],
+  "moving_speed": 0.3,
+  "checks": {
+    "到达(SUCCEEDED, <=0.30 m)": {
+      "pass": true,
+      "detail": "SUCCEEDED 到点误差 0.182 m"
+    },
+    "绕障面距(>=0.05 m)": {
+      "pass": true,
+      "detail": "中心距 1.479 m → 面距 +1.029 m（外接半径口径 +0.925 m）"
+    },
+    "不蹭墙(静态净空>=0.05 m)": {
+      "pass": true,
+      "detail": "最小静态净空 1.325 m"
+    },
+    "确实绕行(横向偏移>=0.40 m)": {
+      "pass": true,
+      "detail": "最大横向偏移 1.325 m"
+    },
+    "无死循环(停滞<=5 s)": {
+      "pass": true,
+      "detail": "最长停滞 0.1 s"
+    }
+  }
+}

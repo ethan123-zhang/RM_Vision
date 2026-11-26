@@ -359,6 +359,10 @@ goal handle）：
 | 前视相机（S3e） | `camera:=true` 时 `/camera/image` **5–6 Hz**、480×360、`fx=350.8`；默认关（不渲染、不桥接） |
 | 装甲板检测（S3e） | 1/2/3 m 距离误差 **0.020 / 0.006 / 0.066 m**、方位误差 ≤**0.032 rad**、颜色正确、检出率 **1.00**（21/21 判据） |
 | 让行（S3e） | 1.2 m 缝被敌车堵住：触发（前方 1.00 m、无路径）→ **退 0.93 m** → RESUME → **SUCCEEDED 0.06 m**，17.6 s，面距 +0.750 m（**5/5**） |
+| 贴脸 A/B（S3d 后复跑，2026-11-26） | 雷达**关**：`SUCCEEDED` 但**面距 −0.000 m（撞上）**、81.2 s、路径 9.23 m；雷达**开**：面距 **+0.433 m**、**5/5 判据过**、9.8 s、路径 3.55 m |
+| 动态敌车横穿（S3d 后） | **5/5 判据过**：到点 0.182 m、与移动敌车最小中心距 1.479 m（面距 +1.029 m）、横向偏移 1.325 m、14.9 s |
+| 点地图链路自检（S3d 后） | `map_click.py --click 3 -2.5` → `CLICK go (3.000,−2.500)` → `SELFTEST result=SUCCEEDED`、dist_to_goal **0.146 m** |
+| 最终 5 点巡逻（S3e 后） | **5/5 SUCCEEDED**、116.74 s、RTF **0.943**、到点 ≤0.182 m、最小离障 1.043 m、碰撞 0、`planner_fail` 0 |
 
 验证报告（本轮新增，全部在 `results/`）：`report_patrol_5hz.json`、`report_patrol_1hz_control.json`、
 `report_dead_end_narrow_pass.json`、`report_dead_end_open_pass.json`、`report_detour_narrow_lidar_{on,off}.json`、
