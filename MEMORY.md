@@ -5,13 +5,14 @@
 ## 1. 当前状态
 
 - 现在做什么、卡在哪、下一步：[PROGRESS.md](PROGRESS.md)（顶部区块，最新的在最前）。
-- 最近一次交接：[docs/handoffs/2026-11-24-sentry-safety-lidar.md](docs/handoffs/2026-11-24-sentry-safety-lidar.md)（a 低位安全雷达 + c 5 Hz 重规划/缝窄判死路均完成；5 点巡逻回归 5/5，1 Hz 归因对照已做）。
-- 上一轮：[docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)（哨兵仿真交互化 + 导航调参）。
+- 最近一次交接：[docs/handoffs/2026-11-26-sentry-footprint-dynamics-competition.md](docs/handoffs/2026-11-26-sentry-footprint-dynamics-competition.md)（footprint 0.62 收口、幽灵障碍根因、动力学敌车、相机/装甲板/让行 21/21+5/5、回归全过；遗留：敌车"发速度不动"未解）。
+- 上一轮：[docs/handoffs/2026-11-24-sentry-safety-lidar.md](docs/handoffs/2026-11-24-sentry-safety-lidar.md)（a 低位安全雷达 + c 5 Hz 重规划/缝窄判死路均完成；5 点巡逻回归 5/5，1 Hz 归因对照已做）。
 
 ## 2. 交接记录（docs/handoffs/）
 
 按会话追加，新文件优先于旧文件：
 
+- [2026-11-26 哨兵仿真：footprint 0.62 收口 + 幽灵障碍根因 + 动力学敌车 + 比赛要素（相机/装甲板/让行）](docs/handoffs/2026-11-26-sentry-footprint-dynamics-competition.md)
 - [2026-11-23 晚 哨兵仿真交互化+调参+"贴脸未识别"根因（下一步 a+c）](docs/handoffs/2026-11-23-sentry-sim-nav-tuning-and-limits.md)
 - [2026-11-23 收尾：哨兵仿真闭环 + S100 迁移准备](docs/handoffs/2026-11-23-sentry-sim-session-closeout.md) / [S100 实车迁移清单与上车判据](docs/handoffs/2026-11-23-sentry-s100-migration.md)
 - [2026-11-21 清场 domain 隔离 + 动态箱三档 + 0.62 m 超窄门（2.5 cm 栅格变体）](docs/handoffs/2026-11-21-domain-scope-cleanup-and-acceptance-tiers.md)

@@ -1,9 +1,31 @@
 # 项目进度
 
 > 唯一“现在进行时”。每次会话结束更新；历史细节放 `docs/issues/` 与 `docs/decisions/`。
-> 最后更新：2026-11-25（a 低位安全雷达 + c 5 Hz 重规划/缝窄判死路，均验收；5 点巡逻长跑回归 5/5）
+> 最后更新：2026-11-26（footprint 0.62 收口 + 幽灵障碍根因 + 动力学敌车 + 比赛要素：相机/装甲板/让行；
+> ①②③④ 四项遗留全部闭环，改后回归全过；**遗留：敌车"发速度但不动"未解**）
 
 ## 当前接续（优先于下方 10 月 26 日的历史状态）
+
+> **🆕 2026-11-26（footprint 收口 + 缺陷根因 + 比赛要素）**：详见
+> [2026-11-26-sentry-footprint-dynamics-competition.md](docs/handoffs/2026-11-26-sentry-footprint-dynamics-competition.md)。
+> ①**footprint 半径 0.6 圆 → 0.62 方形**（车体 0.5 + 每侧 0.06 安全边，inscribed 0.31）：
+> 1.2–1.3 m 走廊路径净空 0.05 → **0.30–0.32 m**，13.8–15.1 s 到点、面距 +0.40 m；inflation/MPPI 未动。
+> 判死路阈值仍是 0.20 m，但换算成**能过的缝宽 = 2×(0.31+0.20) = 1.02 m**（0.9/1.0 m 拒、1.1 m 过）。
+> ②**幽灵障碍根因**：`/world/<w>/remove` 只给 name 不给 `type=MODEL` 时返回 true 却不删模型
+> （雷达仍量到 1.000 m、代价地图持续重打标记）；修后敌车区域 >=99 格 814 → 0。
+> ③**动力学敌车**：`--dynamic` 加 `<inertial>` + VelocityControl；新 `tools/enemy_drive.py`
+> （0.5/0.3 m/s 实测 0.468/0.291 m/s、无瞬移尖峰；撞静止哨兵推开 0.241 m）。
+> ④**S3e 比赛要素**：`camera:=true` 前视相机（480×360@5–6 Hz）+ `armor_detect.py`（HSV，
+> `/armor/detections`）→ `verify_armor.py` **21/21**（1/2/3 m 距离误差 0.020/0.006/0.066 m）；
+> `verify_yield.py` 让行 **5/5**（前方 1.00 m 无路径 → 退 0.93 m → 恢复 → 到点 0.06 m，17.6 s）。
+> ⑤**回归全过**：贴脸 A/B（雷达关面距 −0.000 撞上 / 雷达开 +0.433、5/5、9.8 s）、动态敌车横穿 5/5、
+> 点地图 selftest 0.146 m、5 点巡逻 **5/5**（116.7 s、RTF 0.943、最小离障 1.043 m）。
+> ⑥**遗留（停在这里）**：GUI 栈里敌车"发了 cmd_vel 但位移 0.01 m"——话题存在、订阅者在、900 s 稳定发布；
+> 普通动态车同样不动（排除装甲板）；怀疑物理体休眠（SetLinearVelocity 不唤醒）。
+> **下次进入点**：`cd ~/sentry_ws && DISPLAY=:0 ./run_sentry_nav.sh gui:=true map_click:=true`
+> → `python3 tools/verify_dead_end.py ... --expect-pass` / `verify_armor.py` / `verify_yield.py` / `patrol_s2a.py`。
+> **未做**：Nav2 Humble 参数表（等 Humble 环境）、S100 实车（等板子/校园网）、装甲板数字识别、敌车追击/拦截、
+> 让行接进 `map_click.py`。
 
 > **🆕 2026-11-24 晚（S3a = a 完成，下一步 c）**：给哨兵仿真补上"低位 2D 安全雷达"，把
 > "敌车 0.25 m 高、Mid-360 在 0.30 m 看不见"的盲区堵住。详见
