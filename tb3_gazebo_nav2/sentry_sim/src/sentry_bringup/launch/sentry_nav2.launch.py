@@ -58,6 +58,8 @@ def generate_launch_description():
             'spawn_y': LaunchConfiguration('spawn_y'),
             # S3a: low safety lidar switch, forwarded to sentry_sim.launch.py
             'safety_lidar': LaunchConfiguration('safety_lidar'),
+            # S3e: front camera switch (armor-plate detection), forwarded to sentry_sim.launch.py
+            'camera': LaunchConfiguration('camera'),
             'map_offset_x': LaunchConfiguration('map_offset_x'),
             'map_offset_y': LaunchConfiguration('map_offset_y'),
             'map_offset_yaw': LaunchConfiguration('map_offset_yaw'),
@@ -145,6 +147,8 @@ def generate_launch_description():
         DeclareLaunchArgument('map_offset_yaw', default_value='0.0'),
         # S3a: low safety lidar; safety_lidar:=false reproduces the old blind spot.
         DeclareLaunchArgument('safety_lidar', default_value='true'),
+        # S3e: front camera (armor-plate detection); off by default.
+        DeclareLaunchArgument('camera', default_value='false'),
         sim,
         map_click,
         # map_server only needs the yaml; give gz a few seconds to settle so the

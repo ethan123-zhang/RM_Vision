@@ -281,6 +281,47 @@ python3 tools/enemy_drive.py --linear 0.4 --angular 0.5 --duration 2.5
 两个工具的取舍：**要精确落点用 `moving_obstacle.py`（set_pose），要动力学/接触/可测速用
 `enemy_drive.py`（velocity control）**。
 
+## 2.13 前视相机 + 装甲板检测 + 让行（S3e，2026-11-26）
+
+**为什么现在才加相机**：前面所有导航验收都只用 Mid-360（点云→/scan）和低位安全雷达，没有图像。
+装甲板是比赛要素、必须有视觉；但 llvmpipe 下多一路 RGB 渲染会压 RTF，所以做成**开关**：
+
+```bash
+./run_sentry_nav.sh gui:=false camera:=true        # 默认 false：不开就不渲染、不桥接
+```
+
+相机规格：`sentry.urdf.xacro` 的 `camera` 参数，480×360 @10 Hz、hfov 1.2 rad，装 base_link
+`(0.10, 0, 0.20)`（离地 0.29 m，略低于 Mid-360 的 0.30 m）、下俯 0.08 rad；只在这个开关打开时
+桥接 `/camera/image` + `/camera/camera_info`。实测图像 **5–6 Hz**（目标 10 Hz，渲染跟不上）、
+`fx=350.8`。
+
+**装甲板**：`spawn_obstacle.py --armor red|blue` 给敌车四面加 RM 小装甲板 135×55×6 mm
+（离地 0.15 m、纯视觉无碰撞），车体同时压成深灰以拉开 HSV 对比。
+
+**检测**：`tools/armor_detect.py` —— 纯 HSV 阈值（红两段/蓝一段）+ 轮廓长宽比过滤，输出
+`/armor/detections`（JSON）：颜色、像素框、`bearing_rad`、`distance_m = fx*0.135/w_px`。
+符号实测：**目标在 +y 时落在图像左侧** ⇒ 世界方位 = −相机方位。
+仿真里是纯色块所以 HSV 够用；实车要换成装甲板数字识别，不在本轮范围。
+
+**验收**：`tools/verify_armor.py`（自己起检测节点、按真值摆位、每例采 2 s 取中位）
+
+| 用例 | 结果 |
+|---|---|
+| 正对 1.0 / 2.0 / 3.0 m | 距离误差 **0.020 / 0.006 / 0.066 m**（容差 max(0.20, 8%)），方位误差 0.000 |
+| 横移 ±0.5 m @2.0 m | 方位误差 **0.0322 rad**（1.8°） |
+| 蓝色装甲板 @2.0 m | 距离误差 0.006 m、颜色正确 |
+| 检出率 | 每个用例 **1.00**（13–15 帧全检出） → 21/21 判据过 |
+
+**让行**（`tools/verify_yield.py`；任务层策略，和 `path_guard` 同因：取消/重发都要发起方的
+goal handle）：
+①盯 `/scan_safety` 前扇区 ±20° 最小量程 + `path_guard` 的路径净空；
+②前方 <1.5 m 有障碍**且**（路径净空 <0.20 m **或** 规划器 3 s 给不出路径）→ 取消目标、退回 1.0 m；
+③等路通（本验收用"删模型"模拟敌车离开）→ 2 s 后重发原目标，失败可重试（≤3 次）。
+
+实测（1.2 m 缝在 (0,1.2) 被敌车堵住、goal (0,2.6)）：**触发（前方 1.00 m、无路径）→ 退 0.93 m →
+等待 → RESUME → SUCCEEDED 到点 0.06 m**，全程 17.6 s、与敌车最小面距 +0.750 m，**5/5 判据过**。
+对比"死路→取消→停住"：让行多一步"等 + 恢复"，不把任务丢在地上。
+
 ## 3. 已验证读数（全部可复跑）
 
 | 项 | 读数 |
@@ -315,6 +356,9 @@ python3 tools/enemy_drive.py --linear 0.4 --angular 0.5 --duration 2.5
 | 5 点巡逻（S3d 后） | **5/5 SUCCEEDED**，113.6–121.5 s，到点 ≤0.191 m，最小离障 **1.021–1.095 m**，碰撞 0，RTF 0.85 |
 | 巡逻遥测（2026-11-25 新增字段） | leg4 是**最长腿**不是"慢腿"：plan 15.0 m、实走 16.9 m；单位里程耗时与其它腿一致（0.26 vs 0.27–0.44 m/s），零停顿、`Failed to create plan` 0–3 次瞬态 |
 | 动力学敌车（S3d） | 指令 0.5/0.3/0.4 m/s → 1 s 窗口测速 **0.468/0.291/0.382 m/s**，逐帧无瞬移尖峰；撞静止哨兵把车**推 0.241 m**（真物理接触） |
+| 前视相机（S3e） | `camera:=true` 时 `/camera/image` **5–6 Hz**、480×360、`fx=350.8`；默认关（不渲染、不桥接） |
+| 装甲板检测（S3e） | 1/2/3 m 距离误差 **0.020 / 0.006 / 0.066 m**、方位误差 ≤**0.032 rad**、颜色正确、检出率 **1.00**（21/21 判据） |
+| 让行（S3e） | 1.2 m 缝被敌车堵住：触发（前方 1.00 m、无路径）→ **退 0.93 m** → RESUME → **SUCCEEDED 0.06 m**，17.6 s，面距 +0.750 m（**5/5**） |
 
 验证报告（本轮新增，全部在 `results/`）：`report_patrol_5hz.json`、`report_patrol_1hz_control.json`、
 `report_dead_end_narrow_pass.json`、`report_dead_end_open_pass.json`、`report_detour_narrow_lidar_{on,off}.json`、
@@ -364,9 +408,11 @@ src/map_align_check      # 点云 ↔ CAD 图的帧对齐估计 + 修正 yaml
 src/pcd_to_pgm           # 点云 → pgm 实验工具（dump/replay/compare）
 src/pointcloud_to_laserscan  # 第三方包，vendored：[ros-perception/pointcloud_to_laserscan@442b332](https://github.com/ros-perception/pointcloud_to_laserscan/tree/442b33258b3af50e2981f338e1eac3ba259f8afa)（jazzy 分支，BSD）
 tools/                   # 地图/SDF 复核、巡逻点挑选、巡逻执行（含每腿遥测）、发目标、点地图窗口（map_click.py）、
-                         # 敌方机器人障碍（spawn_obstacle.py）、移动/漫游敌车（moving_obstacle.py /
-                         # wander_obstacle.py）、动力学敌车（enemy_drive.py）、键盘遥控（teleop_gui.py）、
-                         # 绕障验收（verify_detour.py）、判死路验收（verify_dead_end.py）
+                         # 敌方机器人障碍（spawn_obstacle.py，可 --armor 加装甲板）、移动/漫游敌车
+                         # （moving_obstacle.py / wander_obstacle.py）、动力学敌车（enemy_drive.py）、
+                         # 键盘遥控（teleop_gui.py）、绕障验收（verify_detour.py）、判死路验收
+                         # （verify_dead_end.py）、装甲板检测（armor_detect.py / verify_armor.py）、
+                         # 让行验收（verify_yield.py）
 results/                 # 验收 JSON 证据
 ```
 
@@ -439,6 +485,14 @@ results/                 # 验收 JSON 证据
 25. **动力学敌车**：模型 SDF 要带 `<inertial>` + `gz-sim-velocity-control-system` 插件才吃
     `/model/<name>/cmd_vel`。测速别用"到达时刻"算 dt —— gz 传输会批量到达，dt 可能 ~0，
     逐帧速度会算出 83 m/s 的假尖峰；用 `pose/info` 消息头里的**仿真时间**、并跳过起步加速段（0.6 s）。
+26. **相机的 `camera_info` 必须是 VOLATILE/RELIABLE**：用 `TRANSIENT_LOCAL` 订阅 ros_gz_bridge 的
+    `/camera/camera_info` 会报 `offering incompatible QoS (DURABILITY)`，然后一条都收不到、`fx` 为
+    None，检测节点安静地一条都报不出来（2026-11-25 踩）。
+27. **rclpy 的 goal handle `get_result_async()` 只能取一次**：重复调用时，若 action server 的结果
+    响应已被消费，后来的 future 永远不 resolve —— 车上早就到点了，客户端 `done()` 一直是 False，
+    白等 95 s 才靠收尾兜底拿到结果。做法：发目标时取一次 future 存下来，之后只轮询它。
+28. **视觉件不要给碰撞**：装甲板是纯 `<visual>`（135×55×6 mm、离地 0.15 m），车体上加碰撞会让
+    规划器把"贴脸"当不可通行；敌车本体碰撞仍是 0.4×0.4×0.25 的 box。
 
 ## 8. Humble / RDK S100 兼容
 
@@ -477,4 +531,6 @@ results/                 # 验收 JSON 证据
   窄缝仍由 `path_guard` 的 0.20 m 阈值判死路（等价缝宽 1.02 m）。详见 §2.11。
 - **死路判定在客户端**：`ros2 action send_goal` 直接发的目标没有客户端盯路径 → 不会自动取消。
   要用这个保护就走点地图窗口或 `verify_dead_end.py`。
-- 比赛要素（敌方车、装甲板/灯条、遭遇让行）尚未做。
+- 比赛要素：**敌方车（动力学）、装甲板检测（HSV 纯色板）、让行**已做（§2.12/§2.13）；
+  **装甲板数字识别 / 真实视觉链路**未做（仿真里是纯色块，实车要换检测器）；
+  追击/拦截、与裁判系统交互（装甲板受击判定、补弹/复活）也没做。

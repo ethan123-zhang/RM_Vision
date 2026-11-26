@@ -63,11 +63,11 @@ SDF = """<?xml version="1.0"?>
       <visual name="visual">
         <geometry><box><size>{size} {size} {height}</size></box></geometry>
         <material>
-          <ambient>0.45 0.03 0.03 1</ambient>
-          <diffuse>0.82 0.08 0.08 1</diffuse>
+          <ambient>{body_ambient}</ambient>
+          <diffuse>{body_diffuse}</diffuse>
           <specular>0.15 0.15 0.15 1</specular>
         </material>
-      </visual>
+      </visual>{armor}
     </link>{extra}
   </model>
 </sdf>
@@ -82,6 +82,47 @@ VEL_CTRL = """
       <topic>/model/{name}/cmd_vel</topic>
     </plugin>"""
 
+# S3e 装甲板：RM 小装甲板 135x55 mm（这里 3 mm 厚，纯视觉、不做碰撞）。四面各一块、
+# 离地 0.15 m；检测靠前视相机（`./run_sentry_nav.sh camera:=true`）+ tools/armor_detect.py。
+PLATE_W = 0.135
+PLATE_H = 0.055
+PLATE_T = 0.006
+
+ARMOR_VISUAL = """
+      <visual name="armor_{face}">
+        <pose>{x} {y} {z} 0 0 0</pose>
+        <geometry><box><size>{sx} {sy} {sz}</size></box></geometry>
+        <material>
+          <ambient>{r} {g} {b} 1</ambient>
+          <diffuse>{r} {g} {b} 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <emissive>{er} {eg} {eb} 1</emissive>
+        </material>
+      </visual>"""
+
+
+def _armor_visuals(size, armor_color, height):
+    """四面装甲板的视觉块（相对 link 原点；模型落地后 link 中心在 height/2）。"""
+    if armor_color == "red":
+        rgb = (0.90, 0.05, 0.05)
+    elif armor_color == "blue":
+        rgb = (0.05, 0.10, 0.90)
+    else:
+        return ""
+    r, g, b = rgb
+    er, eg, eb = (0.25 * r, 0.25 * g, 0.25 * b)      # 自发光一点，暗光下也能检出
+    z = 0.15 - height / 2.0
+    half = size / 2.0 + PLATE_T / 2.0
+    faces = [
+        ("front", half, 0.0, PLATE_T, PLATE_W, PLATE_H),
+        ("back", -half, 0.0, PLATE_T, PLATE_W, PLATE_H),
+        ("left", 0.0, half, PLATE_W, PLATE_T, PLATE_H),
+        ("right", 0.0, -half, PLATE_W, PLATE_T, PLATE_H),
+    ]
+    return "".join(ARMOR_VISUAL.format(face=face, x=x, y=y, z=z, sx=sx, sy=sy, sz=sz,
+                                       r=r, g=g, b=b, er=er, eg=eg, eb=eb)
+                   for face, x, y, sx, sy, sz in faces)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -94,6 +135,8 @@ def main():
     ap.add_argument("--yaw", type=float, default=0.0, help="朝向 deg")
     ap.add_argument("--dynamic", action="store_true",
                     help="参与物理（可被 set_pose 推动、会与车相撞）；默认 static 只做感知障碍")
+    ap.add_argument("--armor", choices=["none", "red", "blue"], default="none",
+                    help="给敌车四面加装甲板（颜色 side）；配 camera:=true 做检测")
     args = ap.parse_args()
 
     node = Node()
@@ -119,9 +162,14 @@ def main():
     req = EntityFactory()
     req.name = args.name
     req.allow_renaming = False
-    req.sdf = SDF.format(name=args.name, size=args.size, height=args.height,
-                         static="false" if args.dynamic else "true",
-                         extra=VEL_CTRL.format(name=args.name) if args.dynamic else "")
+    req.sdf = SDF.format(
+        name=args.name, size=args.size, height=args.height,
+        static="false" if args.dynamic else "true",
+        extra=VEL_CTRL.format(name=args.name) if args.dynamic else "",
+        armor=_armor_visuals(args.size, args.armor, args.height),
+        # 有装甲板时车体压成深灰，避免红底板把红装甲板的 HSV 检出搅浑
+        body_ambient=("0.25 0.25 0.27 1" if args.armor != "none" else "0.45 0.03 0.03 1"),
+        body_diffuse=("0.35 0.35 0.38 1" if args.armor != "none" else "0.82 0.08 0.08 1"))
     req.pose.CopyFrom(Pose(name=args.name))
     req.pose.position.x = args.x
     req.pose.position.y = args.y

@@ -1,0 +1,33 @@
+{
+  "pass": true,
+  "status": "SUCCEEDED",
+  "triggered": true,
+  "backed_off_m": 0.925,
+  "min_center_m": 1.2,
+  "gap_face_m": 0.75,
+  "arrival_err_m": 0.06,
+  "resumes": 1,
+  "sim_s": 17.6,
+  "checks": {
+    "触发让行(前方<1.5m 且净空<0.20m)": {
+      "pass": true,
+      "detail": "triggered=True"
+    },
+    "退让位移>=0.3 m": {
+      "pass": true,
+      "detail": "0.93 m"
+    },
+    "不接触敌车(面距>=0.05 m)": {
+      "pass": true,
+      "detail": "最小中心距 1.200 m -> 面距 +0.750 m"
+    },
+    "恢复后到达": {
+      "pass": true,
+      "detail": "SUCCEEDED，到点 0.06 m，恢复 1 次"
+    },
+    "没磨满超时": {
+      "pass": true,
+      "detail": "17.6 s / 150 s"
+    }
+  }
+}

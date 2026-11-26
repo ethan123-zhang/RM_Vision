@@ -7,6 +7,9 @@
   <xacro:arg name="lidar_resolution" default="1.0"/>
   <!-- S3a low safety lidar switch; set false to reproduce "enemy appears in your face" -->
   <xacro:arg name="safety_lidar" default="true"/>
+  <!-- S3e 前视相机开关（默认 off）：只给"装甲板检测"用。llvmpipe 下多一路 RGB 渲染会压 RTF，
+       所以默认不开，检测时才 camera:=true。 -->
+  <xacro:arg name="camera" default="false"/>
 
   <xacro:property name="base_x" value="0.50"/>
   <xacro:property name="base_y" value="0.50"/>
@@ -201,6 +204,36 @@
             <resolution>0.01</resolution>
           </range>
         </lidar>
+      </sensor>
+    </gazebo>
+  </xacro:if>
+
+  <!-- S3e: 前视相机（装甲板检测）。默认关；llvmpipe 下多一路 RGB 渲染会压 RTF。
+       装车顶前缘：base_link 系 (0.10, 0, 0.20) = 离地 0.29 m（略低于 Mid-360 的 0.30 m），
+       下俯 0.08 rad，480x360 @10 Hz、hfov 1.2 rad —— 1~4 m 处的 0.135 m 装甲板宽度
+       约 40~10 px，够 HSV 阈值检出。
+       帧名同安全雷达：gz 会给作用域名，检测节点用 TF 而不是 header.frame_id 做投影。 -->
+  <xacro:if value="$(arg camera)">
+    <gazebo reference="base_link">
+      <sensor name="camera" type="camera">
+        <pose>0.10 0 0.20 0 -0.08 0</pose>
+        <topic>/camera/image</topic>
+        <camera_info_topic>/camera/camera_info</camera_info_topic>
+        <update_rate>10</update_rate>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <camera>
+          <horizontal_fov>1.2</horizontal_fov>
+          <image>
+            <width>480</width>
+            <height>360</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>20.0</far>
+          </clip>
+        </camera>
       </sensor>
     </gazebo>
   </xacro:if>

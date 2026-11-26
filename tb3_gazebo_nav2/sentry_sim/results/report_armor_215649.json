@@ -1,0 +1,195 @@
+{
+  "pass": true,
+  "robot": [
+    -5.014276411387343e-15,
+    -2.5
+  ],
+  "cases": [
+    {
+      "tag": "red_1.0m",
+      "color": "red",
+      "dx": 1.0,
+      "dy": 0.0,
+      "geometry": true,
+      "exp_depth_m": 0.697,
+      "exp_bearing_rad": 0.0,
+      "frames": 15,
+      "det_rate": 1.0,
+      "depth_m": 0.677,
+      "bearing_rad": 0.0,
+      "w_px": 70.0,
+      "depth_err_m": 0.02,
+      "bearing_err_rad": 0.0
+    },
+    {
+      "tag": "red_2.0m",
+      "color": "red",
+      "dx": 2.0,
+      "dy": 0.0,
+      "geometry": true,
+      "exp_depth_m": 1.697,
+      "exp_bearing_rad": 0.0,
+      "frames": 13,
+      "det_rate": 1.0,
+      "depth_m": 1.691,
+      "bearing_rad": 0.0,
+      "w_px": 28.0,
+      "depth_err_m": 0.006,
+      "bearing_err_rad": 0.0
+    },
+    {
+      "tag": "red_3.0m",
+      "color": "red",
+      "dx": 3.0,
+      "dy": 0.0,
+      "geometry": true,
+      "exp_depth_m": 2.697,
+      "exp_bearing_rad": 0.0,
+      "frames": 14,
+      "det_rate": 1.0,
+      "depth_m": 2.631,
+      "bearing_rad": 0.0,
+      "w_px": 18.0,
+      "depth_err_m": 0.066,
+      "bearing_err_rad": 0.0
+    },
+    {
+      "tag": "red_2.0m_left",
+      "color": "red",
+      "dx": 2.0,
+      "dy": 0.5,
+      "geometry": false,
+      "exp_depth_m": 1.762,
+      "exp_bearing_rad": 0.2573,
+      "frames": 15,
+      "det_rate": 1.0,
+      "depth_m": 1.633,
+      "bearing_rad": 0.2895,
+      "w_px": 29.0,
+      "depth_err_m": 0.129,
+      "bearing_err_rad": 0.0322
+    },
+    {
+      "tag": "red_2.0m_right",
+      "color": "red",
+      "dx": 2.0,
+      "dy": -0.5,
+      "geometry": false,
+      "exp_depth_m": 1.762,
+      "exp_bearing_rad": -0.2573,
+      "frames": 13,
+      "det_rate": 1.0,
+      "depth_m": 1.633,
+      "bearing_rad": -0.2895,
+      "w_px": 29.0,
+      "depth_err_m": 0.129,
+      "bearing_err_rad": 0.0322
+    },
+    {
+      "tag": "blue_2.0m",
+      "color": "blue",
+      "dx": 2.0,
+      "dy": 0.0,
+      "geometry": true,
+      "exp_depth_m": 1.697,
+      "exp_bearing_rad": 0.0,
+      "frames": 13,
+      "det_rate": 1.0,
+      "depth_m": 1.691,
+      "bearing_rad": 0.0,
+      "w_px": 28.0,
+      "depth_err_m": 0.006,
+      "bearing_err_rad": 0.0
+    }
+  ],
+  "checks": {
+    "red_1.0m 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "red_1.0m 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "red_1.0m 距离误差<=max(0.2,8%)": {
+      "pass": true,
+      "detail": "0.020 m (tol 0.20)"
+    },
+    "red_1.0m 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0000 rad"
+    },
+    "red_2.0m 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "red_2.0m 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "red_2.0m 距离误差<=max(0.2,8%)": {
+      "pass": true,
+      "detail": "0.006 m (tol 0.20)"
+    },
+    "red_2.0m 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0000 rad"
+    },
+    "red_3.0m 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "red_3.0m 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "red_3.0m 距离误差<=max(0.2,8%)": {
+      "pass": true,
+      "detail": "0.066 m (tol 0.22)"
+    },
+    "red_3.0m 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0000 rad"
+    },
+    "red_2.0m_left 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "red_2.0m_left 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "red_2.0m_left 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0322 rad"
+    },
+    "red_2.0m_right 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "red_2.0m_right 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "red_2.0m_right 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0322 rad"
+    },
+    "blue_2.0m 检出率>=0.5": {
+      "pass": true,
+      "detail": "1.0"
+    },
+    "blue_2.0m 颜色匹配": {
+      "pass": true,
+      "detail": "detected"
+    },
+    "blue_2.0m 距离误差<=max(0.2,8%)": {
+      "pass": true,
+      "detail": "0.006 m (tol 0.20)"
+    },
+    "blue_2.0m 方位误差<=0.06 rad": {
+      "pass": true,
+      "detail": "0.0000 rad"
+    }
+  }
+}

@@ -53,8 +53,16 @@ def _launch_setup(context, *args, **kwargs):
     gui = context.perform_substitution(LaunchConfiguration('gui')).lower() == 'true'
     world_xacro = context.perform_substitution(LaunchConfiguration('world'))
     models_dir = context.perform_substitution(LaunchConfiguration('models'))
+    camera = context.perform_substitution(LaunchConfiguration('camera')).lower() == 'true'
     spawn = [context.perform_substitution(LaunchConfiguration(a))
              for a in ('spawn_x', 'spawn_y', 'spawn_z')]
+    # S3e: 相机话题只在开相机时桥接（不桥的话 gz 侧多一路大图，DDS 也白占带宽）。
+    bridge_args = list(BRIDGE_ARGS)
+    if camera:
+        bridge_args += [
+            '/camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+        ]
 
     os.makedirs(os.path.dirname(WORLD_SDF), exist_ok=True)
     conv = subprocess.run(['xacro', world_xacro, 'headless:=true'],
@@ -74,7 +82,9 @@ def _launch_setup(context, *args, **kwargs):
                  ' lidar_slices:=', LaunchConfiguration('lidar_slices'),
                  ' lidar_resolution:=', LaunchConfiguration('lidar_resolution'),
                  # S3a: safety lidar on/off, forwarded from run_sentry_nav.sh
-                 ' safety_lidar:=', LaunchConfiguration('safety_lidar')]),
+                 ' safety_lidar:=', LaunchConfiguration('safety_lidar'),
+                 # S3e: 前视相机（装甲板检测用），默认关
+                 ' camera:=', LaunchConfiguration('camera')]),
         value_type=str)
 
     gz_cmd = ['gz', 'sim', '-r'] + ([] if gui else ['-s']) + ['-v', '2', WORLD_SDF]
@@ -109,7 +119,7 @@ def _launch_setup(context, *args, **kwargs):
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            arguments=BRIDGE_ARGS,
+            arguments=bridge_args,
             parameters=[{'use_sim_time': True}],
             output='screen',
         ),
@@ -184,6 +194,8 @@ def generate_launch_description():
         DeclareLaunchArgument('lidar_resolution', default_value='1.0'),
         # S3a: low safety lidar; false = old behaviour (reproduce the blind spot).
         DeclareLaunchArgument('safety_lidar', default_value='true'),
+        # S3e: front camera for armor-plate detection (default off: costs RTF on llvmpipe).
+        DeclareLaunchArgument('camera', default_value='false'),
         DeclareLaunchArgument('p2l_min_height', default_value='0.05'),
         DeclareLaunchArgument('p2l_max_height', default_value='0.60'),
         # S2c: Odin1 map -> field offset injected into odin1_sim_bridge.
